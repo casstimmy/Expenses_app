@@ -8,9 +8,8 @@ import {
   FaSyncAlt,
 } from "react-icons/fa";
 import { useEffect, useState } from "react";
-import ExportToPDF from "@/components/ExportToPDF";
+{ /* import ExportToPDF from "@/components/ExportToPDF";*/}
 import { saveAs } from "file-saver";
-import * as XLSX from "xlsx";
 import { BarChart2, PieChart as PieIcon } from "lucide-react";
 import {
   PieChart,
@@ -683,7 +682,7 @@ Total Payments: ₦${Number(report.totalPayments || 0).toLocaleString()}
 
                       {/* PDF Export */}
                       <button
-                        onClick={() => ExportToPDF(filteredExpenses, report)}
+                        onClick={"(() => ExportToPDF(filteredExpenses, report))"}
                         className="group relative flex items-center gap-2 px-4 py-1.5 rounded-lg border border-red-400 bg-white text-red-500 text-sm cursor-pointer font-medium shadow-sm transition duration-300 ease-in-out hover:bg-red-400 hover:text-white hover:shadow-md"
                       >
                         <FaFilePdf className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
