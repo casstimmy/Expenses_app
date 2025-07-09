@@ -66,7 +66,7 @@ export default function Nav() {
               }}
             >
               <Image
-                src="/image/logo.png"
+                src=""
                 alt="Ibile Expense Logo"
                 className="w-8 h-8 object-contain"
               />

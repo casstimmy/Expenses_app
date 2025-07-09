@@ -1,5 +1,4 @@
 // pages/api/expenses/analysis.js
-import PDFDocument from "pdfkit";
 import { mongooseConnect } from "@/lib/mongoose";
 import Expense from "@/models/Expense";
 
