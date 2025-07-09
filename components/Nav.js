@@ -2,6 +2,7 @@ import { useRouter } from "next/router";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
+import Image from "next/image";
 
 export default function Nav() {
   const [loading, setLoading] = useState(false);
@@ -64,7 +65,7 @@ export default function Nav() {
                 backgroundPosition: "center",
               }}
             >
-              <img
+              <Image
                 src="/image/logo.png"
                 alt="Ibile Expense Logo"
                 className="w-8 h-8 object-contain"
