@@ -95,8 +95,8 @@ export default function Home({ staffList, locations }) {
         {/* Main Content */}
         <div className="relative z-10 flex-grow flex items-center justify-center px-4 sm:px-6 lg:px-20 py-8 sm:py-12">
           <div className="w-full flex flex-col lg:flex-row items-center justify-between max-w-7xl">
-            {/* Hero Section */}
-            <div className="text-center lg:text-left lg:w-1/2 mb-10 sm:mb-12 lg:mb-0 animate-fade-in px-2 sm:px-0">
+            {/* Hero Section - Hidden on small screens */}
+            <div className="hidden sm:block text-center lg:text-left lg:w-1/2 mb-10 sm:mb-12 lg:mb-0 animate-fade-in px-2 sm:px-0">
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-blue-800 mb-4 drop-shadow">
                 Ibile Expense
               </h1>
