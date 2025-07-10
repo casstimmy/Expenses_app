@@ -86,7 +86,7 @@ export default function Home({ staffList, locations }) {
 
   return (
     <Layout>
-      <div className="flex flex-col h-screen overflow-auto relative">
+      <div className="flex flex-col min-h-screen relative">
         {/* Particle Background */}
         <div className="absolute inset-0 z-0">
           <Particles id="tsparticles" init={particlesInit} options={particlesOptions} />
@@ -112,7 +112,7 @@ export default function Home({ staffList, locations }) {
             </div>
 
             {/* Login Box */}
-            <div className="w-full max-w-sm bg-white rounded-xl shadow-md px-6 py-8 sm:px-8 animate-fade-in">
+            <div className="w-full max-w-sm bg-white rounded-xl shadow-md px-6 py-8 sm:px-8 animate-fade-in overflow-y-auto max-h-[90vh]">
               <h2 className="text-xl sm:text-2xl font-bold text-center text-blue-700 mb-6">
                 Staff Login
               </h2>
