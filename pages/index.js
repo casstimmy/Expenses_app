@@ -13,7 +13,7 @@ export default function Home({ staffList, locations }) {
   const router = useRouter();
 
   useEffect(() => {
-    localStorage.removeItem("staff"); // ✅ clear login
+    localStorage.removeItem("staff");
   }, []);
 
   const particlesOptions = useMemo(
@@ -70,7 +70,7 @@ export default function Home({ staffList, locations }) {
     } else {
       const err = await res.json();
       setError(err.message || "Login failed");
-      setPassword(""); // ✅ Clear password on error
+      setPassword("");
     }
   };
 
@@ -86,27 +86,22 @@ export default function Home({ staffList, locations }) {
 
   return (
     <Layout>
-      <div className="flex flex-col h-screen overflow-hidden relative">
+      <div className="flex flex-col h-screen overflow-auto relative">
         {/* Particle Background */}
         <div className="absolute inset-0 z-0">
-          <Particles
-            id="tsparticles"
-            init={particlesInit}
-            options={particlesOptions}
-          />
+          <Particles id="tsparticles" init={particlesInit} options={particlesOptions} />
         </div>
 
         {/* Main Content */}
-        <div className="relative z-10 flex-grow flex items-center justify-center px-6 lg:px-20 py-12">
+        <div className="relative z-10 flex-grow flex items-center justify-center px-4 sm:px-6 lg:px-20 py-8 sm:py-12">
           <div className="w-full flex flex-col lg:flex-row items-center justify-between max-w-7xl">
             {/* Hero Section */}
-            <div className="text-center lg:text-left lg:w-1/2 mb-12 lg:mb-0 animate-fade-in">
-              <h1 className="text-4xl sm:text-5xl font-extrabold text-blue-800 mb-4 drop-shadow">
+            <div className="text-center lg:text-left lg:w-1/2 mb-10 sm:mb-12 lg:mb-0 animate-fade-in px-2 sm:px-0">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-blue-800 mb-4 drop-shadow">
                 Ibile Expense
               </h1>
-              <p className="text-lg sm:text-xl text-gray-700 mb-6 max-w-xl mx-auto lg:mx-0">
-                Simple, powerful cash expense tracking for your business or
-                personal use.
+              <p className="text-base sm:text-lg text-gray-700 mb-6 max-w-xl mx-auto lg:mx-0">
+                Simple, powerful cash expense tracking for your business or personal use.
               </p>
               <Link
                 href="/expenses/getStarted"
@@ -117,8 +112,8 @@ export default function Home({ staffList, locations }) {
             </div>
 
             {/* Login Box */}
-            <div className="w-full max-w-md bg-white rounded-xl shadow-md p-8 animate-fade-in">
-              <h2 className="text-2xl font-bold text-center text-blue-700 mb-6">
+            <div className="w-full max-w-sm bg-white rounded-xl shadow-md px-6 py-8 sm:px-8 animate-fade-in">
+              <h2 className="text-xl sm:text-2xl font-bold text-center text-blue-700 mb-6">
                 Staff Login
               </h2>
               <form onSubmit={handleLogin}>
@@ -129,7 +124,7 @@ export default function Home({ staffList, locations }) {
                   <select
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm sm:text-base focus:ring-blue-500 focus:border-blue-500"
                   >
                     {Array.isArray(staffList) &&
                       staffList.map((staff) => (
@@ -146,7 +141,7 @@ export default function Home({ staffList, locations }) {
                   <select
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm sm:text-base focus:ring-blue-500 focus:border-blue-500"
                   >
                     {Array.isArray(locations) &&
                       locations.map((loc) => (
@@ -168,25 +163,23 @@ export default function Home({ staffList, locations }) {
 
                 {/* Keypad */}
                 <div className="grid grid-cols-3 gap-3 my-4">
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, "clear", 0, "back"].map(
-                    (key) => (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => handleKeypad(key)}
-                        className="bg-blue-100 hover:bg-blue-300 text-blue-800 font-bold py-2 rounded-lg"
-                      >
-                        {key === "clear" ? "C" : key === "back" ? "←" : key}
-                      </button>
-                    )
-                  )}
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, "clear", 0, "back"].map((key) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => handleKeypad(key)}
+                      className="bg-blue-100 hover:bg-blue-300 text-blue-800 font-bold py-3 sm:py-2 rounded-lg text-lg sm:text-base"
+                    >
+                      {key === "clear" ? "C" : key === "back" ? "←" : key}
+                    </button>
+                  ))}
                 </div>
 
                 {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
 
                 <button
                   type="submit"
-                  className="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition"
+                  className="w-full bg-blue-600 text-white py-3 sm:py-2 rounded-lg font-semibold hover:bg-blue-700 transition text-sm sm:text-base"
                 >
                   Log in
                 </button>
@@ -202,8 +195,8 @@ export default function Home({ staffList, locations }) {
         </div>
 
         {/* Footer */}
-        <footer className="relative z-10 mb-20 flex items-center justify-center">
-          <div className="text-center px-4">
+        <footer className="relative z-10 mb-10 sm:mb-20 flex items-center justify-center px-4">
+          <div className="text-center">
             <p className="text-sm sm:text-base text-gray-500 mb-1">
               Built with <span className="text-red-500">❤️</span> by{" "}
               <span className="text-blue-600 font-semibold tracking-wide">
@@ -211,8 +204,7 @@ export default function Home({ staffList, locations }) {
               </span>
             </p>
             <p className="text-xs sm:text-sm text-gray-400">
-              &copy; {new Date().getFullYear()} <strong>Ibile Expense</strong>.
-              All rights reserved.
+              &copy; {new Date().getFullYear()} <strong>Ibile Expense</strong>. All rights reserved.
             </p>
           </div>
         </footer>
@@ -221,7 +213,6 @@ export default function Home({ staffList, locations }) {
   );
 }
 
-// Server-side: Get staff list and locations
 export async function getServerSideProps() {
   const { mongooseConnect } = await import("@/lib/mongoose");
   const Staff = (await import("@/models/Staff")).Staff;
@@ -230,7 +221,6 @@ export async function getServerSideProps() {
   const staffDocs = await Staff.find({}, "name");
   const staffList = staffDocs.map((s) => s.name);
 
-  // Optionally load this from DB too
   const locations = ["Ibile 1", "Ibile 2"];
 
   return {
