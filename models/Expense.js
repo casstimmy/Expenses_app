@@ -12,10 +12,12 @@ const ExpenseSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
-  staffName: {
-    type: String,
-    default: null,
-  },
+ staff: {
+     _id: { type: mongoose.Schema.Types.ObjectId, ref: "Staff" },
+     name: String,
+     role: String,
+     email: String,
+   },
   date: { type: Date, default: Date.now },
   description: String,
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }

@@ -1,14 +1,23 @@
 import { useEffect, useState } from "react";
 import { Loader2, PlusCircle } from "lucide-react";
 
-export default function ExpenseForm({ onSaved, categoryApi = "/api/expenses/expense-category" }) {
-  const [formData, setFormData] = useState({
-    title: "",
-    amount: "",
-    category: "",
-    description: "",
-    location: "",
-  });
+export default function ExpenseForm({location, onSaved, categoryApi = "/api/expenses/expense-category" }) {
+ const [formData, setFormData] = useState({
+  title: "",
+  amount: "",
+  category: "",
+  description: "",
+  location: location || "",
+  staff: {
+    _id: "",
+    name: "",
+    role: "",
+    email: "",
+  },
+});
+
+
+
 
   const [customCategory, setCustomCategory] = useState("");
   const [categories, setCategories] = useState([]);
@@ -16,16 +25,25 @@ export default function ExpenseForm({ onSaved, categoryApi = "/api/expenses/expe
   const [loading, setLoading] = useState(false);
 
   // Load staff location from localStorage
-  useEffect(() => {
-    const stored = localStorage.getItem("staff");
-    if (stored) {
-      const staff = JSON.parse(stored);
-      setFormData((prev) => ({
-        ...prev,
-        location: staff?.location || "",
-      }));
-    }
-  }, []);
+ useEffect(() => {
+  const stored = localStorage.getItem("staff");
+  if (stored) {
+    const staff = JSON.parse(stored);
+    setFormData((prev) => ({
+      ...prev,
+      location: staff.location || "",
+      staff: {
+        _id: staff._id,
+        name: staff.name,
+        role: staff.role,
+        email: staff.email,
+      },
+    }));
+  }
+}, []);
+
+
+
 
   // Fetch categories
   useEffect(() => {
@@ -92,13 +110,16 @@ export default function ExpenseForm({ onSaved, categoryApi = "/api/expenses/expe
     const res = await fetch("/api/expenses", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: formData.title,
-        amount: formData.amount,
-        category: categoryToSave,
-        description: formData.description,
-        location: formData.location,
-      }),
+    body: JSON.stringify({
+  title: formData.title,
+  amount: formData.amount,
+  category: categoryToSave,
+  description: formData.description,
+  location: formData.location,
+  staff: formData.staff,
+}),
+
+
     });
 
     if (res.ok) {

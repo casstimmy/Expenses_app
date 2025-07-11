@@ -1,8 +1,6 @@
-// pages/api/expenses/index.js
-
 import { mongooseConnect } from "@/lib/mongoose";
 import Expense from "@/models/Expense";
-import ExpenseCategory from "@/models/ExpenseCategory"; // Ensure this is imported
+import ExpenseCategory from "@/models/ExpenseCategory";
 
 export default async function handler(req, res) {
   await mongooseConnect();
@@ -10,7 +8,7 @@ export default async function handler(req, res) {
   if (req.method === "GET") {
     try {
       const expenses = await Expense.find()
-        .populate("category", "name") // Populate only the category name
+        .populate("category", "name")
         .sort({ createdAt: -1 });
 
       return res.status(200).json(expenses);
@@ -27,7 +25,7 @@ export default async function handler(req, res) {
       category,
       description,
       location,
-      staffName,   // ✅ receive staff name
+      staff, // ✅ expect "staff" (not staffName)
     } = req.body;
 
     if (!title || !amount || !category) {
@@ -41,7 +39,7 @@ export default async function handler(req, res) {
         category,
         description,
         location: location || null,
-        staffName: staffName || null,  // ✅ save staff name
+        staff: staff || null,
       });
 
       return res.status(201).json(newExpense);

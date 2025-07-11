@@ -10,6 +10,7 @@ export default function Home({ staffList, locations }) {
   const [location, setLocation] = useState(locations?.[0] || "");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -57,20 +58,28 @@ export default function Home({ staffList, locations }) {
       return;
     }
 
-    const res = await fetch("/api/staff/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, password }),
-    });
+    setLoading(true);
 
-    if (res.ok) {
-      const data = await res.json();
-      localStorage.setItem("staff", JSON.stringify({ ...data, location }));
-      router.push("/expenses/expenses");
-    } else {
-      const err = await res.json();
-      setError(err.message || "Login failed");
-      setPassword("");
+    try {
+      const res = await fetch("/api/staff/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, password }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        localStorage.setItem("staff", JSON.stringify({ ...data, location }));
+        router.push("/expenses/expenses");
+      } else {
+        const err = await res.json();
+        setError(err.message || "Login failed");
+        setPassword("");
+      }
+    } catch (err) {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -95,10 +104,10 @@ export default function Home({ staffList, locations }) {
         {/* Main Content */}
         <div className="relative z-10 flex-grow flex items-center justify-center px-4 sm:px-6 lg:px-20 py-8 sm:py-12">
           <div className="w-full flex flex-col lg:flex-row items-center justify-between max-w-7xl">
-            {/* Hero Section - Hidden on small screens */}
+            {/* Hero Section */}
             <div className="hidden sm:block text-center lg:text-left lg:w-1/2 mb-10 sm:mb-12 lg:mb-0 animate-fade-in px-2 sm:px-0">
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-blue-800 mb-4 drop-shadow">
-                Ibile Expense
+              Expense
               </h1>
               <p className="text-base sm:text-lg text-gray-700 mb-6 max-w-xl mx-auto lg:mx-0">
                 Simple, powerful cash expense tracking for your business or personal use.
@@ -179,9 +188,14 @@ export default function Home({ staffList, locations }) {
 
                 <button
                   type="submit"
-                  className="w-full bg-blue-600 text-white py-3 sm:py-2 rounded-lg font-semibold hover:bg-blue-700 transition text-sm sm:text-base"
+                  disabled={loading}
+                  className={`w-full py-3 sm:py-2 rounded-lg font-semibold text-sm sm:text-base transition ${
+                    loading
+                      ? "bg-blue-400 cursor-not-allowed"
+                      : "bg-blue-600 hover:bg-blue-700"
+                  } text-white`}
                 >
-                  Log in
+                  {loading ? "Logging in..." : "Log in"}
                 </button>
               </form>
               <p className="text-center text-sm text-gray-500 mt-4">
