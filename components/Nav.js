@@ -43,7 +43,8 @@ export default function Nav() {
     navLinks.push(
       { href: "/expenses/analysis", label: "Reports" },
       { href: "/categories", label: "Categories" },
-      { href: "/expenses/tax-analysis", label: "Tax Report" },
+      { href: "/expenses/Pay_Tracker", label: "Pay_Tracker" },
+      { href: "/expenses/Stock_Order", label: "Stock_Order" },
       { href: "/admin/staff", label: "Staff" }
     );
   }

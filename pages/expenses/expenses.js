@@ -209,7 +209,7 @@ export default function ManageExpenses() {
   return (
     <Layout>
       <div className="min-h-screen bg-gray-100 p-6">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-screen-xl mx-auto w-full">
           <h1 className="text-3xl font-bold text-blue-800 mb-6">
             Expense Management
           </h1>
@@ -261,12 +261,12 @@ export default function ManageExpenses() {
           </div>
 
           {/* Expense and Cash Entry Panels */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="bg-white p-6 rounded-xl shadow-lg border border-blue-100">
-              <h2 className="text-xl font-semibold text-blue-700 mb-4">
-                Add New Expense
-              </h2>
-              <ExpenseForm
+          <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-3 lg:gap-8">
+  <div className="bg-white p-6 rounded-xl shadow-lg border border-blue-100 col-span-1 lg:col-span-1">
+    <h2 className="text-xl font-semibold text-blue-700 mb-4">
+      Add New Expense
+    </h2>
+    <ExpenseForm
                 onSaved={fetchExpenses}
                 staffId={staffData?._id}
                 staffName={staffData?.name}
@@ -299,14 +299,14 @@ export default function ManageExpenses() {
                             {exp.title}
                           </h3>
                           {editingExpenseId === exp._id ? (
-                            <div className="flex gap-2 items-center">
+                            <div className="flex flex-col gap-2 items-center">
                               <input
                                 type="number"
                                 value={editedAmount}
                                 onChange={(e) =>
                                   setEditedAmount(e.target.value)
                                 }
-                                className="border px-2 py-1 rounded w-24 text-sm"
+                                className="border px-2 py-1 w-24 rounded w-32 text-sm"
                               />
                               <div className="flex gap-2 items-center">
                                 <button

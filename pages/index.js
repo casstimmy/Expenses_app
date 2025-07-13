@@ -121,7 +121,7 @@ export default function Home({ staffList, locations }) {
             </div>
 
             {/* Login Box */}
-            <div className="w-full max-w-sm bg-white rounded-xl shadow-md px-6 py-8 sm:px-8 animate-fade-in overflow-y-auto max-h-[90vh]">
+            <div className="w-full max-w-sm bg-white rounded-xl shadow-md px-6 py-8 sm:px-8 animate-fade-in overflow-y-auto max-h-[80vh]">
               <h2 className="text-xl sm:text-2xl font-bold text-center text-blue-700 mb-6">
                 Staff Login
               </h2>
@@ -218,7 +218,7 @@ export default function Home({ staffList, locations }) {
               </span>
             </p>
             <p className="text-xs sm:text-sm text-gray-400">
-              &copy; {new Date().getFullYear()} <strong>Ibile Expense</strong>. All rights reserved.
+              &copy; {new Date().getFullYear()} <strong>Expense App</strong>. All rights reserved.
             </p>
           </div>
         </footer>
