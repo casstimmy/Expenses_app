@@ -121,7 +121,7 @@ export default function Home({ staffList, locations }) {
             </div>
 
             {/* Login Box */}
-            <div className="w-full max-w-sm bg-white rounded-xl shadow-md px-6 py-8 sm:px-8 animate-fade-in overflow-y-auto max-h-[80vh]">
+          <div className="w-full max-w-sm bg-white rounded-xl shadow-md px-4 py-6 sm:px-6 sm:py-8 animate-fade-in overflow-y-auto max-h-[calc(100vh-2rem)] sm:max-h-[80vh]">
               <h2 className="text-xl sm:text-2xl font-bold text-center text-blue-700 mb-6">
                 Staff Login
               </h2>
@@ -177,8 +177,7 @@ export default function Home({ staffList, locations }) {
                       key={key}
                       type="button"
                       onClick={() => handleKeypad(key)}
-                      className="bg-blue-100 hover:bg-blue-300 text-blue-800 font-bold py-3 sm:py-2 rounded-lg text-lg sm:text-base"
-                    >
+                      className="bg-blue-100 hover:bg-blue-300 text-blue-800 font-bold py-2 sm:py-3 rounded-lg text-base sm:text-lg">
                       {key === "clear" ? "C" : key === "back" ? "←" : key}
                     </button>
                   ))}
