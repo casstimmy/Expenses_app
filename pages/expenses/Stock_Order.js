@@ -115,10 +115,43 @@ export default function StockOrder() {
             </div>
           )}
 
-          <form
-            onSubmit={handleSubmit}
-            className="bg-white p-6 rounded shadow space-y-6"
-          >
+
+
+
+        {selectedVendor && (
+  <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow space-y-6">
+
+<div className="mb-6 p-5 rounded-xl shadow-md border border-gray-200 bg-gradient-to-r from-blue-50 to-white">
+  <div className="flex items-center justify-between px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl shadow-sm mb-4">
+  <h2 className="text-lg sm:text-xl font-bold text-blue-900 flex items-center gap-2">
+    <span className="text-2xl">📦</span>
+    Vendor Order:{" "}
+    <span className="text-blue-700 font-semibold">
+      {selectedVendor?.mainProduct || "N/A"}
+    </span>
+  </h2>
+
+  <span className="text-xs sm:text-sm font-medium text-blue-700 bg-blue-100 border border-blue-300 px-3 py-1 rounded-full shadow-sm">
+    📝 Order Mode
+  </span>
+</div>
+
+
+  <div className="mt-3 text-sm text-gray-700 space-y-1">
+    <p>
+      <span className="font-semibold text-gray-900">Company:</span> {selectedVendor?.companyName}
+    </p>
+    <p>
+      <span className="font-semibold text-gray-900">Representative:</span> {selectedVendor?.vendorRep}
+    </p>
+    <p>
+      <span className="font-semibold text-gray-900">Phone:</span> {selectedVendor?.repPhone}
+    </p>
+  </div>
+</div>
+
+
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <input
                 type="date"
@@ -200,7 +233,8 @@ export default function StockOrder() {
                 Add Order
               </button>
             </div>
-          </form>
+       </form>
+)}
 
           {orders.length > 0 && (
             <section className="bg-white p-6 rounded shadow space-y-4">
