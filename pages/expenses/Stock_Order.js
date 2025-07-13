@@ -54,16 +54,16 @@ export default function StockOrder() {
     setForm({ date: "", supplier: "", contact: "", products: [] });
     setSelectedVendor(null);
 
-     {console.log("Sending payload", updatedOrders)}
+    {
+      console.log("Sending payload", updatedOrders);
+    }
   };
 
   return (
     <Layout>
-     <div className="min-h-screen bg-gray-100 p-6">
+      <div className="min-h-screen bg-gray-100 p-6">
         <div className="max-w-6xl mx-auto space-y-6">
-          
-            <h1 className="text-3xl font-bold text-blue-800">Stock Ordering</h1>
-       
+          <h1 className="text-3xl font-bold text-blue-800">Stock Ordering</h1>
 
           <section className="bg-white p-6 rounded shadow">
             <div className="flex justify-between items-center mb-4">
@@ -76,14 +76,13 @@ export default function StockOrder() {
               </button>
             </div>
 
-          <VendorList
-  vendors={vendors}
-  setSelectedVendor={setSelectedVendor}
-  setForm={setForm}
-  setEditingVendor={setEditingVendor}     // ✅ Add this
-  setShowVendorForm={setShowVendorForm}   // ✅ Add this
-/>
-
+            <VendorList
+              vendors={vendors}
+              setSelectedVendor={setSelectedVendor}
+              setForm={setForm}
+              setEditingVendor={setEditingVendor} // ✅ Add this
+              setShowVendorForm={setShowVendorForm} // ✅ Add this
+            />
           </section>
 
           {showVendorForm && (
@@ -100,141 +99,143 @@ export default function StockOrder() {
                     &times;
                   </button>
                 </div>
-               <VendorForm
-  editingVendor={editingVendor}
-  onSuccess={() => {
-    setShowVendorForm(false);
-    setEditingVendor(null);
-    fetch("/api/vendors")
-      .then((res) => res.json())
-      .then((data) => setVendors(data));
-  }}
-/>
-
+                <VendorForm
+                  editingVendor={editingVendor}
+                  onSuccess={() => {
+                    setShowVendorForm(false);
+                    setEditingVendor(null);
+                    fetch("/api/vendors")
+                      .then((res) => res.json())
+                      .then((data) => setVendors(data));
+                  }}
+                />
               </div>
             </div>
           )}
 
+          {selectedVendor && (
+            <form
+              onSubmit={handleSubmit}
+              className="bg-white p-6 rounded shadow space-y-6"
+            >
+              <div className="mb-6 p-5 rounded-xl shadow-md border border-gray-200 bg-gradient-to-r from-blue-50 to-white">
+                <div className="flex items-center justify-between px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl shadow-sm mb-4">
+                  <h2 className="text-lg sm:text-xl font-bold text-blue-900 flex items-center gap-2">
+                    <span className="text-2xl">📦</span>
+                    Vendor Order:{" "}
+                    <span className="text-blue-700 font-semibold">
+                      {selectedVendor?.mainProduct || "N/A"}
+                    </span>
+                  </h2>
 
+                  <span className="text-xs sm:text-sm font-medium text-blue-700 bg-blue-100 border border-blue-300 px-3 py-1 rounded-full shadow-sm">
+                    📝 Order Mode
+                  </span>
+                </div>
 
-
-        {selectedVendor && (
-  <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow space-y-6">
-
-<div className="mb-6 p-5 rounded-xl shadow-md border border-gray-200 bg-gradient-to-r from-blue-50 to-white">
-  <div className="flex items-center justify-between px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl shadow-sm mb-4">
-  <h2 className="text-lg sm:text-xl font-bold text-blue-900 flex items-center gap-2">
-    <span className="text-2xl">📦</span>
-    Vendor Order:{" "}
-    <span className="text-blue-700 font-semibold">
-      {selectedVendor?.mainProduct || "N/A"}
-    </span>
-  </h2>
-
-  <span className="text-xs sm:text-sm font-medium text-blue-700 bg-blue-100 border border-blue-300 px-3 py-1 rounded-full shadow-sm">
-    📝 Order Mode
-  </span>
-</div>
-
-
-  <div className="mt-3 text-sm text-gray-700 space-y-1">
-    <p>
-      <span className="font-semibold text-gray-900">Company:</span> {selectedVendor?.companyName}
-    </p>
-    <p>
-      <span className="font-semibold text-gray-900">Representative:</span> {selectedVendor?.vendorRep}
-    </p>
-    <p>
-      <span className="font-semibold text-gray-900">Phone:</span> {selectedVendor?.repPhone}
-    </p>
-  </div>
-</div>
-
-
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <input
-                type="date"
-                name="date"
-                value={form.date}
-                onChange={handleChange}
-                className="border p-2 rounded"
-                required
-              />
-              <input
-                type="text"
-                name="supplier"
-                value={form.supplier}
-                onChange={handleChange}
-                placeholder="Supplier"
-                className="border p-2 rounded"
-                required
-              />
-              <input
-                type="text"
-                name="contact"
-                value={form.contact}
-                onChange={handleChange}
-                placeholder="Contact"
-                className="border p-2 rounded"
-              />
-            </div>
-
-            {form.products.length > 0 && (
-              <div className="space-y-4">
-                {form.products.length > 0 && (
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <h2 className="text-lg font-semibold text-gray-700">
-                        Products
-                      </h2>
-                      <button
-                        onClick={() => {
-                          if (
-                            confirm(
-                              "Are you sure you want to clear the entire form?"
-                            )
-                          ) {
-                            setForm({
-                              date: "",
-                              supplier: "",
-                              contact: "",
-                              mainProduct: "",
-                              products: [],
-                            });
-                          }
-                        }}
-                        className="inline-flex items-center gap-1 text-sm font-medium text-red-600 bg-red-100 hover:bg-red-200 px-3 py-1 rounded transition"
-                      >
-                        <span className="text-lg leading-none">&times;</span>
-                        Clear All
-                      </button>
-                    </div>
-
-                    {form.products.map((product, index) => (
-                      <OrderForm
-                        key={index}
-                        index={index}
-                        product={product}
-                        form={form}
-                        setForm={setForm}
-                      />
-                    ))}
-                  </div>
-                )}
+                <div className="mt-3 text-sm text-gray-700 space-y-1">
+                  <p>
+                    <span className="font-semibold text-gray-900">
+                      Company:
+                    </span>{" "}
+                    {selectedVendor?.companyName}
+                  </p>
+                  <p>
+                    <span className="font-semibold text-gray-900">
+                      Representative:
+                    </span>{" "}
+                    {selectedVendor?.vendorRep}
+                  </p>
+                  <p>
+                    <span className="font-semibold text-gray-900">Phone:</span>{" "}
+                    {selectedVendor?.repPhone}
+                  </p>
+                </div>
               </div>
-            )}
 
-            <div className="text-right">
-              <button
-                type="submit"
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-              >
-                Add Order
-              </button>
-            </div>
-       </form>
-)}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <input
+                  type="date"
+                  name="date"
+                  value={form.date}
+                  onChange={handleChange}
+                  className="border p-2 rounded"
+                  required
+                />
+                <input
+                  type="text"
+                  name="supplier"
+                  value={form.supplier}
+                  onChange={handleChange}
+                  placeholder="Supplier"
+                  className="border p-2 rounded"
+                  required
+                />
+                <input
+                  type="text"
+                  name="contact"
+                  value={form.contact}
+                  onChange={handleChange}
+                  placeholder="Contact"
+                  className="border p-2 rounded"
+                />
+              </div>
+
+              {form.products.length > 0 && (
+                <div className="space-y-4">
+                  {form.products.length > 0 && (
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <h2 className="text-lg font-semibold text-gray-700">
+                          Products
+                        </h2>
+                        <button
+                          onClick={() => {
+                            if (
+                              confirm(
+                                "Are you sure you want to clear the entire form?"
+                              )
+                            ) {
+                              setForm({
+                                date: "",
+                                supplier: "",
+                                contact: "",
+                                mainProduct: "",
+                                products: [],
+                              });
+                            }
+                          }}
+                          className="inline-flex items-center gap-1 text-sm font-medium text-red-600 bg-red-100 hover:bg-red-200 px-3 py-1 rounded transition"
+                        >
+                          <span className="text-lg leading-none">&times;</span>
+                          Clear All
+                        </button>
+                      </div>
+
+                      {form.products.map((product, index) => (
+                        <OrderForm
+                          key={index}
+                          index={index}
+                          product={product}
+                          form={form}
+                          setForm={setForm}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="text-right">
+                <button
+                  type="submit"
+                  className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                >
+                  Add Order
+                </button>
+              </div>
+            </form>
+          )}
 
           {orders.length > 0 && (
             <section className="bg-white p-6 rounded shadow space-y-4">
@@ -295,7 +296,6 @@ export default function StockOrder() {
               <div className="text-right">
                 <button
                   onClick={async () => {
-
                     const payload = {
                       date: orders[0].date,
                       supplier: orders[0].supplier,
@@ -330,30 +330,22 @@ export default function StockOrder() {
                       console.error(err);
                       alert("Failed to submit order.");
                     }
-                  }
-               
-                }
-                
+                  }}
                   className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
                 >
-                
                   Submit Order
                 </button>
               </div>
             </section>
           )}
 
-          
-
-       <OrderList
-  submittedOrders={submittedOrders}
-  selectedOrder={selectedOrder}
-  setSelectedOrder={setSelectedOrder}
-/>
-
+          <OrderList
+            submittedOrders={submittedOrders}
+            selectedOrder={selectedOrder}
+            setSelectedOrder={setSelectedOrder}
+          />
         </div>
       </div>
-
     </Layout>
   );
 }

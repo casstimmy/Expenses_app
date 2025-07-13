@@ -29,31 +29,39 @@ export default async function handler(req, res) {
         products,
       } = req.body;
 
-      const productRefs = await Promise.all(
-        products.map(async (prod) => {
-          let productId;
+     const productRefs = await Promise.all(
+  products.map(async (prod) => {
+    let productId;
 
-          // Handle empty or undefined productId
-          if (prod.productId && prod.productId !== "custom") {
-            if (typeof prod.productId === "string" && mongoose.Types.ObjectId.isValid(prod.productId)) {
-              productId = new mongoose.Types.ObjectId(prod.productId);
-            } else {
-              throw new Error(`Invalid productId: ${prod.productId}`);
-            }
-          } else {
-            if (!prod.name || !prod.category) {
-              throw new Error("Product name and category are required for custom product");
-            }
-            const newProduct = await Product.create({
-              name: prod.name.trim(),
-              category: prod.category,
-            });
-            productId = newProduct._id;
-          }
+    // Detect existing product
+    if (prod.product && prod.product !== "custom") {
+      if (
+        typeof prod.product === "string" &&
+        mongoose.Types.ObjectId.isValid(prod.product)
+      ) {
+        productId = new mongoose.Types.ObjectId(prod.product);
+      } else {
+        throw new Error(`Invalid product ID: ${prod.product}`);
+      }
+    } else {
+      // Custom product: validate input
+      if (!prod.name || !prod.category) {
+        throw new Error("Product name and category are required for custom product");
+      }
 
-          return { product: productId };
-        })
-      );
+      const newProduct = await Product.create({
+        name: prod.name.trim(),
+        category: prod.category.trim(),
+        costPrice: prod.price || 0, // Optional
+      });
+
+      productId = newProduct._id;
+    }
+
+    return { product: productId, price: prod.price };
+  })
+);
+
 
       const updated = await Vendor.findByIdAndUpdate(
         id,

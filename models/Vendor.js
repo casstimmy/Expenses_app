@@ -13,7 +13,7 @@ const VendorSchema = new mongoose.Schema({
   products: [
     {
       product: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
-      price: Number, // optional: add unit price
+      price: { type: Number, required: true },
     },
   ],
 });

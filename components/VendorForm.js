@@ -33,49 +33,47 @@ export default function VendorForm({ onSuccess, editingVendor = null }) {
     bankName: "",
     accountName: "",
     accountNumber: "",
-    products: [{ productId: "", name: "", category: "" }],
+    products: [{ product: "", name: "", category: "", costPrice: 0 }],
   });
 
- useEffect(() => {
-  if (editingVendor) {
-    setForm({
-      companyName: editingVendor.companyName || "",
-      vendorRep: editingVendor.vendorRep || "",
-      repPhone: editingVendor.repPhone || "",
-      email: editingVendor.email || "",
-      address: editingVendor.address || "",
-      mainProduct: editingVendor.mainProduct || "",
-      bankName: editingVendor.bankName || "",
-      accountName: editingVendor.accountName || "",
-      accountNumber: editingVendor.accountNumber || "",
-      products: editingVendor.products.map((p) => ({
-        productId: p.product?._id || "",
-        name: p.product?.name || "",
-        category: p.product?.category || "",
-      })),
-    });
-  }
-}, [editingVendor]);
-
-
+  useEffect(() => {
+    if (editingVendor) {
+      setForm({
+        companyName: editingVendor.companyName || "",
+        vendorRep: editingVendor.vendorRep || "",
+        repPhone: editingVendor.repPhone || "",
+        email: editingVendor.email || "",
+        address: editingVendor.address || "",
+        mainProduct: editingVendor.mainProduct || "",
+        bankName: editingVendor.bankName || "",
+        accountName: editingVendor.accountName || "",
+        accountNumber: editingVendor.accountNumber || "",
+        products: editingVendor.products.map((p) => ({
+          product: p.product?._id || "",
+          name: p.product?.name || "",
+          category: p.product?.category || "",
+          costPrice: p.price || "",
+        })),
+      });
+    }
+  }, [editingVendor]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
   const handleProductChange = (index, field, value) => {
-  setForm((prev) => {
-    const updated = [...prev.products];
-    updated[index] = { ...updated[index], [field]: value };
-    return { ...prev, products: updated };
-  });
-};
-
+    setForm((prev) => {
+      const updated = [...prev.products];
+      updated[index] = { ...updated[index], [field]: value };
+      return { ...prev, products: updated };
+    });
+  };
 
   const addProduct = () => {
     setForm({
       ...form,
-      products: [...form.products, { productId: "", name: "", category: "" }],
+      products: [...form.products, { product: "", name: "", category: "", price: 0 }],
     });
   };
 
@@ -87,14 +85,24 @@ export default function VendorForm({ onSuccess, editingVendor = null }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     const method = editingVendor ? "PUT" : "POST";
-    const endpoint = editingVendor ? `/api/vendors/${editingVendor._id}` : "/api/vendors";
+    const endpoint = editingVendor
+      ? `/api/vendors/${editingVendor._id}`
+      : "/api/vendors";
+
+    const formattedProducts = form.products.map((p) => ({
+      product: p.product,
+      name: p.name,
+      category: p.category,
+      price: parseFloat(p.costPrice) || 0,
+    }));
 
     try {
       const res = await fetch(endpoint, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, products: formattedProducts }),
       });
 
       const data = await res.json();
@@ -212,15 +220,15 @@ export default function VendorForm({ onSuccess, editingVendor = null }) {
                 </button>
               )}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Product Name */}
               <div>
-                
                 <label className="text-sm text-gray-700 mb-1 block">Product Name</label>
                 <select
-                  value={product.productId}
+                  value={product.product}
                   onChange={(e) => {
                     const val = e.target.value;
-                    handleProductChange(index, "productId", val);
+                    handleProductChange(index, "product", val);
                     if (val !== "custom") {
                       const selected = availableProducts.find((p) => p._id === val);
                       handleProductChange(index, "name", selected?.name || "");
@@ -242,7 +250,7 @@ export default function VendorForm({ onSuccess, editingVendor = null }) {
                   <option value="custom">+ Add Custom Product</option>
                 </select>
 
-                {product.productId === "custom" && (
+                {product.product === "custom" && (
                   <input
                     type="text"
                     value={product.name}
@@ -254,25 +262,41 @@ export default function VendorForm({ onSuccess, editingVendor = null }) {
                 )}
               </div>
 
-          <div>
-  <label className="text-sm text-gray-700 mb-1 block">Category</label>
-  <select
-    value={product.category?.trim() || ""}
-    onChange={(e) =>
-      handleProductChange(index, "category", e.target.value.trim())
-    }
-    className="border p-3 rounded w-full"
-    required
-  >
-    <option value="">Select Category</option>
-    {productCategories.map((cat, i) => (
-      <option key={i} value={cat}>
-        {cat}
-      </option>
-    ))}
-  </select>
-</div>
+              {/* Category */}
+              <div>
+                <label className="text-sm text-gray-700 mb-1 block">Category</label>
+                <select
+                  value={product.category?.trim() || ""}
+                  onChange={(e) => handleProductChange(index, "category", e.target.value.trim())}
+                  className="border p-3 rounded w-full"
+                  required
+                >
+                  <option value="">Select Category</option>
+                  {productCategories.map((cat, i) => (
+                    <option key={i} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
+              {/* Cost Price */}
+              <div>
+                <label className="text-sm text-gray-700 mb-1 block">Cost Price (₦)</label>
+              <input
+  type="number"
+  value={product.costPrice || ""}
+  onChange={(e) =>
+    handleProductChange(index, "costPrice", parseFloat(e.target.value) || 0)
+  }
+  placeholder="e.g., 500.00"
+  className="border p-3 rounded w-full"
+  step="0.01"
+  min="0"
+  required
+/>
+
+              </div>
             </div>
           </div>
         ))}
