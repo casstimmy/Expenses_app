@@ -68,7 +68,7 @@ export default async function handler(req, res) {
 );
 
 
-      console.log("productRefs:", productRefs)
+
 
       const vendor = await Vendor.create({
         companyName,

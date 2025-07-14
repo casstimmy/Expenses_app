@@ -47,8 +47,7 @@ export default function Nav() {
       { href: "/expenses/analysis", label: "Reports" },
       { href: "/categories", label: "Categories" },
       { href: "/expenses/Pay_Tracker", label: "Pay Tracker" },
-      { href: "/expenses/Stock_Order", label: "Stock Order" },
-      { href: "/admin/staff", label: "Staff" }
+      { href: "/admin/staff", label: "Staff" },
     );
   }
 

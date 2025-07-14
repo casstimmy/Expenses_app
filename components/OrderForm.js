@@ -7,6 +7,7 @@ export default function OrderForm({ product, index, form, setForm }) {
   };
 
   return (
+    <>
     <div className="grid grid-cols-1 md:grid-cols-5 gap-4 bg-blue-50 p-4 rounded items-end">
       {/* Product Name */}
       <input
@@ -16,18 +17,26 @@ export default function OrderForm({ product, index, form, setForm }) {
       />
 
       {/* Quantity */}
-      <input
-        type="number"
-        min={1}
-        value={product.qty || 1}
-        onChange={(e) => {
-          const updated = [...form.products];
-          updated[index].qty = Number(e.target.value);
-          setForm({ ...form, products: updated });
-        }}
-        className="border p-2 rounded"
-        required
-      />
+     {/* Quantity */}
+<input
+  type="number"
+  min={1}
+  placeholder="Qty"
+  value={
+    product.qty === undefined || product.qty === null
+      ? ""
+      : product.qty
+  }
+  onChange={(e) => {
+    const updated = [...form.products];
+    const value = e.target.value === "" ? "" : Number(e.target.value);
+    updated[index].qty = value;
+    setForm({ ...form, products: updated });
+  }}
+  className="border p-2 rounded"
+  required
+/>
+
 
       {/* Unit Cost */}
       <input
@@ -50,7 +59,6 @@ export default function OrderForm({ product, index, form, setForm }) {
 
       {/* Total */}
       <div className="text-right font-medium pt-2">
-        ₦
         {Number(product.qty) && Number(product.costPerUnit)
           ? `₦${(
               Number(product.qty) * Number(product.costPerUnit)
@@ -69,5 +77,6 @@ export default function OrderForm({ product, index, form, setForm }) {
         </button>
       </div>
     </div>
+      </>
   );
 }

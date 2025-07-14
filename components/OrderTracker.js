@@ -1,15 +1,14 @@
-import { Printer, FileText, Send } from "lucide-react";
+import { Printer } from "lucide-react";
 import { useRef } from "react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import { FaFilePdf, FaFileExcel, FaCopy, FaWhatsapp } from "react-icons/fa";
 import { VendorOrderText } from "./VendorOrderText ";
-
 
 export default function StockOrderTable({ order }) {
   const printRef = useRef();
 
   if (!order) return null;
-
 
   const handleWhatsApp = () => {
     const text =
@@ -31,7 +30,8 @@ export default function StockOrderTable({ order }) {
     all.forEach((el) => {
       const style = window.getComputedStyle(el);
       if (style.color.includes("oklch")) el.style.color = "black";
-      if (style.backgroundColor.includes("oklch")) el.style.backgroundColor = "white";
+      if (style.backgroundColor.includes("oklch"))
+        el.style.backgroundColor = "white";
     });
   };
 
@@ -88,85 +88,94 @@ export default function StockOrderTable({ order }) {
     <>
       <div
         ref={printRef}
-        style={{
-          backgroundColor: "#ffffff",
-          padding: "20px",
-          fontFamily: "Arial, sans-serif",
-          fontSize: "14px",
-        }}
-        className="mt-6"
+        className="mt-6 bg-white px-4 py-6 sm:p-6 rounded-md shadow-md text-sm sm:text-base overflow-x-auto"
       >
-        <h3 className="text-xl font-semibold text-gray-800 mb-4">
+        <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4">
           Order Details for: {order.supplier}
         </h3>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-gray-700 mb-4">
-          <p><strong>Date:</strong> {order.date}</p>
-          <p><strong>Supplier:</strong> {order.supplier}</p>
-          <p><strong>Contact:</strong> {order.contact}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 text-gray-700 mb-4">
+          <p>
+            <strong>Date:</strong> {order.date}
+          </p>
+          <p>
+            <strong>Supplier:</strong> {order.supplier}
+          </p>
+          <p>
+            <strong>Contact:</strong> {order.contact}
+          </p>
+         <p>
+  <strong>Location:</strong> {order.location || "N/A"}
+</p>
+
         </div>
 
-        <table className="w-full border border-gray-300">
-          <thead>
-            <tr style={{ backgroundColor: "#e5e7eb", color: "#374151" }}>
-              <th className="text-left px-3 py-2 border">Product</th>
-              <th className="text-right px-3 py-2 border">Qty</th>
-              <th className="text-right px-3 py-2 border">Unit Cost</th>
-              <th className="text-right px-3 py-2 border">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {order.products.map((item, i) => (
-              <tr key={i} className="border-t">
-                <td className="px-3 py-2 border">{item.product}</td>
-                <td className="px-3 py-2 text-right border">{item.quantity}</td>
-                <td className="px-3 py-2 text-right border">
-                  ₦{parseFloat(item.costPerUnit).toLocaleString()}
-                </td>
-                <td className="px-3 py-2 text-right border">
-                  ₦{parseFloat(item.total).toLocaleString()}
-                </td>
+        <div className="overflow-x-auto">
+          <table className="min-w-full border border-gray-300 text-sm">
+            <thead>
+              <tr className="bg-gray-200 text-gray-700">
+                <th className="text-left px-3 py-2 border whitespace-nowrap">
+                  Product
+                </th>
+                <th className="text-right px-3 py-2 border whitespace-nowrap">
+                  Qty
+                </th>
+                <th className="text-right px-3 py-2 border whitespace-nowrap">
+                  Unit Cost
+                </th>
+                <th className="text-right px-3 py-2 border whitespace-nowrap">
+                  Total
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {order.products.map((item, i) => (
+                <tr key={i} className="border-t">
+                  <td className="px-3 py-2 border">{item.product}</td>
+                  <td className="px-3 py-2 text-right border">
+                    {item.quantity}
+                  </td>
+                  <td className="px-3 py-2 text-right border">
+                    ₦{parseFloat(item.costPerUnit).toLocaleString()}
+                  </td>
+                  <td className="px-3 py-2 text-right border">
+                    ₦{parseFloat(item.total).toLocaleString()}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
-       <div
-  className="flex justify-end items-center mt-6 pt-4 border-t border-gray-300"
-  style={{
-    fontSize: "20px",
-    fontWeight: "700",
-    color: "#1d4ed8",
-  }}
->
-  <span className="mr-2">T-Total:</span>
-  <span className="text-right">₦{parseFloat(order.grandTotal).toLocaleString()}</span>
-</div>
-
+        <div className="flex justify-end items-center mt-6 pt-4 border-t border-gray-300 text-blue-700 font-bold text-base sm:text-lg">
+          <span className="mr-2">T-Total:</span>
+          <span>₦{parseFloat(order.grandTotal).toLocaleString()}</span>
+        </div>
       </div>
 
-      <div className="flex justify-end gap-4 pt-4 print:hidden">
+      {/* Action Buttons */}
+      <div className="flex flex-col sm:flex-row justify-end items-stretch sm:items-center gap-3 pt-4 print:hidden">
         <button
           onClick={handleWhatsApp}
-          className="flex items-center gap-1 px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+          className="group relative flex items-center gap-2 px-4 py-1.5 rounded-lg border cursor-pointer border-green-400 bg-white text-green-600 text-sm font-medium shadow-sm transition duration-300 ease-in-out hover:bg-green-500 hover:text-white hover:shadow-md"
         >
-          <Send className="w-4 h-4" />
+          <FaWhatsapp className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
           WhatsApp
         </button>
 
         <button
           onClick={handleDownloadPDF}
-          className="flex items-center gap-1 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+          className="group relative flex items-center gap-2 px-4 py-1.5 rounded-lg border border-gray-400 bg-white text-gray-700 cursor-pointer text-sm font-medium shadow-sm transition duration-300 ease-in-out hover:bg-gray-600 hover:text-white hover:shadow-md"
         >
-          <FileText className="w-4 h-4" />
+          <FaFilePdf className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
           PDF
         </button>
 
         <button
           onClick={handlePrint}
-          className="flex items-center gap-1 px-3 py-2 bg-black text-white rounded hover:bg-gray-800 text-sm"
+          className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-100 text-gray-600 border border-gray-400 rounded hover:bg-blue-800 hover:text-white text-sm"
         >
-          <Printer className="w-4 h-4" />
+          <Printer className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
           Print
         </button>
       </div>

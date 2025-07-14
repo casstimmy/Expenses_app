@@ -3,7 +3,7 @@ import StockOrderTable from "./OrderTracker";
 
 export default function OrderList({ submittedOrders, selectedOrder, setSelectedOrder }) {
   
-  console.log("submittedOrders:", submittedOrders)
+
   return (
     <section className="bg-white p-6 rounded shadow">
       <h2 className="text-lg font-semibold text-gray-800 mb-4">

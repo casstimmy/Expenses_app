@@ -5,6 +5,7 @@ const stockOrderSchema = new Schema(
     date: { type: String, required: true },
     supplier: { type: String, required: true },
     contact: { type: String },
+    location: { type: String },
     mainProduct: { type: String },
     products: [
       {

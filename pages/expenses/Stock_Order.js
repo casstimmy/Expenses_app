@@ -16,12 +16,14 @@ export default function StockOrder() {
   const [editingVendor, setEditingVendor] = useState(null);
   const [selectedVendor, setSelectedVendor] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [staff, setStaff] = useState(null);
   const [form, setForm] = useState({
     date: getToday(),
-    supplier: "",
-    contact: "",
-    mainProduct: "",
-    products: [],
+  supplier: "",
+  contact: "",
+  mainProduct: "",
+  products: [],
+  location: staff?.location || "", // ✅ include location here
   });
 
   // 🔄 Load vendors and stock orders
@@ -45,10 +47,27 @@ export default function StockOrder() {
     }
   };
 
+  const loadStaff = () => {
+    const stored = localStorage.getItem("staff");
+    if (stored) {
+      setStaff(JSON.parse(stored));
+    }
+  };
+
   useEffect(() => {
+    loadStaff();
     loadVendors();
     loadSubmittedOrders();
   }, []);
+
+  useEffect(() => {
+    if (staff?.location) {
+      setForm((prev) => ({
+        ...prev,
+        location: staff.location,
+      }));
+    }
+  }, [staff]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -56,45 +75,58 @@ export default function StockOrder() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const updatedOrders = form.products.map((prod) => ({
-      date: form.date,
-      supplier: form.supplier,
-      contact: form.contact,
-      mainProduct: form.mainProduct,
-      product: prod.name,
-      quantity: prod.qty,
-      costPerUnit: prod.costPerUnit || 0,
-      total: prod.qty * (prod.costPerUnit || 0),
-    }));
+
+    if (!form.location && staff?.location) {
+  setForm((prev) => ({ ...prev, location: staff.location }));
+}
+
+
+
+   const updatedOrders = form.products.map((prod) => ({
+  date: form.date,
+  supplier: form.supplier,
+  contact: form.contact,
+  mainProduct: form.mainProduct,
+  product: prod.name,
+  quantity: prod.qty,
+  costPerUnit: prod.costPerUnit || 0,
+  total: prod.qty * (prod.costPerUnit || 0),
+  location: form.location, // ✅ This must exist
+}));
+
 
     setOrders([...updatedOrders, ...orders]);
 
     setForm({
-      date: getToday(),
-      supplier: "",
-      contact: "",
-      mainProduct: "",
-      products: [],
+       date: getToday(),
+  supplier: "",
+  contact: "",
+  mainProduct: "",
+  products: [],
+  location: staff?.location || "", // ✅ include location here
     });
 
     setSelectedVendor(null);
   };
 
   const handleStockOrderSubmit = async () => {
-    const payload = {
-      date: orders[0].date,
-      supplier: orders[0].supplier,
-      contact: orders[0].contact,
-      mainProduct: orders[0].mainProduct || "",
-      products: orders.map((o) => ({
-        product: o.product,
-        quantity: o.quantity,
-        costPerUnit: o.costPerUnit,
-        total: o.total,
-      })),
-      grandTotal: orders.reduce((sum, o) => sum + parseFloat(o.total), 0),
-    };
 
+
+
+  const payload = {
+  date: orders[0].date,
+  supplier: orders[0].supplier,
+  contact: orders[0].contact,
+  location: orders[0].location, // ✅ this works if orders were built with it
+  mainProduct: orders[0].mainProduct || "",
+  products: orders.map((o) => ({
+    product: o.product,
+    quantity: o.quantity,
+    costPerUnit: o.costPerUnit,
+    total: o.total,
+  })),
+  grandTotal: orders.reduce((sum, o) => sum + parseFloat(o.total), 0),
+};
     try {
       const res = await fetch("/api/stock-orders", {
         method: "POST",
@@ -115,13 +147,47 @@ export default function StockOrder() {
       console.error(err);
       alert("Failed to submit order.");
     }
+
   };
+
+  // After handleStockOrderSubmit
+const mergeOrders = async () => {
+  const res = await fetch("/api/stock-orders/merge", {
+    method: "POST",
+  });
+  const data = await res.json();
+  if (data.success) {
+    alert(`Merged ${data.mergedCount} grouped orders!`);
+    loadSubmittedOrders(); // Refresh the list after merging
+  } else {
+    alert("Merge failed");
+  }
+};
+
+
+
+  
+
 
   return (
     <Layout>
       <div className="min-h-screen bg-gray-100 p-6">
         <div className="max-w-6xl mx-auto space-y-6">
-          <h1 className="text-3xl font-bold text-blue-800">Stock Ordering</h1>
+          <h1 className="text-3xl font-bold text-blue-800 mb-6">
+            Stock Ordering
+          </h1>
+          {staff && (
+            <div className="mb-6 px-4 py-3 rounded-lg bg-blue-50 border border-blue-200 text-sm text-blue-900">
+              <p className="font-medium">
+                Logged in as{" "}
+                <span className="text-blue-800 font-bold">{staff?.name}</span>{" "}
+                &nbsp;|&nbsp; Location:{" "}
+                <span className="text-blue-800 font-bold">
+                  {staff?.location}
+                </span>
+              </p>
+            </div>
+          )}
 
           {/* ✅ Vendor Section */}
           <section className="bg-white p-6 rounded shadow">
@@ -135,13 +201,15 @@ export default function StockOrder() {
               </button>
             </div>
 
-            <VendorList
-              vendors={vendors}
-              setSelectedVendor={setSelectedVendor}
-              setForm={setForm}
-              setEditingVendor={setEditingVendor}
-              setShowVendorForm={setShowVendorForm}
-            />
+           <VendorList
+  vendors={vendors}
+  setSelectedVendor={setSelectedVendor}
+  setForm={setForm}
+  setEditingVendor={setEditingVendor}
+  setShowVendorForm={setShowVendorForm}
+  staff={staff}
+/>
+
           </section>
 
           {/* ✅ Vendor Modal */}
@@ -167,7 +235,7 @@ export default function StockOrder() {
                   onSuccess={() => {
                     setShowVendorForm(false);
                     setEditingVendor(null);
-                    loadVendors(); // 🔄 Refresh list
+                    loadVendors();
                   }}
                 />
               </div>
@@ -194,9 +262,15 @@ export default function StockOrder() {
                   </span>
                 </div>
                 <div className="mt-3 text-sm text-gray-700 space-y-1">
-                  <p><strong>Company:</strong> {selectedVendor?.companyName}</p>
-                  <p><strong>Representative:</strong> {selectedVendor?.vendorRep}</p>
-                  <p><strong>Phone:</strong> {selectedVendor?.repPhone}</p>
+                  <p>
+                    <strong>Company:</strong> {selectedVendor?.companyName}
+                  </p>
+                  <p>
+                    <strong>Representative:</strong> {selectedVendor?.vendorRep}
+                  </p>
+                  <p>
+                    <strong>Phone:</strong> {selectedVendor?.repPhone}
+                  </p>
                 </div>
               </div>
 
@@ -239,10 +313,11 @@ export default function StockOrder() {
                         if (confirm("Clear the entire form?")) {
                           setForm({
                             date: getToday(),
-                            supplier: "",
-                            contact: "",
-                            mainProduct: "",
-                            products: [],
+  supplier: "",
+  contact: "",
+  mainProduct: "",
+  products: [],
+  location: staff?.location || "",
                           });
                         }
                       }}
@@ -261,7 +336,23 @@ export default function StockOrder() {
                       setForm={setForm}
                     />
                   ))}
+
+                     {/* T-Total */}
+      <div className="flex justify-between w-full text-right font-medium pt-2">
+       <div>T-Total</div>
+<div className="font-semibold text-blue-700">
+  ₦
+  {form.products
+    .reduce(
+      (sum, item) => sum + (item.qty || 0) * (item.costPerUnit || 0),
+      0
+    )
+    .toLocaleString()}
+</div>
+
+      </div>
                 </div>
+                
               )}
 
               <div className="text-right">
@@ -279,9 +370,15 @@ export default function StockOrder() {
           {orders.length > 0 && (
             <section className="bg-white p-6 rounded shadow space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <p><strong>Date:</strong> {orders[0].date}</p>
-                <p><strong>Supplier:</strong> {orders[0].supplier}</p>
-                <p><strong>Contact:</strong> {orders[0].contact}</p>
+                <p>
+                  <strong>Date:</strong> {orders[0].date}
+                </p>
+                <p>
+                  <strong>Supplier:</strong> {orders[0].supplier}
+                </p>
+                <p>
+                  <strong>Contact:</strong> {orders[0].contact}
+                </p>
               </div>
               <table className="w-full text-sm bg-gray-50">
                 <thead className="bg-gray-200">
@@ -298,8 +395,12 @@ export default function StockOrder() {
                     <tr key={idx} className="border-t">
                       <td className="px-4 py-2">{order.product}</td>
                       <td className="px-4 py-2 text-right">{order.quantity}</td>
-                      <td className="px-4 py-2 text-right">₦{parseFloat(order.costPerUnit).toLocaleString()}</td>
-                      <td className="px-4 py-2 text-right">₦{parseFloat(order.total).toLocaleString()}</td>
+                      <td className="px-4 py-2 text-right">
+                        ₦{parseFloat(order.costPerUnit).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-2 text-right">
+                        ₦{parseFloat(order.total).toLocaleString()}
+                      </td>
                       <td className="px-4 py-2 text-center">
                         <button
                           onClick={() => {
@@ -332,6 +433,16 @@ export default function StockOrder() {
               </div>
             </section>
           )}
+
+          <div className="text-right mt-4">
+  <button
+    onClick={mergeOrders}
+    className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
+  >
+    🧩 Merge Same-Day Orders
+  </button>
+</div>
+
 
           {/* ✅ Order Table */}
           <OrderList
