@@ -2,6 +2,8 @@ import StockOrderTable from "./OrderTracker";
 
 
 export default function OrderList({ submittedOrders, selectedOrder, setSelectedOrder }) {
+  
+  console.log("submittedOrders:", submittedOrders)
   return (
     <section className="bg-white p-6 rounded shadow">
       <h2 className="text-lg font-semibold text-gray-800 mb-4">
@@ -48,13 +50,14 @@ export default function OrderList({ submittedOrders, selectedOrder, setSelectedO
       {selectedOrder && (
         <div className="mt-6">
           <StockOrderTable order={selectedOrder} />
-          <div className="text-right mt-2">
-            <button
-              onClick={() => setSelectedOrder(null)}
-              className="text-sm text-red-500 hover:underline"
-            >
-              Close
-            </button>
+          <div className="text-right border-t border-gray-300 pt-4 mt-5">
+           <button
+  onClick={() => setSelectedOrder(null)}
+  className="px-4 py-1.5 text-sm font-medium text-red-600 border border-red-300 rounded-md hover:bg-red-200 transition duration-200"
+>
+  Close
+</button>
+
           </div>
         </div>
       )}

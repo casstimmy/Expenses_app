@@ -7,9 +7,7 @@ export default function OrderForm({ product, index, form, setForm }) {
   };
 
   return (
-    <div
-      className="grid grid-cols-1 md:grid-cols-5 gap-4 bg-blue-50 p-4 rounded items-end"
-    >
+    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 bg-blue-50 p-4 rounded items-end">
       {/* Product Name */}
       <input
         readOnly
@@ -35,10 +33,15 @@ export default function OrderForm({ product, index, form, setForm }) {
       <input
         type="number"
         min={0}
-        value={product.costPerUnit || 0}
+        value={
+          product.costPerUnit !== undefined && product.costPerUnit !== null
+            ? product.costPerUnit
+            : ""
+        }
         onChange={(e) => {
           const updated = [...form.products];
-          updated[index].costPerUnit = Number(e.target.value);
+          const cost = e.target.value === "" ? "" : Number(e.target.value);
+          updated[index].costPerUnit = cost;
           setForm({ ...form, products: updated });
         }}
         className="border p-2 rounded"
@@ -48,7 +51,11 @@ export default function OrderForm({ product, index, form, setForm }) {
       {/* Total */}
       <div className="text-right font-medium pt-2">
         ₦
-        {(Number(product.qty) * Number(product.costPerUnit)).toLocaleString()}
+        {Number(product.qty) && Number(product.costPerUnit)
+          ? `₦${(
+              Number(product.qty) * Number(product.costPerUnit)
+            ).toLocaleString()}`
+          : "₦0"}{" "}
       </div>
 
       {/* Remove Button */}

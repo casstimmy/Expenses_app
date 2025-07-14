@@ -16,6 +16,8 @@ const productCategories = [
 
 export default function VendorForm({ onSuccess, editingVendor = null }) {
   const [availableProducts, setAvailableProducts] = useState([]);
+  const [loading, setLoading] = useState(false);
+
 
   useEffect(() => {
     fetch("/api/products")
@@ -33,7 +35,7 @@ export default function VendorForm({ onSuccess, editingVendor = null }) {
     bankName: "",
     accountName: "",
     accountNumber: "",
-    products: [{ product: "", name: "", category: "", costPrice: 0 }],
+    products: [{ product: "", name: "", category: "", price: 0 }],
   });
 
   useEffect(() => {
@@ -52,7 +54,7 @@ export default function VendorForm({ onSuccess, editingVendor = null }) {
           product: p.product?._id || "",
           name: p.product?.name || "",
           category: p.product?.category || "",
-          costPrice: p.price || "",
+          price: p.price || "",
         })),
       });
     }
@@ -83,40 +85,44 @@ export default function VendorForm({ onSuccess, editingVendor = null }) {
     setForm({ ...form, products: updated });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  setLoading(true);
 
-    const method = editingVendor ? "PUT" : "POST";
-    const endpoint = editingVendor
-      ? `/api/vendors/${editingVendor._id}`
-      : "/api/vendors";
+  const method = editingVendor ? "PUT" : "POST";
+  const endpoint = editingVendor
+    ? `/api/vendors/${editingVendor._id}`
+    : "/api/vendors";
 
-    const formattedProducts = form.products.map((p) => ({
-      product: p.product,
-      name: p.name,
-      category: p.category,
-      price: parseFloat(p.costPrice) || 0,
-    }));
+  const formattedProducts = form.products.map((p) => ({
+    product: p.product,
+    name: p.name,
+    category: p.category,
+    price: parseFloat(p.price) || 0,
+  }));
 
-    try {
-      const res = await fetch(endpoint, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, products: formattedProducts }),
-      });
+  try {
+    const res = await fetch(endpoint, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...form, products: formattedProducts }),
+    });
 
-      const data = await res.json();
-      if (res.ok) {
-        alert(`Vendor ${editingVendor ? "updated" : "created"} successfully!`);
-        onSuccess && onSuccess();
-      } else {
-        alert("Error: " + data.error);
-      }
-    } catch (err) {
-      console.error("Submission failed", err);
-      alert("Something went wrong.");
+    const data = await res.json();
+    if (res.ok) {
+      alert(`Vendor ${editingVendor ? "updated" : "created"} successfully!`);
+      onSuccess && onSuccess();
+    } else {
+      alert("Error: " + data.error);
     }
-  };
+  } catch (err) {
+    console.error("Submission failed", err);
+    alert("Something went wrong.");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <form
@@ -285,9 +291,9 @@ export default function VendorForm({ onSuccess, editingVendor = null }) {
                 <label className="text-sm text-gray-700 mb-1 block">Cost Price (₦)</label>
               <input
   type="number"
-  value={product.costPrice || ""}
+  value={product.price || ""}
   onChange={(e) =>
-    handleProductChange(index, "costPrice", parseFloat(e.target.value) || 0)
+    handleProductChange(index, "price", parseFloat(e.target.value) || 0)
   }
   placeholder="e.g., 500.00"
   className="border p-3 rounded w-full"
@@ -311,12 +317,24 @@ export default function VendorForm({ onSuccess, editingVendor = null }) {
       </div>
 
       <div className="flex justify-end pt-4">
-        <button
-          type="submit"
-          className="bg-blue-600 text-white font-medium px-6 py-2 rounded hover:bg-blue-700 transition"
-        >
-          {editingVendor ? "Update Vendor" : "Save Vendor"}
-        </button>
+       <button
+  type="submit"
+  disabled={loading}
+  className={`px-6 py-2 font-medium rounded transition ${
+    loading
+      ? "bg-blue-400 cursor-not-allowed"
+      : "bg-blue-600 hover:bg-blue-700 text-white"
+  }`}
+>
+  {loading
+    ? editingVendor
+      ? "Updating..."
+      : "Saving..."
+    : editingVendor
+    ? "Update Vendor"
+    : "Save Vendor"}
+</button>
+
       </div>
     </form>
   );

@@ -37,7 +37,10 @@ export default function Nav() {
     };
   }, [router]);
 
-  let navLinks = [{ href: "/expenses/expenses", label: "Expenses" }];
+  let navLinks = [
+    { href: "/expenses/expenses", label: "Expenses" },
+    { href: "/expenses/Stock_Order", label: "Stock Order" },
+  ];
 
   if (role === "admin" || role === "Senior staff") {
     navLinks.push(
@@ -70,7 +73,7 @@ export default function Nav() {
                 src="/image/logo.png"
                 alt="Ibile Expense Logo"
                 width={32}
-  height={32}
+                height={32}
                 className="w-8 h-8 object-contain"
               />
               Expense
@@ -121,43 +124,42 @@ export default function Nav() {
         </div>
 
         {/* Mobile Menu */}
-       {/* Mobile Menu */}
-{isMobileMenuOpen && (
-  <div className="md:hidden bg-white/95 shadow border-t border-gray-200">
-    <div className="px-4 py-4 space-y-2">
-      {isLoggedIn &&
-        navLinks.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className={`block text-base font-medium px-3 py-2 rounded-lg transition-all duration-200 ${
-              isActive(link.href)
-                ? "bg-blue-50 text-blue-600"
-                : "text-gray-700 hover:bg-blue-100 hover:text-blue-600"
-            }`}
-            onClick={() => setIsMobileMenuOpen(false)}
-          >
-            {link.label}
-          </Link>
-        ))}
+        {/* Mobile Menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden bg-white/95 shadow border-t border-gray-200">
+            <div className="px-4 py-4 space-y-2">
+              {isLoggedIn &&
+                navLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`block text-base font-medium px-3 py-2 rounded-lg transition-all duration-200 ${
+                      isActive(link.href)
+                        ? "bg-blue-50 text-blue-600"
+                        : "text-gray-700 hover:bg-blue-100 hover:text-blue-600"
+                    }`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    {link.label}
+                  </Link>
+                ))}
 
-      {/* 🔴 Logout button for mobile */}
-      {isLoggedIn && (
-        <button
-          onClick={() => {
-            localStorage.removeItem("staff");
-            setIsMobileMenuOpen(false);
-            router.push("/");
-          }}
-          className="block w-full text-left text-base font-medium text-red-600 px-3 py-2 rounded-lg hover:bg-red-50 transition-all duration-200"
-        >
-          Logout
-        </button>
-      )}
-    </div>
-  </div>
-)}
-
+              {/* 🔴 Logout button for mobile */}
+              {isLoggedIn && (
+                <button
+                  onClick={() => {
+                    localStorage.removeItem("staff");
+                    setIsMobileMenuOpen(false);
+                    router.push("/");
+                  }}
+                  className="block w-full text-left text-base font-medium text-red-600 px-3 py-2 rounded-lg hover:bg-red-50 transition-all duration-200"
+                >
+                  Logout
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Spacer */}
