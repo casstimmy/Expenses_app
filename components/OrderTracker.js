@@ -201,58 +201,53 @@ export default function OrderTracker({
                     ₦{parseFloat(item.total).toLocaleString()}
                   </td>
                   {staff?.role === "admin" && (
-                    <td className="px-3 py-2 text-center border">
-                      <div className="flex gap-2 justify-center">
-                        {editingIndex === i ? (
-                          <>
-                            <button
-                              onClick={() => setEditingIndex(null)}
-                              className="text-green-600 hover:underline text-xs"
-                            >
-                              Save
-                            </button>
-                            <button
-                              onClick={() => setEditingIndex(null)}
-                              className="text-gray-500 hover:underline text-xs"
-                            >
-                              Cancel
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              onClick={() => setEditingIndex(i)}
-                              className="text-blue-500 hover:text-blue-700"
-                              title="Edit"
-                            >
-                              <FaEdit />
-                            </button>
-                            <button
-                              onClick={() => {
-                                if (
-                                  confirm(
-                                    `Delete "${item.product}" from order?`
-                                  )
-                                ) {
-                                  const updated = { ...order };
-                                  updated.products.splice(i, 1);
-                                  updated.grandTotal = updated.products.reduce(
-                                    (sum, p) => sum + p.total,
-                                    0
-                                  );
-                                  setOrder(updated);
-                                  setEditingIndex(null);
-                                }
-                              }}
-                              className="text-red-500 hover:text-red-700"
-                              title="Delete"
-                            >
-                              <FaTrash />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
+                  <td className="px-3 py-2 text-center border">
+  <div className="flex gap-2 justify-center">
+    {editingIndex === i ? (
+      <>
+        <button
+          onClick={() => setEditingIndex(null)}
+          className="w-20 inline-flex justify-center px-3 py-1.5 text-sm font-medium text-white bg-green-500 hover:bg-green-600 rounded-md shadow-sm transition-all duration-200"
+        >
+          Save
+        </button>
+        <button
+          onClick={() => setEditingIndex(null)}
+          className="w-20 inline-flex justify-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-md transition-all duration-200"
+        >
+          Cancel
+        </button>
+      </>
+    ) : (
+      <>
+        <button
+          onClick={() => setEditingIndex(i)}
+          className="w-20 inline-flex justify-center px-3 py-1.5 text-sm font-medium text-blue-600 border border-blue-300 hover:bg-blue-50 rounded-md transition-all duration-200"
+        >
+          Edit
+        </button>
+        <button
+          onClick={() => {
+            if (confirm(`Delete "${item.product}" from order?`)) {
+              const updated = { ...order };
+              updated.products.splice(i, 1);
+              updated.grandTotal = updated.products.reduce(
+                (sum, p) => sum + p.total,
+                0
+              );
+              setOrder(updated);
+              setEditingIndex(null);
+            }
+          }}
+          className="w-20 inline-flex justify-center px-3 py-1.5 text-sm font-medium text-red-600 border border-red-300 hover:bg-red-50 rounded-md transition-all duration-200"
+        >
+          Delete
+        </button>
+      </>
+    )}
+  </div>
+</td>
+
                   )}
                 </tr>
               ))}

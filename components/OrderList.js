@@ -1,9 +1,15 @@
 import OrderTracker from "./OrderTracker";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
-export default function OrderList({ submittedOrders, selectedOrder, setSelectedOrder, staff, }) {
+export default function OrderList({
+  submittedOrders,
+  selectedOrder,
+  setSelectedOrder,
+  staff,
+}) {
   const [editingProductIndex, setEditingProductIndex] = useState(null);
   const [orders, setOrders] = useState([]);
+  const orderDetailsRef = useRef(null);
 
   // Initialize local orders list when component mounts or when submittedOrders change
   useEffect(() => {
@@ -47,8 +53,15 @@ export default function OrderList({ submittedOrders, selectedOrder, setSelectedO
                 </td>
                 <td className="px-3 py-2 text-center">
                   <button
-                    onClick={() => setSelectedOrder(order)}
-                    className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 border-2 hover:text-white hover:bg-blue-400 px-3 py-2 rounded transition"
+                    onClick={() => {
+                      setSelectedOrder(order);
+                      setTimeout(() => {
+                        orderDetailsRef.current?.scrollIntoView({
+                          behavior: "smooth",
+                        });
+                      }, 100); // slight delay to allow UI update
+                    }}
+                    className="inline-block text-xs font-semibold text-blue-600 border border-blue-600 rounded px-4 py-[6px] hover:bg-blue-600 hover:text-white transition-all duration-150 w-28 text-center"
                   >
                     View Order
                   </button>
@@ -59,16 +72,16 @@ export default function OrderList({ submittedOrders, selectedOrder, setSelectedO
         </table>
       </div>
 
-       {selectedOrder && (
-      <div className="mt-6">
-        <OrderTracker
-          order={selectedOrder}
-          setOrder={setSelectedOrder}
-          editingIndex={editingProductIndex}
-          setEditingIndex={setEditingProductIndex}
-          onDeleteOrder={handleDeleteOrder}
-          staff={staff} // <-- pass staff info here
-        />
+      {selectedOrder && (
+        <div className="mt-6" ref={orderDetailsRef}>
+          <OrderTracker
+            order={selectedOrder}
+            setOrder={setSelectedOrder}
+            editingIndex={editingProductIndex}
+            setEditingIndex={setEditingProductIndex}
+            onDeleteOrder={handleDeleteOrder}
+            staff={staff}
+          />
           <div className="text-right border-t border-gray-300 pt-4 mt-5">
             <button
               onClick={() => setSelectedOrder(null)}
