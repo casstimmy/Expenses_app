@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import OrderForm from "@/components/OrderForm";
 import VendorList from "@/components/VendorList";
 import OrderList from "@/components/OrderList";
+import { FaEdit, FaTrash  } from "react-icons/fa";
 
 const getToday = () => new Date().toISOString().split("T")[0];
 
@@ -14,6 +15,7 @@ export default function StockOrder() {
   const [submittedOrders, setSubmittedOrders] = useState([]);
   const [showVendorForm, setShowVendorForm] = useState(false);
   const [editingVendor, setEditingVendor] = useState(null);
+  const [editingIndex, setEditingIndex] = useState(null);
   const [selectedVendor, setSelectedVendor] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [staff, setStaff] = useState(null);
@@ -25,6 +27,13 @@ export default function StockOrder() {
   products: [],
   location: staff?.location || "", // ✅ include location here
   });
+
+
+  const handleDeleteOrder = (deletedOrderId) => {
+  setOrders((prev) => prev.filter((o) => o._id !== deletedOrderId));
+  setSelectedOrder(null);
+};
+
 
   // 🔄 Load vendors and stock orders
   const loadVendors = async () => {
@@ -164,9 +173,6 @@ const mergeOrders = async () => {
   }
 };
 
-
-
-  
 
 
   return (
@@ -390,32 +396,108 @@ const mergeOrders = async () => {
                     <th className="px-4 py-2 text-center">Action</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {orders.map((order, idx) => (
-                    <tr key={idx} className="border-t">
-                      <td className="px-4 py-2">{order.product}</td>
-                      <td className="px-4 py-2 text-right">{order.quantity}</td>
-                      <td className="px-4 py-2 text-right">
-                        ₦{parseFloat(order.costPerUnit).toLocaleString()}
-                      </td>
-                      <td className="px-4 py-2 text-right">
-                        ₦{parseFloat(order.total).toLocaleString()}
-                      </td>
-                      <td className="px-4 py-2 text-center">
-                        <button
-                          onClick={() => {
-                            const updated = [...orders];
-                            updated.splice(idx, 1);
-                            setOrders(updated);
-                          }}
-                          className="text-red-500 hover:underline text-xs"
-                        >
-                          Remove
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
+          <tbody>
+  {orders.map((item, i) => (
+    <tr key={i} className="border-t">
+      <td className="px-3 py-2 border">
+        {editingIndex === i ? (
+          <input
+            value={item.product}
+            onChange={(e) => {
+              const updated = [...orders];
+              updated[i].product = e.target.value;
+              setOrders(updated);
+            }}
+            className="border rounded px-2 py-1 w-full"
+          />
+        ) : (
+          item.product
+        )}
+      </td>
+      <td className="px-3 py-2 text-right border">
+        {editingIndex === i ? (
+          <input
+            type="number"
+            value={item.quantity}
+            onChange={(e) => {
+              const updated = [...orders];
+              updated[i].quantity = parseFloat(e.target.value) || 0;
+              updated[i].total = updated[i].quantity * (updated[i].costPerUnit || 0);
+              setOrders(updated);
+            }}
+            className="border rounded px-2 py-1 w-20 text-right"
+          />
+        ) : (
+          item.quantity
+        )}
+      </td>
+      <td className="px-3 py-2 text-right border">
+        {editingIndex === i ? (
+          <input
+            type="number"
+            value={item.costPerUnit}
+            onChange={(e) => {
+              const updated = [...orders];
+              updated[i].costPerUnit = parseFloat(e.target.value) || 0;
+              updated[i].total = updated[i].quantity * updated[i].costPerUnit;
+              setOrders(updated);
+            }}
+            className="border rounded px-2 py-1 w-20 text-right"
+          />
+        ) : (
+          `₦${parseFloat(item.costPerUnit).toLocaleString()}`
+        )}
+      </td>
+      <td className="px-3 py-2 text-right border">
+        ₦{parseFloat(item.total).toLocaleString()}
+      </td>
+      <td className="px-3 py-2 text-center border">
+        {editingIndex === i ? (
+          <div className="flex gap-2 justify-center">
+            <button
+              onClick={() => setEditingIndex(null)}
+              className="text-green-600 hover:underline text-xs"
+            >
+              Save
+            </button>
+            <button
+              onClick={() => setEditingIndex(null)}
+              className="text-gray-600 hover:underline text-xs"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <div className="flex gap-2 justify-center">
+            <button
+              onClick={() => setEditingIndex(i)}
+              className="text-yellow-600 hover:text-yellow-800"
+              title="Edit"
+            >
+              <FaEdit />
+            </button>
+            <button
+              onClick={() => {
+                if (confirm(`Delete "${item.product}" from order?`)) {
+                  const updated = [...orders];
+                  updated.splice(i, 1);
+                  setOrders(updated);
+                }
+              }}
+              className="text-red-500 hover:text-red-700"
+              title="Delete"
+            >
+              <FaTrash />
+            </button>
+          </div>
+        )}
+      </td>
+    </tr>
+  ))}
+</tbody>
+
+
+
               </table>
               <div className="text-right font-semibold text-blue-700">
                 T-Total: ₦
@@ -449,6 +531,7 @@ const mergeOrders = async () => {
             submittedOrders={submittedOrders}
             selectedOrder={selectedOrder}
             setSelectedOrder={setSelectedOrder}
+            staff={staff}
           />
         </div>
       </div>

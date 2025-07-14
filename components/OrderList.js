@@ -1,14 +1,26 @@
-import StockOrderTable from "./OrderTracker";
+import OrderTracker from "./OrderTracker";
+import { useState, useEffect } from "react";
 
+export default function OrderList({ submittedOrders, selectedOrder, setSelectedOrder, staff, }) {
+  const [editingProductIndex, setEditingProductIndex] = useState(null);
+  const [orders, setOrders] = useState([]);
 
-export default function OrderList({ submittedOrders, selectedOrder, setSelectedOrder }) {
-  
+  // Initialize local orders list when component mounts or when submittedOrders change
+  useEffect(() => {
+    setOrders(submittedOrders);
+  }, [submittedOrders]);
+
+  const handleDeleteOrder = (deletedId) => {
+    setOrders((prev) => prev.filter((o) => o._id !== deletedId));
+    setSelectedOrder(null); // Hide deleted order details
+  };
 
   return (
     <section className="bg-white p-6 rounded shadow">
       <h2 className="text-lg font-semibold text-gray-800 mb-4">
         Submitted Stock Orders
       </h2>
+
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-gray-200">
@@ -23,7 +35,7 @@ export default function OrderList({ submittedOrders, selectedOrder, setSelectedO
             </tr>
           </thead>
           <tbody>
-            {submittedOrders.map((order, idx) => (
+            {orders.map((order, idx) => (
               <tr key={idx} className="border-t hover:bg-gray-50">
                 <td className="px-3 py-2">{order.date}</td>
                 <td className="px-3 py-2">{order.supplier}</td>
@@ -47,17 +59,23 @@ export default function OrderList({ submittedOrders, selectedOrder, setSelectedO
         </table>
       </div>
 
-      {selectedOrder && (
-        <div className="mt-6">
-          <StockOrderTable order={selectedOrder} />
+       {selectedOrder && (
+      <div className="mt-6">
+        <OrderTracker
+          order={selectedOrder}
+          setOrder={setSelectedOrder}
+          editingIndex={editingProductIndex}
+          setEditingIndex={setEditingProductIndex}
+          onDeleteOrder={handleDeleteOrder}
+          staff={staff} // <-- pass staff info here
+        />
           <div className="text-right border-t border-gray-300 pt-4 mt-5">
-           <button
-  onClick={() => setSelectedOrder(null)}
-  className="px-4 py-1.5 text-sm font-medium text-red-600 border border-red-300 rounded-md hover:bg-red-200 transition duration-200"
->
-  Close
-</button>
-
+            <button
+              onClick={() => setSelectedOrder(null)}
+              className="px-4 py-1.5 text-sm font-medium text-red-600 border border-red-300 rounded-md hover:bg-red-200 transition duration-200"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}

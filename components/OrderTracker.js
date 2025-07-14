@@ -2,12 +2,19 @@ import { Printer } from "lucide-react";
 import { useRef } from "react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import { FaFilePdf, FaFileExcel, FaCopy, FaWhatsapp } from "react-icons/fa";
-import { VendorOrderText } from "./VendorOrderText ";
+import { FaFilePdf, FaWhatsapp, FaTrash, FaEdit } from "react-icons/fa";
 
-export default function StockOrderTable({ order }) {
+export default function OrderTracker({
+  order,
+  onDeleteOrder,
+  onDeleteProduct,
+  onEditProduct,
+  editingIndex,
+  setEditingIndex,
+  setOrder,
+  staff,
+}) {
   const printRef = useRef();
-
   if (!order) return null;
 
   const handleWhatsApp = () => {
@@ -41,7 +48,6 @@ export default function StockOrderTable({ order }) {
 
     try {
       sanitizeColors(input);
-
       const canvas = await html2canvas(input, {
         backgroundColor: "#ffffff",
         scale: 2,
@@ -84,6 +90,8 @@ export default function StockOrderTable({ order }) {
     printWindow.print();
   };
 
+
+
   return (
     <>
       <div
@@ -104,43 +112,148 @@ export default function StockOrderTable({ order }) {
           <p>
             <strong>Contact:</strong> {order.contact}
           </p>
-         <p>
-  <strong>Location:</strong> {order.location || "N/A"}
-</p>
-
+          <p>
+            <strong>Location:</strong> {order.location || "N/A"}
+          </p>
         </div>
 
         <div className="overflow-x-auto">
           <table className="min-w-full border border-gray-300 text-sm">
             <thead>
               <tr className="bg-gray-200 text-gray-700">
-                <th className="text-left px-3 py-2 border whitespace-nowrap">
-                  Product
-                </th>
-                <th className="text-right px-3 py-2 border whitespace-nowrap">
-                  Qty
-                </th>
-                <th className="text-right px-3 py-2 border whitespace-nowrap">
-                  Unit Cost
-                </th>
-                <th className="text-right px-3 py-2 border whitespace-nowrap">
-                  Total
-                </th>
+                <th className="px-3 py-2 border text-left">Product</th>
+                <th className="px-3 py-2 border text-right">Qty</th>
+                <th className="px-3 py-2 border text-right">Unit Cost</th>
+                <th className="px-3 py-2 border text-right">Total</th>
+                {staff?.role === "admin" && (
+                  <th className="px-3 py-2 border text-center">Actions</th>
+                )}
               </tr>
             </thead>
             <tbody>
               {order.products.map((item, i) => (
                 <tr key={i} className="border-t">
-                  <td className="px-3 py-2 border">{item.product}</td>
-                  <td className="px-3 py-2 text-right border">
-                    {item.quantity}
+                  <td className="px-3 py-2 border">
+                    {editingIndex === i ? (
+                      <input
+                        value={item.product}
+                        onChange={(e) => {
+                          const updated = { ...order };
+                          updated.products[i].product = e.target.value;
+                          setOrder(updated);
+                        }}
+                        className="border px-2 py-1 rounded w-full"
+                      />
+                    ) : (
+                      item.product
+                    )}
                   </td>
                   <td className="px-3 py-2 text-right border">
-                    ₦{parseFloat(item.costPerUnit).toLocaleString()}
+                    {editingIndex === i ? (
+                      <input
+                        type="number"
+                        value={item.quantity}
+                        onChange={(e) => {
+                          const updated = { ...order };
+                          updated.products[i].quantity =
+                            parseFloat(e.target.value) || 0;
+                          updated.products[i].total =
+                            updated.products[i].quantity *
+                            updated.products[i].costPerUnit;
+                          updated.grandTotal = updated.products.reduce(
+                            (sum, p) => sum + p.total,
+                            0
+                          );
+                          setOrder(updated);
+                        }}
+                        className="border px-2 py-1 rounded w-20 text-right"
+                      />
+                    ) : (
+                      item.quantity
+                    )}
                   </td>
+                  <td className="px-3 py-2 text-right border">
+                    {editingIndex === i ? (
+                      <input
+                        type="number"
+                        value={item.costPerUnit}
+                        onChange={(e) => {
+                          const updated = { ...order };
+                          updated.products[i].costPerUnit =
+                            parseFloat(e.target.value) || 0;
+                          updated.products[i].total =
+                            updated.products[i].quantity *
+                            updated.products[i].costPerUnit;
+                          updated.grandTotal = updated.products.reduce(
+                            (sum, p) => sum + p.total,
+                            0
+                          );
+                          setOrder(updated);
+                        }}
+                        className="border px-2 py-1 rounded w-24 text-right"
+                      />
+                    ) : (
+                      `₦${parseFloat(item.costPerUnit).toLocaleString()}`
+                    )}
+                  </td>
+
                   <td className="px-3 py-2 text-right border">
                     ₦{parseFloat(item.total).toLocaleString()}
                   </td>
+                  {staff?.role === "admin" && (
+                    <td className="px-3 py-2 text-center border">
+                      <div className="flex gap-2 justify-center">
+                        {editingIndex === i ? (
+                          <>
+                            <button
+                              onClick={() => setEditingIndex(null)}
+                              className="text-green-600 hover:underline text-xs"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={() => setEditingIndex(null)}
+                              className="text-gray-500 hover:underline text-xs"
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => setEditingIndex(i)}
+                              className="text-blue-500 hover:text-blue-700"
+                              title="Edit"
+                            >
+                              <FaEdit />
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (
+                                  confirm(
+                                    `Delete "${item.product}" from order?`
+                                  )
+                                ) {
+                                  const updated = { ...order };
+                                  updated.products.splice(i, 1);
+                                  updated.grandTotal = updated.products.reduce(
+                                    (sum, p) => sum + p.total,
+                                    0
+                                  );
+                                  setOrder(updated);
+                                  setEditingIndex(null);
+                                }
+                              }}
+                              className="text-red-500 hover:text-red-700"
+                              title="Delete"
+                            >
+                              <FaTrash />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -157,27 +270,51 @@ export default function StockOrderTable({ order }) {
       <div className="flex flex-col sm:flex-row justify-end items-stretch sm:items-center gap-3 pt-4 print:hidden">
         <button
           onClick={handleWhatsApp}
-          className="group relative flex items-center gap-2 px-4 py-1.5 rounded-lg border cursor-pointer border-green-400 bg-white text-green-600 text-sm font-medium shadow-sm transition duration-300 ease-in-out hover:bg-green-500 hover:text-white hover:shadow-md"
+          className="group flex items-center gap-2 px-4 py-1.5 rounded-lg border border-green-400 bg-white text-green-600 text-sm font-medium hover:bg-green-500 hover:text-white"
         >
-          <FaWhatsapp className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
+          <FaWhatsapp className="w-4 h-4" />
           WhatsApp
         </button>
 
         <button
           onClick={handleDownloadPDF}
-          className="group relative flex items-center gap-2 px-4 py-1.5 rounded-lg border border-gray-400 bg-white text-gray-700 cursor-pointer text-sm font-medium shadow-sm transition duration-300 ease-in-out hover:bg-gray-600 hover:text-white hover:shadow-md"
+          className="group flex items-center gap-2 px-4 py-1.5 rounded-lg border border-gray-400 bg-white text-gray-700 text-sm font-medium hover:bg-gray-600 hover:text-white"
         >
-          <FaFilePdf className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
+          <FaFilePdf className="w-4 h-4" />
           PDF
         </button>
 
         <button
           onClick={handlePrint}
-          className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-100 text-gray-600 border border-gray-400 rounded hover:bg-blue-800 hover:text-white text-sm"
+          className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-gray-600 border border-gray-400 rounded hover:bg-blue-800 hover:text-white text-sm"
         >
-          <Printer className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
+          <Printer className="w-4 h-4" />
           Print
         </button>
+
+        {staff?.role === "admin" && onDeleteOrder && (
+          <button
+            onClick={async () => {
+              if (confirm("Delete entire order?")) {
+                const res = await fetch(`/api/stock-orders/${order._id}`, {
+                  method: "DELETE",
+                });
+
+                if (res.ok) {
+                  alert("Order deleted.");
+                  onDeleteOrder(order._id);
+                } else {
+                  const error = await res.json();
+                  alert("Delete failed: " + error.error);
+                }
+              }
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 border border-red-400 rounded hover:bg-red-600 hover:text-white text-sm"
+          >
+            <FaTrash className="w-4 h-4" />
+            Delete Order
+          </button>
+        )}
       </div>
     </>
   );
