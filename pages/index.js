@@ -6,7 +6,7 @@ import { loadBasic } from "tsparticles-basic";
 import { useRouter } from "next/router";
 
 export default function Home({ staffList, locations }) {
-  const [name, setName] = useState(staffList?.[0] || "");
+  const [name, setName] = useState( "");
   const [location, setLocation] = useState(locations?.[0] || "");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -130,18 +130,29 @@ export default function Home({ staffList, locations }) {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Staff Name
                   </label>
-                  <select
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm sm:text-base focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    {Array.isArray(staffList) &&
-                      staffList.map((staff) => (
-                        <option key={staff} value={staff}>
-                          {staff}
-                        </option>
-                      ))}
-                  </select>
+      <select
+  value={name}
+  onChange={(e) => setName(e.target.value)}
+  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm sm:text-base focus:ring-blue-500 focus:border-blue-500"
+>
+  {/* Placeholder, unselectable after selection */}
+  <option value="" disabled>
+    Login Staff of...
+  </option>
+
+  {/* Show all staff names normally */}
+  {Array.isArray(staffList) &&
+    staffList.map((staff, idx) => (
+      <option key={idx} value={staff}>
+        {staff}
+      </option>
+    ))}
+</select>
+
+
+
+
+
                 </div>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">

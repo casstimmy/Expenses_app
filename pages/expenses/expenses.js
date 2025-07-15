@@ -16,8 +16,10 @@ export default function ManageExpenses() {
   const [cashAmount, setCashAmount] = useState("");
   const [editingExpenseId, setEditingExpenseId] = useState(null);
   const [editedAmount, setEditedAmount] = useState("");
+  const [editedDate, setEditedDate] = useState("");
   const [editingCashId, setEditingCashId] = useState(null);
   const [editedCashAmount, setEditedCashAmount] = useState("");
+  const [selectedLocation, setSelectedLocation] = useState("All");
   const [cashDate, setCashDate] = useState(
     () => new Date().toISOString().split("T")[0]
   );
@@ -145,6 +147,7 @@ export default function ManageExpenses() {
   const handleEditExpense = (expense) => {
     setEditingExpenseId(expense._id);
     setEditedAmount(expense.amount);
+    setEditedDate(new Date(expense.createdAt).toISOString().split("T")[0]);
   };
 
   const handleSaveExpense = async (expense) => {
@@ -154,6 +157,7 @@ export default function ManageExpenses() {
       body: JSON.stringify({
         ...expense,
         amount: Number(editedAmount),
+        createdAt: new Date(editedDate).toISOString(),
         staff: {
           _id: staffData._id,
           name: staffData.name,
@@ -166,6 +170,7 @@ export default function ManageExpenses() {
     if (res.ok) {
       setEditingExpenseId(null);
       setEditedAmount("");
+      setEditedDate("");
       fetchExpenses();
     } else {
       alert("Failed to update expense");
@@ -175,6 +180,7 @@ export default function ManageExpenses() {
   const handleCancelEdit = () => {
     setEditingExpenseId(null);
     setEditedAmount("");
+    setEditedDate("");
   };
 
   const handleEditCashInline = (entry) => {
@@ -206,6 +212,10 @@ export default function ManageExpenses() {
     setEditedCashAmount("");
   };
 
+  const locations = Array.from(new Set(expenses.map((e) => e.location))).filter(
+    Boolean
+  );
+
   return (
     <Layout>
       <div className="min-h-screen bg-gray-100 p-6">
@@ -214,16 +224,36 @@ export default function ManageExpenses() {
             Expense Management
           </h1>
 
-          <div className="mb-6 px-4 py-3 rounded-lg bg-blue-50 border border-blue-200 text-sm text-blue-900">
-            <p className="font-medium">
-              Logged in as{" "}
-              <span className="text-blue-800 font-bold">{staffData?.name}</span>{" "}
-              &nbsp;|&nbsp; Location:{" "}
-              <span className="text-blue-800 font-bold">
-                {staffData?.location}
-              </span>
-            </p>
-          </div>
+         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 px-4 py-3 rounded-lg bg-blue-50 border border-blue-200 text-sm text-blue-900">
+  <p className="font-medium">
+    Logged in as{" "}
+    <span className="text-blue-800 font-bold">{staffData?.name}</span>{" "}
+    &nbsp;|&nbsp; Location:{" "}
+    <span className="text-blue-800 font-bold">{staffData?.location}</span>
+  </p>
+
+  {staffData?.role === "admin" && (
+    <div className="flex items-center gap-3">
+      <label htmlFor="locationFilter" className="text-gray-700 font-medium whitespace-nowrap">
+        Filter by Location:
+      </label>
+      <select
+        id="locationFilter"
+        value={selectedLocation}
+        onChange={(e) => setSelectedLocation(e.target.value)}
+        className="px-3 py-2 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+      >
+        <option value="All">All</option>
+        {locations.map((loc) => (
+          <option key={loc} value={loc}>
+            {loc}
+          </option>
+        ))}
+      </select>
+    </div>
+  )}
+</div>
+
 
           {/* Cash Input */}
           <div className="bg-white rounded-xl border border-blue-100 shadow p-6 mb-10">
@@ -262,11 +292,11 @@ export default function ManageExpenses() {
 
           {/* Expense and Cash Entry Panels */}
           <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-3 lg:gap-8">
-  <div className="bg-white p-6 rounded-xl shadow-lg border border-blue-100 col-span-1 lg:col-span-1">
-    <h2 className="text-xl font-semibold text-blue-700 mb-4">
-      Add New Expense
-    </h2>
-    <ExpenseForm
+            <div className="bg-white p-6 rounded-xl shadow-lg border border-blue-100 col-span-1 lg:col-span-1">
+              <h2 className="text-xl font-semibold text-blue-700 mb-4">
+                Add New Expense
+              </h2>
+              <ExpenseForm
                 onSaved={fetchExpenses}
                 staffId={staffData?._id}
                 staffName={staffData?.name}
@@ -283,11 +313,12 @@ export default function ManageExpenses() {
                 </h2>
                 <div className="grid grid-cols-1 gap-6 overflow-y-auto pr-1 flex-grow">
                   {expenses
-                    .filter(
-                      (exp) =>
-                        staffData?.role === "admin" ||
-                        exp.location === staffData?.location
-                    )
+                    .filter((entry) => {
+                      if (staffData?.role !== "admin")
+                        return entry.location === staffData?.location;
+                      if (selectedLocation === "All") return true;
+                      return entry.location === selectedLocation;
+                    })
                     .map((exp) => (
                       <div
                         key={exp._id}
@@ -308,6 +339,13 @@ export default function ManageExpenses() {
                                 }
                                 className="border px-2 py-1 w-24 rounded w-32 text-sm"
                               />
+                              <input
+                                type="date"
+                                value={editedDate}
+                                onChange={(e) => setEditedDate(e.target.value)}
+                                className="border px-2 py-1 w-32 rounded text-sm"
+                              />
+
                               <div className="flex gap-2 items-center">
                                 <button
                                   onClick={() => handleSaveExpense(exp)}
@@ -377,11 +415,12 @@ export default function ManageExpenses() {
                 </h2>
                 <div className="grid grid-cols-1 gap-6 overflow-y-auto pr-1 flex-grow">
                   {cashEntries
-                    .filter(
-                      (entry) =>
-                        staffData?.role === "admin" ||
-                        entry.location === staffData?.location
-                    )
+                    .filter((entry) => {
+                      if (staffData?.role !== "admin")
+                        return entry.location === staffData?.location;
+                      if (selectedLocation === "All") return true;
+                      return entry.location === selectedLocation;
+                    })
                     .map((entry) => (
                       <div
                         key={entry._id}

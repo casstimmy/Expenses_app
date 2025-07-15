@@ -192,12 +192,6 @@ useEffect(() => {
 
           {/* Vendor Section */}
          <section className="bg-white p-6 rounded shadow relative">
-  {loadingVendors && (
-              <div className="absolute inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
-                <div className="w-12 h-12 border-4 border-white border-t-blue-600 rounded-full animate-spin"></div>
-              </div>
-            )}
-
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold text-gray-800">Vendors</h2>
               <button
@@ -207,20 +201,28 @@ useEffect(() => {
                 + Add Vendor
               </button>
             </div>
+{/* Vendor Section */}
+<div className="relative">
+  {loadingVendors && (
+    <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-10">
+      <div className="w-10 h-10 border-4 border-white border-t-blue-600 rounded-full animate-spin" />
+    </div>
+  )}
 
-            <VendorList
-              vendors={vendors}
-              setSelectedVendor={(vendor) => {
-                setSelectedVendor(vendor);
-                setTimeout(() => {
-                  orderFormRef.current?.scrollIntoView({ behavior: "smooth" });
-                }, 100);
-              }}
+  <VendorList
+    vendors={vendors}
+    setSelectedVendor={(vendor) => {
+      setSelectedVendor(vendor);
+      setTimeout(() => {
+        orderFormRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    }}
     setForm={setForm}
     setEditingVendor={setEditingVendor}
     setShowVendorForm={setShowVendorForm}
     staff={staff}
   />
+</div>
 </section>
 
 
@@ -412,22 +414,24 @@ useEffect(() => {
             </div>
           )}
 
-        <div className="relative">
-    {loadingSubmittedOrders && (
-              <div className="absolute inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
-                <div className="w-12 h-12 border-4 border-white border-t-blue-600 rounded-full animate-spin"></div>
-              </div>
-            )}
-            <OrderList
-              submittedOrders={
-                staff?.role === "admin"
-                  ? submittedOrders
-                  : submittedOrders.filter(
-                      (order) =>
-                        order.location === staff?.location ||
-                        order.location === "All Locations (Merged)"
-                    )
-              }
+       {/* Order Section */}
+<div className="relative">
+  {loadingSubmittedOrders && (
+    <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-10">
+      <div className="w-10 h-10 border-4 border-white border-t-blue-600 rounded-full animate-spin" />
+    </div>
+  )}
+
+  <OrderList
+    submittedOrders={
+      staff?.role === "admin"
+        ? submittedOrders
+        : submittedOrders.filter(
+            (order) =>
+              order.location === staff?.location ||
+              order.location === "All Locations (Merged)"
+          )
+    }
     selectedOrder={selectedOrder}
     setSelectedOrder={setSelectedOrder}
     staff={staff}
