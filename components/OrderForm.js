@@ -39,23 +39,25 @@ export default function OrderForm({ product, index, form, setForm }) {
 
 
       {/* Unit Cost */}
-      <input
-        type="number"
-        min={0}
-        value={
-          product.costPerUnit !== undefined && product.costPerUnit !== null
-            ? product.costPerUnit
-            : ""
-        }
-        onChange={(e) => {
-          const updated = [...form.products];
-          const cost = e.target.value === "" ? "" : Number(e.target.value);
-          updated[index].costPerUnit = cost;
-          setForm({ ...form, products: updated });
-        }}
-        className="border p-2 rounded"
-        required
-      />
+ <input
+  type="number"
+  min={0}
+  step="any" // <- Allows decimals like 0.01, 150.75 etc.
+  value={
+    product.costPerUnit !== undefined && product.costPerUnit !== null
+      ? product.costPerUnit
+      : ""
+  }
+  onChange={(e) => {
+    const updated = [...form.products];
+    const cost = e.target.value === "" ? "" : parseFloat(e.target.value);
+    updated[index].costPerUnit = cost;
+    setForm({ ...form, products: updated });
+  }}
+  className="border p-2 rounded"
+  required
+/>
+
 
       {/* Total */}
       <div className="text-right font-medium pt-2">
