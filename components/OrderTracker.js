@@ -5,9 +5,6 @@ import html2canvas from "html2canvas";
 import { useRouter } from "next/router";
 import { FaFilePdf, FaWhatsapp, FaTrash, FaEdit } from "react-icons/fa";
 
-
-
-
 export default function OrderTracker({
   order,
   onDeleteOrder,
@@ -16,18 +13,14 @@ export default function OrderTracker({
   editingIndex,
   setEditingIndex,
   setOrder,
-  staff
+  staff,
 }) {
   const printRef = useRef();
-  if (!order) return null;
   const router = useRouter();
+  const [saving, setSaving] = useState(false);
+  const [reason, setReason] = useState("Received - Confirmed");
 
-
-
-  
-const [saving, setSaving] = useState(false);
-const [reason, setReason] = useState("Received - Confirmed");
-
+  if (!order) return null;
 
   const handleWhatsApp = () => {
     const text =
@@ -44,20 +37,19 @@ const [reason, setReason] = useState("Received - Confirmed");
     window.open(url, "_blank");
   };
 
- const sanitizeColors = (node) => {
-  if (typeof window === "undefined") return;
-  const all = node.querySelectorAll("*");
-  all.forEach((el) => {
-    const style = window.getComputedStyle(el);
-    if (style.color.includes("oklch")) el.style.color = "black";
-    if (style.backgroundColor.includes("oklch"))
-      el.style.backgroundColor = "white";
-  });
-};
+  const sanitizeColors = (node) => {
+    if (typeof window === "undefined") return;
+    const all = node.querySelectorAll("*");
+    all.forEach((el) => {
+      const style = window.getComputedStyle(el);
+      if (style.color.includes("oklch")) el.style.color = "black";
+      if (style.backgroundColor.includes("oklch"))
+        el.style.backgroundColor = "white";
+    });
+  };
 
-
- const handleDownloadPDF = async () => {
-  if (typeof window === "undefined") return;
+  const handleDownloadPDF = async () => {
+    if (typeof window === "undefined") return;
     const input = printRef.current;
     if (!input) return;
 
@@ -83,8 +75,8 @@ const [reason, setReason] = useState("Received - Confirmed");
     }
   };
 
- const handlePrint = () => {
-  if (typeof window === "undefined") return;
+  const handlePrint = () => {
+    if (typeof window === "undefined") return;
     const content = printRef.current.innerHTML;
     const printWindow = window.open("", "_blank");
     printWindow.document.write(`
@@ -106,61 +98,54 @@ const [reason, setReason] = useState("Received - Confirmed");
     printWindow.print();
   };
 
-const handleSaveOrder = async () => {
-  if (!order || !order.products || order.products.length === 0) {
-    return alert("Order is missing products.");
-  }
-
-  try {
-    setSaving(true);
-
-    const payload = {
-      ...order,
-      reason: "Stock Received",
-    };
-
-    const res = await fetch("/api/stock-orders", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const result = await res.json();
-    setSaving(false);
-
-    if (!res.ok) {
-      return alert("Failed to save order: " + result.error);
+  const handleSaveOrder = async () => {
+    if (!order || !order.products || order.products.length === 0) {
+      return alert("Order is missing products.");
     }
 
-    // Step 2: Delete the previous order using its ID
-    const deleteRes = await fetch(`/api/stock-orders/${order._id}`, {
-  method: "DELETE",
-});
+    try {
+      setSaving(true);
 
+      const payload = {
+        ...order,
+        reason: "Stock Received",
+      };
 
-    if (!deleteRes.ok) {
-      const error = await deleteRes.json();
-      return alert("Saved, but failed to delete old order: " + error.error);
+      const res = await fetch("/api/stock-orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await res.json();
+      setSaving(false);
+
+      if (!res.ok) {
+        return alert("Failed to save order: " + result.error);
+      }
+
+      // Step 2: Delete the previous order using its ID
+      const deleteRes = await fetch(`/api/stock-orders/${order._id}`, {
+        method: "DELETE",
+      });
+
+      if (!deleteRes.ok) {
+        const error = await deleteRes.json();
+        return alert("Saved, but failed to delete old order: " + error.error);
+      }
+
+      alert("Stock received and order entry removed.");
+    } catch (error) {
+      console.error("Save order error:", error);
+      alert("An unexpected error occurred while saving the order.");
     }
-
     alert("Stock received and order entry removed.");
-  } catch (error) {
-    console.error("Save order error:", error);
-    alert("An unexpected error occurred while saving the order.");
-  }
- alert("Stock received and order entry removed.");
-setTimeout(() => {
-  router.push("/expenses/Pay_Tracker");
-}, 1000); // 1 second delay
-
-};
-
-
-
-
-
+    setTimeout(() => {
+      router.push("/expenses/Pay_Tracker");
+    }, 1000); // 1 second delay
+  };
 
   return (
     <>
@@ -327,35 +312,32 @@ setTimeout(() => {
             </tbody>
           </table>
         </div>
-<div className="mt-8 border-t pt-6">
-  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-    {/* Button */}
-    <button
-      onClick={handleSaveOrder}
-      className="flex items-center gap-2 px-5 py-2 rounded-xl border border-green-500 text-green-600 bg-white hover:bg-green-500 hover:text-white transition-all duration-200 text-sm font-medium shadow-sm hover:shadow-md"
-    >
-      <svg
-        className="w-4 h-4 group-hover:stroke-white"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        viewBox="0 0 24 24"
-      >
-        <path d="M5 13l4 4L19 7" />
-      </svg>
-      <span>{saving ? "Saving..." : "Received Order"}</span>
-    </button>
-   
-    {/* Total */}
-    <div className="flex items-center text-blue-800 font-semibold text-lg">
-      <span className="mr-2">T-Total:</span>
-      <span>₦{parseFloat(order.grandTotal).toLocaleString()}</span>
-    </div>
+        <div className="mt-8 border-t pt-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            {/* Button */}
+            <button
+              onClick={handleSaveOrder}
+              className="flex items-center gap-2 px-5 py-2 rounded-xl border border-green-500 text-green-600 bg-white hover:bg-green-500 hover:text-white transition-all duration-200 text-sm font-medium shadow-sm hover:shadow-md"
+            >
+              <svg
+                className="w-4 h-4 group-hover:stroke-white"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+              >
+                <path d="M5 13l4 4L19 7" />
+              </svg>
+              <span>{saving ? "Saving..." : "Received Order"}</span>
+            </button>
 
-   
-  </div>
-</div>
-
+            {/* Total */}
+            <div className="flex items-center text-blue-800 font-semibold text-lg">
+              <span className="mr-2">T-Total:</span>
+              <span>₦{parseFloat(order.grandTotal).toLocaleString()}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Action Buttons */}
