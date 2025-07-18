@@ -42,17 +42,20 @@ const [reason, setReason] = useState("Received - Confirmed");
     window.open(url, "_blank");
   };
 
-  const sanitizeColors = (node) => {
-    const all = node.querySelectorAll("*");
-    all.forEach((el) => {
-      const style = window.getComputedStyle(el);
-      if (style.color.includes("oklch")) el.style.color = "black";
-      if (style.backgroundColor.includes("oklch"))
-        el.style.backgroundColor = "white";
-    });
-  };
+ const sanitizeColors = (node) => {
+  if (typeof window === "undefined") return;
+  const all = node.querySelectorAll("*");
+  all.forEach((el) => {
+    const style = window.getComputedStyle(el);
+    if (style.color.includes("oklch")) el.style.color = "black";
+    if (style.backgroundColor.includes("oklch"))
+      el.style.backgroundColor = "white";
+  });
+};
 
-  const handleDownloadPDF = async () => {
+
+ const handleDownloadPDF = async () => {
+  if (typeof window === "undefined") return;
     const input = printRef.current;
     if (!input) return;
 
@@ -78,7 +81,8 @@ const [reason, setReason] = useState("Received - Confirmed");
     }
   };
 
-  const handlePrint = () => {
+ const handlePrint = () => {
+  if (typeof window === "undefined") return;
     const content = printRef.current.innerHTML;
     const printWindow = window.open("", "_blank");
     printWindow.document.write(`
