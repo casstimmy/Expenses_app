@@ -76,20 +76,21 @@ export default function PeriodFilter({
   setFilters,
   setFiltersApplied,
 }) {
-  useEffect(() => {
-    if (!selectedPeriod || selectedPeriod === "custom") return;
+ useEffect(() => {
+  if (!selectedPeriod || selectedPeriod === "custom") return;
 
-    const { selectedDate, startDate, endDate } =
-      getDateRangeFromPeriod(selectedPeriod);
+  const { selectedDate, startDate, endDate } =
+    getDateRangeFromPeriod(selectedPeriod);
 
-    setSelectedDate(selectedDate);
-    setFilters((prev) => ({
-      ...prev,
-      startDate,
-      endDate,
-    }));
-    setFiltersApplied(true);
-  }, [selectedPeriod]);
+  setSelectedDate(selectedDate);
+  setFilters((prev) => ({
+    ...prev,
+    startDate,
+    endDate,
+  }));
+  setFiltersApplied(true);
+}, [selectedPeriod, setFilters, setFiltersApplied, setSelectedDate]);
+
 
   return (
     <div>

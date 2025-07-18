@@ -21,7 +21,7 @@ export default function OrderTracker({
   const printRef = useRef();
   if (!order) return null;
 
-  const router = useRouter();
+
   
 const [saving, setSaving] = useState(false);
 const [reason, setReason] = useState("Received - Confirmed");
@@ -156,6 +156,15 @@ setTimeout(() => {
 };
 
 
+const OrderTracker = ({ order }) => {
+  const router = useRouter();
+  const [saving, setSaving] = useState(false);
+  const [sending, setSending] = useState(false);
+
+  if (!order) return null; // ✅ safe now
+
+  // ...rest of your component
+};
 
 
 
