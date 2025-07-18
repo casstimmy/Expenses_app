@@ -3,7 +3,7 @@ import { useRef, useState } from "react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { useRouter } from "next/router";
-import { FaFilePdf, FaWhatsapp, FaTrash, FaEdit } from "react-icons/fa";
+import { FaFilePdf, FaWhatsapp, FaTrash } from "react-icons/fa";
 
 export default function OrderTracker({
   order,
@@ -18,13 +18,12 @@ export default function OrderTracker({
   const printRef = useRef();
   const router = useRouter();
   const [saving, setSaving] = useState(false);
-  const [reason, setReason] = useState("Received - Confirmed");
 
   if (!order) return null;
 
+  // WhatsApp Text Builder
   const handleWhatsApp = () => {
-    const text =
-      `*Stock Order: ${order.supplier}*\n` +
+    const text = `*Stock Order: ${order.supplier}*\n` +
       order.products
         .map(
           (item) =>
@@ -37,24 +36,12 @@ export default function OrderTracker({
     window.open(url, "_blank");
   };
 
-  const sanitizeColors = (node) => {
-    if (typeof window === "undefined") return;
-    const all = node.querySelectorAll("*");
-    all.forEach((el) => {
-      const style = window.getComputedStyle(el);
-      if (style.color.includes("oklch")) el.style.color = "black";
-      if (style.backgroundColor.includes("oklch"))
-        el.style.backgroundColor = "white";
-    });
-  };
-
+  // PDF Download
   const handleDownloadPDF = async () => {
-    if (typeof window === "undefined") return;
     const input = printRef.current;
     if (!input) return;
 
     try {
-      sanitizeColors(input);
       const canvas = await html2canvas(input, {
         backgroundColor: "#ffffff",
         scale: 2,
@@ -75,8 +62,8 @@ export default function OrderTracker({
     }
   };
 
+  // Print Order
   const handlePrint = () => {
-    if (typeof window === "undefined") return;
     const content = printRef.current.innerHTML;
     const printWindow = window.open("", "_blank");
     printWindow.document.write(`
@@ -98,8 +85,9 @@ export default function OrderTracker({
     printWindow.print();
   };
 
+  // Save Order
   const handleSaveOrder = async () => {
-    if (!order || !order.products || order.products.length === 0) {
+    if (!order || !order.products?.length) {
       return alert("Order is missing products.");
     }
 
@@ -119,14 +107,12 @@ export default function OrderTracker({
         body: JSON.stringify(payload),
       });
 
-      const result = await res.json();
-      setSaving(false);
-
       if (!res.ok) {
+        const result = await res.json();
         return alert("Failed to save order: " + result.error);
       }
 
-      // Step 2: Delete the previous order using its ID
+      // Delete original order
       const deleteRes = await fetch(`/api/stock-orders/${order._id}`, {
         method: "DELETE",
       });
@@ -137,45 +123,38 @@ export default function OrderTracker({
       }
 
       alert("Stock received and order entry removed.");
-    } catch (error) {
-      console.error("Save order error:", error);
-      alert("An unexpected error occurred while saving the order.");
-    }
-    alert("Stock received and order entry removed.");
-    setTimeout(() => {
       router.push("/expenses/Pay_Tracker");
-    }, 1000); // 1 second delay
+    } catch (err) {
+      console.error("Save order error:", err);
+      alert("Unexpected error while saving the order.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <>
+      {/* Order Details */}
       <div
         ref={printRef}
-        className="mt-6 bg-white px-4 py-6 sm:p-6 rounded-md shadow-md text-sm sm:text-base overflow-x-auto"
+        className="mt-6 bg-white px-4 py-6 sm:p-6 rounded-md shadow-md text-sm sm:text-base"
       >
         <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4">
           Order Details for: {order.supplier}
         </h3>
 
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 text-gray-700 mb-4">
-          <p>
-            <strong>Date:</strong> {order.date}
-          </p>
-          <p>
-            <strong>Supplier:</strong> {order.supplier}
-          </p>
-          <p>
-            <strong>Contact:</strong> {order.contact}
-          </p>
-          <p>
-            <strong>Location:</strong> {order.location || "N/A"}
-          </p>
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 text-gray-700 mb-6">
+          <p><strong>Date:</strong> {order.date}</p>
+          <p><strong>Supplier:</strong> {order.supplier}</p>
+          <p><strong>Contact:</strong> {order.contact}</p>
+          <p><strong>Location:</strong> {order.location || "N/A"}</p>
         </div>
 
+        {/* Product Table */}
         <div className="overflow-x-auto">
           <table className="min-w-full border border-gray-300 text-sm">
             <thead>
-              <tr className="bg-gray-200 text-gray-700">
+              <tr className="bg-gray-100 text-gray-700">
                 <th className="px-3 py-2 border text-left">Product</th>
                 <th className="px-3 py-2 border text-right">Qty</th>
                 <th className="px-3 py-2 border text-right">Unit Cost</th>
@@ -251,7 +230,6 @@ export default function OrderTracker({
                       `₦${parseFloat(item.costPerUnit).toLocaleString()}`
                     )}
                   </td>
-
                   <td className="px-3 py-2 text-right border">
                     ₦{parseFloat(item.total).toLocaleString()}
                   </td>
@@ -262,13 +240,13 @@ export default function OrderTracker({
                           <>
                             <button
                               onClick={() => setEditingIndex(null)}
-                              className="w-20 inline-flex justify-center px-3 py-1.5 text-sm font-medium text-white bg-green-500 hover:bg-green-600 rounded-md shadow-sm transition-all duration-200"
+                              className="text-green-600 hover:text-white border border-green-500 hover:bg-green-500 px-3 py-1 rounded text-sm"
                             >
                               Save
                             </button>
                             <button
                               onClick={() => setEditingIndex(null)}
-                              className="w-20 inline-flex justify-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-md transition-all duration-200"
+                              className="text-gray-600 hover:text-white border border-gray-400 hover:bg-gray-400 px-3 py-1 rounded text-sm"
                             >
                               Cancel
                             </button>
@@ -277,16 +255,14 @@ export default function OrderTracker({
                           <>
                             <button
                               onClick={() => setEditingIndex(i)}
-                              className="w-20 inline-flex justify-center px-3 py-1.5 text-sm font-medium text-blue-600 border border-blue-300 hover:bg-blue-50 rounded-md transition-all duration-200"
+                              className="text-blue-600 hover:text-white border border-blue-500 hover:bg-blue-500 px-3 py-1 rounded text-sm"
                             >
                               Edit
                             </button>
                             <button
                               onClick={() => {
                                 if (
-                                  confirm(
-                                    `Delete "${item.product}" from order?`
-                                  )
+                                  confirm(`Delete "${item.product}" from order?`)
                                 ) {
                                   const updated = { ...order };
                                   updated.products.splice(i, 1);
@@ -295,10 +271,9 @@ export default function OrderTracker({
                                     0
                                   );
                                   setOrder(updated);
-                                  setEditingIndex(null);
                                 }
                               }}
-                              className="w-20 inline-flex justify-center px-3 py-1.5 text-sm font-medium text-red-600 border border-red-300 hover:bg-red-50 rounded-md transition-all duration-200"
+                              className="text-red-600 hover:text-white border border-red-500 hover:bg-red-500 px-3 py-1 rounded text-sm"
                             >
                               Delete
                             </button>
@@ -312,60 +287,41 @@ export default function OrderTracker({
             </tbody>
           </table>
         </div>
-        <div className="mt-8 border-t pt-6">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            {/* Button */}
-            <button
-              onClick={handleSaveOrder}
-              className="flex items-center gap-2 px-5 py-2 rounded-xl border border-green-500 text-green-600 bg-white hover:bg-green-500 hover:text-white transition-all duration-200 text-sm font-medium shadow-sm hover:shadow-md"
-            >
-              <svg
-                className="w-4 h-4 group-hover:stroke-white"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-              >
-                <path d="M5 13l4 4L19 7" />
-              </svg>
-              <span>{saving ? "Saving..." : "Received Order"}</span>
-            </button>
 
-            {/* Total */}
-            <div className="flex items-center text-blue-800 font-semibold text-lg">
-              <span className="mr-2">T-Total:</span>
-              <span>₦{parseFloat(order.grandTotal).toLocaleString()}</span>
-            </div>
+        {/* Save + Total */}
+        <div className="mt-8 flex flex-col sm:flex-row justify-between items-center gap-4 border-t pt-6">
+          <button
+            onClick={handleSaveOrder}
+            className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-sm"
+          >
+            {saving ? "Saving..." : "Received Order"}
+          </button>
+          <div className="text-lg font-semibold text-blue-800">
+            T-Total: ₦{parseFloat(order.grandTotal).toLocaleString()}
           </div>
         </div>
       </div>
 
       {/* Action Buttons */}
-      <div className="flex flex-col sm:flex-row justify-end items-stretch sm:items-center gap-3 pt-4 print:hidden">
+      <div className="flex flex-col sm:flex-row justify-end gap-3 mt-4 print:hidden">
         <button
           onClick={handleWhatsApp}
-          className="group flex items-center gap-2 px-4 py-1.5 rounded-lg border border-green-400 bg-white text-green-600 text-sm font-medium hover:bg-green-500 hover:text-white"
+          className="flex items-center gap-2 px-4 py-2 border border-green-500 text-green-600 rounded hover:bg-green-600 hover:text-white"
         >
-          <FaWhatsapp className="w-4 h-4" />
-          WhatsApp
+          <FaWhatsapp /> WhatsApp
         </button>
-
         <button
           onClick={handleDownloadPDF}
-          className="group flex items-center gap-2 px-4 py-1.5 rounded-lg border border-gray-400 bg-white text-gray-700 text-sm font-medium hover:bg-gray-600 hover:text-white"
+          className="flex items-center gap-2 px-4 py-2 border border-gray-500 text-gray-700 rounded hover:bg-gray-600 hover:text-white"
         >
-          <FaFilePdf className="w-4 h-4" />
-          PDF
+          <FaFilePdf /> PDF
         </button>
-
         <button
           onClick={handlePrint}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-gray-600 border border-gray-400 rounded hover:bg-blue-800 hover:text-white text-sm"
+          className="flex items-center gap-2 px-4 py-2 border border-blue-500 text-blue-700 rounded hover:bg-blue-700 hover:text-white"
         >
-          <Printer className="w-4 h-4" />
-          Print
+          <Printer /> Print
         </button>
-
         {staff?.role === "admin" && onDeleteOrder && (
           <button
             onClick={async () => {
@@ -383,10 +339,9 @@ export default function OrderTracker({
                 }
               }
             }}
-            className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 border border-red-400 rounded hover:bg-red-600 hover:text-white text-sm"
+            className="flex items-center gap-2 px-4 py-2 border border-red-500 text-red-600 rounded hover:bg-red-600 hover:text-white"
           >
-            <FaTrash className="w-4 h-4" />
-            Delete Order
+            <FaTrash /> Delete Order
           </button>
         )}
       </div>
