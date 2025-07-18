@@ -170,7 +170,7 @@ export default function OrderTracker({
                   <td className="px-3 py-2 border">
                     {editingIndex === i ? (
                       <input
-                        value={item.product}
+                        value={item.name}
                         onChange={(e) => {
                           const updated = { ...order };
                           updated.products[i].product = e.target.value;
@@ -179,7 +179,7 @@ export default function OrderTracker({
                         className="border px-2 py-1 rounded w-full"
                       />
                     ) : (
-                      item.product
+                      item.name
                     )}
                   </td>
                   <td className="px-3 py-2 text-right border">
@@ -210,7 +210,7 @@ export default function OrderTracker({
                     {editingIndex === i ? (
                       <input
                         type="number"
-                        value={item.costPerUnit}
+                        value={item.price}
                         onChange={(e) => {
                           const updated = { ...order };
                           updated.products[i].costPerUnit =
@@ -227,7 +227,7 @@ export default function OrderTracker({
                         className="border px-2 py-1 rounded w-24 text-right"
                       />
                     ) : (
-                      `₦${parseFloat(item.costPerUnit).toLocaleString()}`
+                      `₦${parseFloat(item.price).toLocaleString()}`
                     )}
                   </td>
                   <td className="px-3 py-2 text-right border">

@@ -58,7 +58,13 @@ export default async function handler(req, res) {
       productId = newProduct._id;
     }
 
-    return { product: productId, price: prod.price };
+    return {
+            product: productId,
+            name,
+            quantity,
+            costPerUnit,
+            total,
+          };
   })
 );
 

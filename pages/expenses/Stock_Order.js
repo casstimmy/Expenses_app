@@ -379,26 +379,64 @@ export default function StockOrder() {
           )}
 
           {/* Order Review */}
-          {orders.length > 0 && (
-            <section className="bg-white p-6 rounded shadow space-y-4">
-              {/* ...your order table and editing controls remain unchanged... */}
-              {/* Submit and Merge buttons */}
-              <div className="text-right font-semibold text-blue-700">
-                T-Total: ₦
-                {orders
-                  .reduce((sum, o) => sum + parseFloat(o.total), 0)
-                  .toLocaleString()}
-              </div>
-              <div className="text-right">
-                <button
-                  onClick={handleStockOrderSubmit}
-                  className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-                >
-                  Submit Order
-                </button>
-              </div>
-            </section>
-          )}
+         {orders.length > 0 && (
+  <section className="bg-white p-6 rounded-xl shadow-lg space-y-6">
+    <h2 className="text-xl font-bold text-gray-800 border-b pb-2">Stock Order Summary</h2>
+
+    <div className="overflow-x-auto">
+      <table className="min-w-full text-sm text-left border border-gray-200">
+        <thead className="bg-blue-50 text-gray-700 uppercase tracking-wide">
+          <tr>
+            <th className="px-4 py-2 border">#</th>
+            <th className="px-4 py-2 border">Product Name</th>
+            <th className="px-4 py-2 border">Quantity</th>
+            <th className="px-4 py-2 border">Unit Price (₦)</th>
+            <th className="px-4 py-2 border">Total (₦)</th>
+          </tr>
+        </thead>
+        <tbody className="text-gray-800">
+          {orders.map((item, index) => (
+
+            <tr key={index} className="hover:bg-gray-50 transition-all">
+              <td className="px-4 py-2 border">{index + 1}</td>
+              <td className="px-4 py-2 border">{item.product}</td>
+              <td className="px-4 py-2 border">{item.quantity}</td>
+              <td className="px-4 py-2 border">
+                {parseFloat(item.costPerUnit).toLocaleString()}
+              </td>
+              <td className="px-4 py-2 border font-semibold">
+                {parseFloat(item.total).toLocaleString()}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr className="bg-blue-100 text-blue-800 font-bold">
+            <td colSpan="4" className="px-4 py-2 text-right border">
+              T-Total:
+            </td>
+            <td className="px-4 py-2 border">
+              ₦
+              {orders
+                .reduce((sum, o) => sum + parseFloat(o.total), 0)
+                .toLocaleString()}
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div className="text-right">
+      <button
+        onClick={handleStockOrderSubmit}
+        className="bg-green-600 text-white px-6 py-3 rounded-lg shadow hover:bg-green-700 transition-all"
+      >
+        ✅ Submit Order
+      </button>
+    </div>
+  </section>
+)}
+
 
           {staff?.role === "admin" && (
             <div className="text-right mt-4">

@@ -16,12 +16,6 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "POST") {
-
-    const normalizeCategory = (category) => {
-  const found = productCategories.find((c) => c.toLowerCase() === category.toLowerCase());
-  return found || category;
-};
-
     try {
       const {
         companyName,
@@ -36,39 +30,54 @@ export default async function handler(req, res) {
         products,
       } = req.body;
 
-     const productRefs = await Promise.all(
-  products.map(async (prod) => {
-    let productId;
+      const productRefs = await Promise.all(
+        products.map(async (prod) => {
+          let productId;
 
-    if (prod.product && prod.product !== "custom") {
-      if (
-        typeof prod.product === "string" &&
-        mongoose.Types.ObjectId.isValid(prod.product)
-      ) {
-        productId = new mongoose.Types.ObjectId(prod.product);
-      } else {
-        throw new Error(`Invalid product ID: ${prod.product}`);
-      }
-    } else {
-      if (!prod.name || !prod.category) {
-        throw new Error("Product name and category are required for custom product");
-      }
+          const {
+            product,
+            name,
+            category,
+            quantity,
+            costPerUnit,
+            total,
+            price, // optional for custom product
+          } = prod;
 
-      const newProduct = await Product.create({
-        name: prod.name.trim(),
-        category: prod.category.trim(),
-        costPrice: prod.price || 0, // optional for custom
-      });
+          if (product && product !== "custom") {
+            // Existing product ID
+            if (
+              typeof product === "string" &&
+              mongoose.Types.ObjectId.isValid(product)
+            ) {
+              productId = new mongoose.Types.ObjectId(product);
+            } else {
+              throw new Error(`Invalid product ID: ${product}`);
+            }
+          } else {
+            // New custom product
+            if (!name || !category) {
+              throw new Error("Product name and category are required for custom products");
+            }
 
-      productId = newProduct._id;
-    }
+            const newProduct = await Product.create({
+              name: name.trim(),
+              category: category.trim(),
+              costPrice: price || costPerUnit || 0,
+            });
 
-    return { product: productId, price: prod.price }; // ✅ price included
-  })
-);
+            productId = newProduct._id;
+          }
 
-
-
+          return {
+            product: productId,
+            name: name?.trim() || "", // Optional, fallback to empty string
+            quantity: quantity || 0,
+            costPerUnit: costPerUnit || 0,
+            total: total || 0,
+          };
+        })
+      );
 
       const vendor = await Vendor.create({
         companyName,
@@ -85,12 +94,11 @@ export default async function handler(req, res) {
 
       return res.status(201).json({ success: true, vendor });
     } catch (err) {
-      console.error(err);
+      console.error("Error creating vendor:", err);
       return res.status(500).json({ success: false, error: err.message });
     }
   }
 
-  // This should only run if method is neither GET nor POST
   res.setHeader("Allow", ["GET", "POST"]);
   return res.status(405).end(`Method ${req.method} Not Allowed`);
 }
