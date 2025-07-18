@@ -4,6 +4,10 @@ import StockOrder from "@/models/StockOrder";
 import nodemailer from "nodemailer";
 
 export default async function handler(req, res) {
+  const auth = req.headers.authorization;
+   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+    return res.status(401).send("Unauthorized");
+  }
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }

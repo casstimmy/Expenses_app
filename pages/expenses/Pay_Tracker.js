@@ -111,7 +111,7 @@ export default function PayTracker() {
       <div className="min-h-screen bg-gray-100 p-4 md:p-6">
         <div className="max-w-7xl mx-auto">
           <h1 className="text-2xl md:text-3xl font-bold text-blue-800 mb-4">
-            Vendor Order Pay Tracker
+            Vendor Payment Tracker
           </h1>
 
           {dueOrders.length > 0 && (
