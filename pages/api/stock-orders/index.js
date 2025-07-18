@@ -6,7 +6,7 @@ export default async function handler(req, res) {
 
   if (req.method === "POST") {
     try {
-      const { date, supplier, contact, mainProduct, products, grandTotal, location } = req.body;
+      const { date, supplier, contact, mainProduct, reason,  products, grandTotal, location } = req.body;
 
       // ✅ Validate required fields
       if (!date || !supplier || !products || products.length === 0) {
@@ -17,8 +17,9 @@ export default async function handler(req, res) {
   date,
   supplier,
   contact,
-  location, // ✅ add this line
+  location,
   mainProduct,
+  reason,
   products,
   grandTotal,
 });

@@ -1,6 +1,7 @@
 import StockOrder from '@/models/StockOrder';
 import { mongooseConnect } from "@/lib/mongoose";
 
+
 export default async function handler(req, res) {
   const { id } = req.query;
 

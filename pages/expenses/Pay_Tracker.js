@@ -1,131 +1,167 @@
+import { useEffect, useState } from "react";
 import Layout from "@/components/Layout";
+import VendorPaymentTracker from "@/components/VendorPaymentTracker";
 
 export default function PayTracker() {
-  const orders = [
-    {
-      date: "02 June 2025",
-      vendor: "Coke Person Abike",
-      invoiceName: "Omidun & Kemfun",
-      invoiceNumber: "On Delivery",
-      contact: "0703 028 1043",
-      products: "Coke Products",
-      totalSupplied: 500000,
-      delivered: "Yes",
-      paymentMade: 500000,
-      paymentDate: "02 June 2025",
-      balance: 0,
-      status: "Fully Paid",
-    },
-    {
-      vendor: "Existing Existence Of God",
-      invoiceName: "Betty Distribution",
-      invoiceNumber: "On Delivery",
-      contact: "0706 721 4781",
-      products: "Spaghetti, Ayoola Poundo",
-      totalSupplied: 669300,
-      delivered: "Yes",
-      paymentMade: 669300,
-      paymentDate: "02 June 2025",
-      balance: 0,
-      status: "Fully Paid",
-    },
-    {
-      vendor: "Bd & T Ltd",
-      invoiceName: "Bd & T Ltd",
-      invoiceNumber: "1914/1913/New Order",
-      contact: "0803 581 5950",
-      products: "Fun Snax and Biscuits",
-      totalSupplied: 171900,
-      delivered: "Yes",
-      paymentMade: 171900,
-      paymentDate: "02 June 2025",
-      balance: 0,
-      status: "Fully Paid",
-    },
-    {
-      vendor: "Madam Oyin",
-      invoiceName: "Trade Depot",
-      invoiceNumber: "01-22023...",
-      contact: "0706 721 4781",
-      products: "Whole Sale",
-      totalSupplied: 217700,
-      delivered: "Yes",
-      paymentMade: 217700,
-      paymentDate: "02 June 2025",
-      balance: 0,
-      status: "Fully Paid",
-    },
-    {
-      vendor: "Kilishi Person",
-      invoiceName: "Henley and Ascot Ltd",
-      invoiceNumber: "15195",
-      contact: "0808 755 1676",
-      products: "Kilishi Products",
-      totalSupplied: 190200,
-      delivered: "Yes",
-      paymentMade: 190200,
-      paymentDate: "02 June 2025",
-      balance: 0,
-      status: "Fully Paid",
-    },
-  ];
+  const [orders, setOrders] = useState([]);
+  const [dueOrders, setDueOrders] = useState([]);
+  const [reminderSent, setReminderSent] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [countdown, setCountdown] = useState(0);
 
-  const total = orders.reduce((sum, order) => sum + order.totalSupplied, 0);
+  // 🔁 Shared logic to filter overdue orders based on createdAt
+  const getOverdueOrders = (ordersList) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return ordersList.filter((order) => {
+      const createdAt = order.createdAt ? new Date(order.createdAt) : null;
+      if (!createdAt || isNaN(createdAt)) return false;
+
+      // Add 14 days to the createdAt date
+      const dueDate = new Date(createdAt);
+      dueDate.setDate(dueDate.getDate() + 14);
+      dueDate.setHours(0, 0, 0, 0);
+
+      return order.status !== "fulfilled" && dueDate < today;
+    });
+  };
+
+  // 📦 Fetch orders and compute overdue ones
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch("/api/stock-orders");
+        const data = await res.json();
+        if (!Array.isArray(data)) throw new Error("Invalid response");
+
+        setOrders(data);
+        setDueOrders(getOverdueOrders(data));
+      } catch (err) {
+        console.error("Failed to fetch orders:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrders();
+  }, []);
+
+  // 📤 Auto send reminder once
+  useEffect(() => {
+    const sendReminder = async () => {
+      if (dueOrders.length > 0 && !reminderSent) {
+        try {
+          await fetch("/api/stock-orders/send-reminder", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ dueOrders }),
+          });
+          setReminderSent(true);
+        } catch (err) {
+          console.error("Auto reminder failed:", err);
+        }
+      }
+    };
+
+    sendReminder();
+  }, [dueOrders, reminderSent]);
+
+  // 👆 Manual trigger for reminder
+  const handleReminderSend = async () => {
+    try {
+      setSending(true);
+      const res = await fetch("/api/stock-orders");
+      const data = await res.json();
+
+      const overdue = getOverdueOrders(data);
+
+      if (overdue.length > 0) {
+        await fetch("/api/stock-orders/send-reminder", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ dueOrders: overdue }),
+        });
+
+        setCountdown(5); // Start countdown from 5
+        const interval = setInterval(() => {
+          setCountdown((prev) => {
+            if (prev <= 1) {
+              clearInterval(interval);
+              setSending(false);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      } else {
+        alert("No overdue orders.");
+        setSending(false);
+      }
+    } catch (err) {
+      console.error("Manual reminder failed:", err);
+      setSending(false);
+    }
+  };
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-100 p-6">
+      <div className="min-h-screen bg-gray-100 p-4 md:p-6">
         <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold text-blue-800 mb-6">
-            Vendor Order Pay Tracker - June 2025
+          <h1 className="text-2xl md:text-3xl font-bold text-blue-800 mb-4">
+            Vendor Order Pay Tracker
           </h1>
-          <div className="overflow-x-auto bg-white rounded-lg shadow">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-blue-100 text-gray-700 text-sm">
-                <tr>
-                  <th className="px-4 py-2 text-left">Date</th>
-                  <th className="px-4 py-2 text-left">Vendor</th>
-                  <th className="px-4 py-2 text-left">Name on Invoice</th>
-                  <th className="px-4 py-2 text-left">Invoice Number</th>
-                  <th className="px-4 py-2 text-left">Contact</th>
-                  <th className="px-4 py-2 text-left">Products</th>
-                  <th className="px-4 py-2 text-right">Total Supplied</th>
-                  <th className="px-4 py-2 text-center">Delivered</th>
-                  <th className="px-4 py-2 text-right">Payment Made</th>
-                  <th className="px-4 py-2 text-left">Payment Date</th>
-                  <th className="px-4 py-2 text-right">Balance</th>
-                  <th className="px-4 py-2 text-left">Status</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white text-sm">
-                {orders.map((order, idx) => (
-                  <tr key={idx} className="border-t">
-                    <td className="px-4 py-2 whitespace-nowrap">{order.date || "-"}</td>
-                    <td className="px-4 py-2 whitespace-nowrap">{order.vendor}</td>
-                    <td className="px-4 py-2">{order.invoiceName}</td>
-                    <td className="px-4 py-2">{order.invoiceNumber}</td>
-                    <td className="px-4 py-2">{order.contact}</td>
-                    <td className="px-4 py-2">{order.products}</td>
-                    <td className="px-4 py-2 text-right">₦ {order.totalSupplied.toLocaleString()}</td>
-                    <td className="px-4 py-2 text-center">{order.delivered}</td>
-                    <td className="px-4 py-2 text-right">₦ {order.paymentMade.toLocaleString()}</td>
-                    <td className="px-4 py-2">{order.paymentDate}</td>
-                    <td className="px-4 py-2 text-right">₦ {order.balance.toLocaleString()}</td>
-                    <td className="px-4 py-2 text-green-700 font-semibold">{order.status}</td>
-                  </tr>
+
+          {dueOrders.length > 0 && (
+            <div className="bg-red-100 border border-red-300 text-red-700 p-3 rounded-lg mb-4 shadow-sm text-xs md:text-sm max-w-md">
+              <div className="font-semibold mb-1">
+                ⚠️ {dueOrders.length} Overdue Order
+                {dueOrders.length > 1 ? "s" : ""}
+              </div>
+              <ul className="list-disc pl-4">
+                {dueOrders.slice(0, 3).map((order, i) => (
+                  <li key={i}>
+                    {order.supplier || "Unknown supplier"} —{" "}
+                    {order.createdAt
+                      ? new Date(order.createdAt).toLocaleDateString()
+                      : "No Date"}
+                  </li>
                 ))}
-                <tr className="bg-gray-100 font-bold border-t">
-                  <td colSpan="6" className="px-4 py-3 text-right">Total For June</td>
-                  <td className="px-4 py-3 text-right">₦ {total.toLocaleString()}</td>
-                  <td className="px-4 py-3 text-center">—</td>
-                  <td className="px-4 py-3 text-right">₦ {total.toLocaleString()}</td>
-                  <td className="px-4 py-3">—</td>
-                  <td className="px-4 py-3 text-right">₦ 0</td>
-                  <td className="px-4 py-3 text-green-700">Fully Paid</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+              </ul>
+              {dueOrders.length > 3 && (
+                <p className="mt-1 italic">+{dueOrders.length - 3} more</p>
+              )}
+              <p className="mt-2 text-green-600 font-medium">
+                Reminder sent automatically.
+              </p>
+              <button
+                onClick={handleReminderSend}
+                disabled={sending}
+                className={`px-6 py-2 my-4 rounded-sm text-sm font-medium transition-all duration-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2
+    ${
+      sending
+        ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+        : "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500"
+    }`}
+              >
+                {sending
+                  ? countdown > 0
+                    ? `✓ Reminder Sent — Wait ${countdown}s`
+                    : "Sending Mail..."
+                  : "📧 Send Vendor Reminder"}
+              </button>
+            </div>
+          )}
+
+          {loading ? (
+            <div className="w-full h-20 bg-gray-100 ">
+              <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
+            </div>
+          ) : (
+            <VendorPaymentTracker orders={orders} />
+          )}
         </div>
       </div>
     </Layout>

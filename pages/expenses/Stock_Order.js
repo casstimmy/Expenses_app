@@ -30,27 +30,25 @@ export default function StockOrder() {
     location: "",
   });
 
-useEffect(() => {
-  const initialize = async () => {
-    // Load staff from localStorage
-    const stored = localStorage.getItem("staff");
-    if (stored) {
-      const parsedStaff = JSON.parse(stored);
-      setStaff(parsedStaff);
+  useEffect(() => {
+    const initialize = async () => {
+      // Load staff from localStorage
+      const stored = localStorage.getItem("staff");
+      if (stored) {
+        const parsedStaff = JSON.parse(stored);
+        setStaff(parsedStaff);
 
-      // Set default form location based on staff
-      if (parsedStaff.location) {
-        setForm((prev) => ({ ...prev, location: parsedStaff.location }));
+        // Set default form location based on staff
+        if (parsedStaff.location) {
+          setForm((prev) => ({ ...prev, location: parsedStaff.location }));
+        }
       }
-    }
+      await loadVendors();
+      await loadSubmittedOrders();
+    };
 
-    await loadVendors();
-    await loadSubmittedOrders();
-  };
-
-  initialize();
-}, []);
-
+    initialize();
+  }, []);
 
   const loadStaff = async () => {
     const stored = localStorage.getItem("staff");
@@ -191,7 +189,7 @@ useEffect(() => {
           )}
 
           {/* Vendor Section */}
-         <section className="bg-white p-6 rounded shadow relative">
+          <section className="bg-white p-6 rounded shadow relative">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold text-gray-800">Vendors</h2>
               <button
@@ -201,30 +199,31 @@ useEffect(() => {
                 + Add Vendor
               </button>
             </div>
-{/* Vendor Section */}
-<div className="relative">
-  {loadingVendors && (
-    <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-10">
-      <div className="w-10 h-10 border-4 border-white border-t-blue-600 rounded-full animate-spin" />
-    </div>
-  )}
+            {/* Vendor Section */}
+            <div className="relative">
+              {loadingVendors && (
+                <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-10">
+                  <div className="w-10 h-10 border-4 border-white border-t-blue-600 rounded-full animate-spin" />
+                </div>
+              )}
 
-  <VendorList
-    vendors={vendors}
-    setSelectedVendor={(vendor) => {
-      setSelectedVendor(vendor);
-      setTimeout(() => {
-        orderFormRef.current?.scrollIntoView({ behavior: "smooth" });
-      }, 100);
-    }}
-    setForm={setForm}
-    setEditingVendor={setEditingVendor}
-    setShowVendorForm={setShowVendorForm}
-    staff={staff}
-  />
-</div>
-</section>
-
+              <VendorList
+                vendors={vendors}
+                setSelectedVendor={(vendor) => {
+                  setSelectedVendor(vendor);
+                  setTimeout(() => {
+                    orderFormRef.current?.scrollIntoView({
+                      behavior: "smooth",
+                    });
+                  }, 100);
+                }}
+                setForm={setForm}
+                setEditingVendor={setEditingVendor}
+                setShowVendorForm={setShowVendorForm}
+                staff={staff}
+              />
+            </div>
+          </section>
 
           {/* Vendor Modal */}
           {showVendorForm && (
@@ -281,8 +280,7 @@ useEffect(() => {
                     <strong>Company:</strong> {selectedVendor?.companyName}
                   </p>
                   <p>
-                    <strong>Representative:</strong>{" "}
-                    {selectedVendor?.vendorRep}
+                    <strong>Representative:</strong> {selectedVendor?.vendorRep}
                   </p>
                   <p>
                     <strong>Phone:</strong> {selectedVendor?.repPhone}
@@ -414,30 +412,28 @@ useEffect(() => {
             </div>
           )}
 
-       {/* Order Section */}
-<div className="relative">
-  {loadingSubmittedOrders && (
-    <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-10">
-      <div className="w-10 h-10 border-4 border-white border-t-blue-600 rounded-full animate-spin" />
-    </div>
-  )}
+          {/* Order Section */}
+          <div className="relative">
+            {loadingSubmittedOrders && (
+              <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-10">
+                <div className="w-10 h-10 border-4 border-white border-t-blue-600 rounded-full animate-spin" />
+              </div>
+            )}
 
-  <OrderList
-    submittedOrders={
-      staff?.role === "admin"
-        ? submittedOrders
-        : submittedOrders.filter(
-            (order) =>
-              order.location === staff?.location ||
-              order.location === "All Locations (Merged)"
-          )
-    }
-    selectedOrder={selectedOrder}
-    setSelectedOrder={setSelectedOrder}
-    staff={staff}
-  />
-</div>
-
+            <OrderList
+              submittedOrders={(staff?.role === "admin"
+                ? submittedOrders
+                : submittedOrders.filter(
+                    (order) =>
+                      order.location === staff?.location ||
+                      order.location === "All Locations (Merged)"
+                  )
+              ).filter((order) => !order.reason)}
+              selectedOrder={selectedOrder}
+              setSelectedOrder={setSelectedOrder}
+              staff={staff}
+            />
+          </div>
         </div>
       </div>
     </Layout>

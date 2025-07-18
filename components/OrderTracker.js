@@ -1,8 +1,12 @@
 import { Printer } from "lucide-react";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import { useRouter } from "next/router";
 import { FaFilePdf, FaWhatsapp, FaTrash, FaEdit } from "react-icons/fa";
+
+
+
 
 export default function OrderTracker({
   order,
@@ -12,10 +16,16 @@ export default function OrderTracker({
   editingIndex,
   setEditingIndex,
   setOrder,
-  staff,
+  staff
 }) {
   const printRef = useRef();
   if (!order) return null;
+
+  const router = useRouter();
+  
+const [saving, setSaving] = useState(false);
+const [reason, setReason] = useState("Received - Confirmed");
+
 
   const handleWhatsApp = () => {
     const text =
@@ -89,6 +99,59 @@ export default function OrderTracker({
     printWindow.document.close();
     printWindow.print();
   };
+
+const handleSaveOrder = async () => {
+  if (!order || !order.products || order.products.length === 0) {
+    return alert("Order is missing products.");
+  }
+
+  try {
+    setSaving(true);
+
+    const payload = {
+      ...order,
+      reason: "Stock Received",
+    };
+
+    const res = await fetch("/api/stock-orders", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const result = await res.json();
+    setSaving(false);
+
+    if (!res.ok) {
+      return alert("Failed to save order: " + result.error);
+    }
+
+    // Step 2: Delete the previous order using its ID
+    const deleteRes = await fetch(`/api/stock-orders/${order._id}`, {
+  method: "DELETE",
+});
+
+
+    if (!deleteRes.ok) {
+      const error = await deleteRes.json();
+      return alert("Saved, but failed to delete old order: " + error.error);
+    }
+
+    alert("Stock received and order entry removed.");
+  } catch (error) {
+    console.error("Save order error:", error);
+    alert("An unexpected error occurred while saving the order.");
+  }
+ alert("Stock received and order entry removed.");
+setTimeout(() => {
+  router.push("/expenses/Pay_Tracker");
+}, 1000); // 1 second delay
+
+};
+
+
 
 
 
@@ -201,64 +264,91 @@ export default function OrderTracker({
                     ₦{parseFloat(item.total).toLocaleString()}
                   </td>
                   {staff?.role === "admin" && (
-                  <td className="px-3 py-2 text-center border">
-  <div className="flex gap-2 justify-center">
-    {editingIndex === i ? (
-      <>
-        <button
-          onClick={() => setEditingIndex(null)}
-          className="w-20 inline-flex justify-center px-3 py-1.5 text-sm font-medium text-white bg-green-500 hover:bg-green-600 rounded-md shadow-sm transition-all duration-200"
-        >
-          Save
-        </button>
-        <button
-          onClick={() => setEditingIndex(null)}
-          className="w-20 inline-flex justify-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-md transition-all duration-200"
-        >
-          Cancel
-        </button>
-      </>
-    ) : (
-      <>
-        <button
-          onClick={() => setEditingIndex(i)}
-          className="w-20 inline-flex justify-center px-3 py-1.5 text-sm font-medium text-blue-600 border border-blue-300 hover:bg-blue-50 rounded-md transition-all duration-200"
-        >
-          Edit
-        </button>
-        <button
-          onClick={() => {
-            if (confirm(`Delete "${item.product}" from order?`)) {
-              const updated = { ...order };
-              updated.products.splice(i, 1);
-              updated.grandTotal = updated.products.reduce(
-                (sum, p) => sum + p.total,
-                0
-              );
-              setOrder(updated);
-              setEditingIndex(null);
-            }
-          }}
-          className="w-20 inline-flex justify-center px-3 py-1.5 text-sm font-medium text-red-600 border border-red-300 hover:bg-red-50 rounded-md transition-all duration-200"
-        >
-          Delete
-        </button>
-      </>
-    )}
-  </div>
-</td>
-
+                    <td className="px-3 py-2 text-center border">
+                      <div className="flex gap-2 justify-center">
+                        {editingIndex === i ? (
+                          <>
+                            <button
+                              onClick={() => setEditingIndex(null)}
+                              className="w-20 inline-flex justify-center px-3 py-1.5 text-sm font-medium text-white bg-green-500 hover:bg-green-600 rounded-md shadow-sm transition-all duration-200"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={() => setEditingIndex(null)}
+                              className="w-20 inline-flex justify-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-md transition-all duration-200"
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => setEditingIndex(i)}
+                              className="w-20 inline-flex justify-center px-3 py-1.5 text-sm font-medium text-blue-600 border border-blue-300 hover:bg-blue-50 rounded-md transition-all duration-200"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (
+                                  confirm(
+                                    `Delete "${item.product}" from order?`
+                                  )
+                                ) {
+                                  const updated = { ...order };
+                                  updated.products.splice(i, 1);
+                                  updated.grandTotal = updated.products.reduce(
+                                    (sum, p) => sum + p.total,
+                                    0
+                                  );
+                                  setOrder(updated);
+                                  setEditingIndex(null);
+                                }
+                              }}
+                              className="w-20 inline-flex justify-center px-3 py-1.5 text-sm font-medium text-red-600 border border-red-300 hover:bg-red-50 rounded-md transition-all duration-200"
+                            >
+                              Delete
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
                   )}
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+<div className="mt-8 border-t pt-6">
+  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+    {/* Button */}
+    <button
+      onClick={handleSaveOrder}
+      className="flex items-center gap-2 px-5 py-2 rounded-xl border border-green-500 text-green-600 bg-white hover:bg-green-500 hover:text-white transition-all duration-200 text-sm font-medium shadow-sm hover:shadow-md"
+    >
+      <svg
+        className="w-4 h-4 group-hover:stroke-white"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        viewBox="0 0 24 24"
+      >
+        <path d="M5 13l4 4L19 7" />
+      </svg>
+      <span>{saving ? "Saving..." : "Received Order"}</span>
+    </button>
+   
+    {/* Total */}
+    <div className="flex items-center text-blue-800 font-semibold text-lg">
+      <span className="mr-2">T-Total:</span>
+      <span>₦{parseFloat(order.grandTotal).toLocaleString()}</span>
+    </div>
 
-        <div className="flex justify-end items-center mt-6 pt-4 border-t border-gray-300 text-blue-700 font-bold text-base sm:text-lg">
-          <span className="mr-2">T-Total:</span>
-          <span>₦{parseFloat(order.grandTotal).toLocaleString()}</span>
-        </div>
+   
+  </div>
+</div>
+
       </div>
 
       {/* Action Buttons */}

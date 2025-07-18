@@ -18,7 +18,7 @@ export default function OrderList({
 
   const handleDeleteOrder = (deletedId) => {
     setOrders((prev) => prev.filter((o) => o._id !== deletedId));
-    setSelectedOrder(null); // Hide deleted order details
+    setSelectedOrder(null); 
   };
 
   return (

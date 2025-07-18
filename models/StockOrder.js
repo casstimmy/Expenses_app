@@ -7,6 +7,7 @@ const stockOrderSchema = new Schema(
     contact: { type: String },
     location: { type: String },
     mainProduct: { type: String },
+    reason: { type: String }, 
     products: [
       {
         product: String,
