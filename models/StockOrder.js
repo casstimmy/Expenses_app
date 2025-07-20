@@ -17,6 +17,10 @@ const stockOrderSchema = new mongoose.Schema({
   grandTotal: { type: Number, required: true },
   products: [productSchema],
 
+
+  vendor: { type: mongoose.Schema.Types.ObjectId, ref: "Vendor", required: true }, // <-- change this
+
+
   // ✅ New fields for payment tracking
   paymentMade: { type: Number, default: 0 },
   balance: { type: Number, default: 0 },

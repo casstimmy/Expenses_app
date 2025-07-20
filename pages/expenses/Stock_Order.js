@@ -19,6 +19,7 @@ export default function StockOrder() {
   const [merging, setMerging] = useState(false);
   const [staff, setStaff] = useState(null);
   const [loadingVendors, setLoadingVendors] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [loadingSubmittedOrders, setLoadingSubmittedOrders] = useState(false);
 
   const [form, setForm] = useState({
@@ -32,13 +33,10 @@ export default function StockOrder() {
 
   useEffect(() => {
     const initialize = async () => {
-      // Load staff from localStorage
       const stored = localStorage.getItem("staff");
       if (stored) {
         const parsedStaff = JSON.parse(stored);
         setStaff(parsedStaff);
-
-        // Set default form location based on staff
         if (parsedStaff.location) {
           setForm((prev) => ({ ...prev, location: parsedStaff.location }));
         }
@@ -49,11 +47,6 @@ export default function StockOrder() {
 
     initialize();
   }, []);
-
-  const loadStaff = async () => {
-    const stored = localStorage.getItem("staff");
-    if (stored) setStaff(JSON.parse(stored));
-  };
 
   const loadVendors = async () => {
     setLoadingVendors(true);
@@ -89,9 +82,9 @@ export default function StockOrder() {
     e.preventDefault();
     const updatedOrders = form.products.map((prod) => ({
       date: form.date,
-      supplier: form.supplier,
+      supplier: selectedVendor?.companyName,
       contact: form.contact,
-      mainProduct: form.mainProduct,
+      mainProduct: selectedVendor?.mainProduct || "",
       product: prod.name,
       quantity: prod.qty,
       costPerUnit: prod.costPerUnit || 0,
@@ -99,7 +92,8 @@ export default function StockOrder() {
       location: form.location,
     }));
 
-    setOrders([...updatedOrders, ...orders]);
+    setOrders([...orders, ...updatedOrders]);
+
     setForm({
       date: getToday(),
       supplier: "",
@@ -112,6 +106,8 @@ export default function StockOrder() {
   };
 
   const handleStockOrderSubmit = async () => {
+    setSubmitting(true);
+
     const payload = {
       date: orders[0].date,
       supplier: orders[0].supplier,
@@ -146,6 +142,8 @@ export default function StockOrder() {
     } catch (err) {
       console.error(err);
       alert("Failed to submit order.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -428,11 +426,13 @@ export default function StockOrder() {
 
     <div className="text-right">
       <button
-        onClick={handleStockOrderSubmit}
-        className="bg-green-600 text-white px-6 py-3 rounded-lg shadow hover:bg-green-700 transition-all"
-      >
-        ✅ Submit Order
-      </button>
+  onClick={handleStockOrderSubmit}
+  className="bg-green-600 text-white px-6 py-3 rounded-lg shadow hover:bg-green-700 transition-all"
+  disabled={submitting}
+>
+  {submitting ? "Processing Order..." : "✅ Submit Order"}
+</button>
+
     </div>
   </section>
 )}

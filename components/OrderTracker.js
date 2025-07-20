@@ -23,7 +23,8 @@ export default function OrderTracker({
 
   // WhatsApp Text Builder
   const handleWhatsApp = () => {
-    const text = `*Stock Order: ${order.supplier}*\n` +
+    const text =
+      `*Stock Order: ${order.supplier}*\n` +
       order.products
         .map(
           (item) =>
@@ -61,6 +62,7 @@ export default function OrderTracker({
       alert("Failed to generate PDF.");
     }
   };
+  
 
   // Print Order
   const handlePrint = () => {
@@ -85,6 +87,7 @@ export default function OrderTracker({
     printWindow.print();
   };
 
+
   // Save Order
   const handleSaveOrder = async () => {
     if (!order || !order.products?.length) {
@@ -97,6 +100,12 @@ export default function OrderTracker({
       const payload = {
         ...order,
         reason: "Stock Received",
+        products: order.products.map((p) => ({
+          name: p.name,
+          quantity: Number(p.quantity),
+          price: Number(p.price),
+          total: Number(p.total),
+        })),
       };
 
       const res = await fetch("/api/stock-orders", {
@@ -144,10 +153,26 @@ export default function OrderTracker({
         </h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 text-gray-700 mb-6">
-          <p><strong>Date:</strong> {order.date}</p>
-          <p><strong>Supplier:</strong> {order.supplier}</p>
-          <p><strong>Contact:</strong> {order.contact}</p>
-          <p><strong>Location:</strong> {order.location || "N/A"}</p>
+          <p>
+            <strong>Date:</strong> {order.date
+  ? new Date(order.date).toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })
+  : "—"}
+
+          </p>
+          <p>
+            <strong>Supplier:</strong> {order.supplier}
+          </p>
+          <p>
+            <strong>Contact:</strong> {order.contact}
+          </p>
+          <p>
+            <strong>Location:</strong> {order.location || "N/A"}
+          </p>
         </div>
 
         {/* Product Table */}
@@ -173,6 +198,9 @@ export default function OrderTracker({
                         value={item.name}
                         onChange={(e) => {
                           const updated = { ...order };
+
+
+
                           updated.products[i].product = e.target.value;
                           setOrder(updated);
                         }}
@@ -189,13 +217,13 @@ export default function OrderTracker({
                         value={item.quantity}
                         onChange={(e) => {
                           const updated = { ...order };
-                          updated.products[i].quantity =
-                            parseFloat(e.target.value) || 0;
-                          updated.products[i].total =
-                            updated.products[i].quantity *
-                            updated.products[i].costPerUnit;
+                          const qty = parseFloat(e.target.value) || 0;
+                          const unit =
+                            parseFloat(updated.products[i].price) || 0;
+                          updated.products[i].quantity = qty;
+                          updated.products[i].total = qty * unit;
                           updated.grandTotal = updated.products.reduce(
-                            (sum, p) => sum + p.total,
+                            (sum, p) => sum + (p.total || 0),
                             0
                           );
                           setOrder(updated);
@@ -213,13 +241,13 @@ export default function OrderTracker({
                         value={item.price}
                         onChange={(e) => {
                           const updated = { ...order };
-                          updated.products[i].costPerUnit =
-                            parseFloat(e.target.value) || 0;
-                          updated.products[i].total =
-                            updated.products[i].quantity *
-                            updated.products[i].costPerUnit;
+                          const unit = parseFloat(e.target.value) || 0;
+                          const qty =
+                            parseFloat(updated.products[i].quantity) || 0;
+                          updated.products[i].price = unit;
+                          updated.products[i].total = qty * unit;
                           updated.grandTotal = updated.products.reduce(
-                            (sum, p) => sum + p.total,
+                            (sum, p) => sum + (p.total || 0),
                             0
                           );
                           setOrder(updated);
@@ -227,23 +255,46 @@ export default function OrderTracker({
                         className="border px-2 py-1 rounded w-24 text-right"
                       />
                     ) : (
-                      `₦${parseFloat(item.price).toLocaleString()}`
+                      `₦${parseFloat(item.price)}`
                     )}
                   </td>
                   <td className="px-3 py-2 text-right border">
-                    ₦{parseFloat(item.total).toLocaleString()}
+                    ₦{parseFloat(item.total)}
                   </td>
                   {staff?.role === "admin" && (
                     <td className="px-3 py-2 text-center border">
                       <div className="flex gap-2 justify-center">
                         {editingIndex === i ? (
                           <>
-                            <button
-                              onClick={() => setEditingIndex(null)}
-                              className="text-green-600 hover:text-white border border-green-500 hover:bg-green-500 px-3 py-1 rounded text-sm"
-                            >
-                              Save
-                            </button>
+                          <button
+  onClick={async () => {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/stock-orders/${order._id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(order),
+      });
+
+      if (!res.ok) throw new Error("Failed to save");
+
+      setEditingIndex(null);
+    } catch (err) {
+      console.error("Error saving:", err);
+      alert("Failed to save. Try again.");
+    } finally {
+      setSaving(false);
+    }
+  }}
+  disabled={saving}
+  className={`${
+    saving ? "opacity-50 cursor-not-allowed" : "hover:text-white hover:bg-green-500"
+  } text-green-600 border border-green-500 px-3 py-1 rounded text-sm`}
+>
+  {saving ? "Saving..." : "Save"}
+</button>
                             <button
                               onClick={() => setEditingIndex(null)}
                               className="text-gray-600 hover:text-white border border-gray-400 hover:bg-gray-400 px-3 py-1 rounded text-sm"
@@ -262,7 +313,7 @@ export default function OrderTracker({
                             <button
                               onClick={() => {
                                 if (
-                                  confirm(`Delete "${item.product}" from order?`)
+                                  confirm(`Delete "${item.name}" from order?`)
                                 ) {
                                   const updated = { ...order };
                                   updated.products.splice(i, 1);

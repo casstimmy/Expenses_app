@@ -1,6 +1,9 @@
 import { mongooseConnect } from "@/lib/mongoose";
 import StockOrder from "@/models/StockOrder";
 import Product from "@/models/Product"; // Needed if you want to link product details
+import Vendor from "@/models/Vendor";
+
+
 
 export default async function handler(req, res) {
   await mongooseConnect();
@@ -21,6 +24,15 @@ export default async function handler(req, res) {
       if (!date || !supplier || !products || products.length === 0) {
         return res.status(400).json({ error: "Missing required fields" });
       }
+      // Lookup the vendor by companyName
+      const vendor = await Vendor.findOne({ companyName: supplier });
+
+
+
+
+      if (!vendor) {
+        return res.status(400).json({ error: "Vendor not found for supplier" });
+      }
 
 
       // Transform product list to include name, price, quantity, total
@@ -31,16 +43,19 @@ export default async function handler(req, res) {
         total: prod.total || 0,
       }));
 
-      const order = await StockOrder.create({
-        date,
-        supplier,
-        contact,
-        location,
-        mainProduct,
-        reason,
-        products: formattedProducts, // Save full details
-        grandTotal,
-      });
+      const cleanSupplier = typeof supplier === "string" ? supplier.trim() : supplier;
+
+     const order = await StockOrder.create({
+  date,
+  vendor: vendor._id,
+  supplier: cleanSupplier,
+  contact,
+  location,
+  mainProduct,
+  reason,
+  products: formattedProducts,
+  grandTotal,
+});
 
       res.status(201).json({ success: true, order });
     } catch (err) {

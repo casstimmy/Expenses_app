@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { Pencil, Save, X } from "lucide-react";
+import Link from "next/link";
 
 export default function VendorPaymentTracker({ orders: initialOrders }) {
   const [orders, setOrders] = useState(initialOrders || []);
@@ -44,7 +45,7 @@ export default function VendorPaymentTracker({ orders: initialOrders }) {
     setEditedPayment("");
 
     try {
-      await fetch(`/api/payments/${updatedOrders[index]._id}`, {
+      await fetch(`../pages/api/payments/${updatedOrders[index]._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -79,16 +80,25 @@ export default function VendorPaymentTracker({ orders: initialOrders }) {
               <th className="px-4 py-3 text-left">Pay Date</th>
               <th className="px-4 py-3 text-right">Balance</th>
               <th className="px-4 py-3 text-left">Status</th>
+              <th className="px-4 py-3 text-left">Memo</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-100">
             {orders.map((order, index) => (
               <tr key={order._id} className="hover:bg-gray-50 transition">
-                <td className="px-4 py-3">{order.date || "—"}</td>
+                <td className="px-4 py-3">
+                  {order.date
+                    ? new Date(order.date).toLocaleDateString("en-GB", {
+                        day: "2-digit",
+                        month: "short", // or "long" for full month name
+                        year: "numeric",
+                      })
+                    : "—"}
+                </td>
                 <td className="px-4 py-3 font-medium text-gray-800">
                   {order.supplier || "—"}
                 </td>
-            
+
                 <td className="px-4 py-3">{order.contact || "—"}</td>
                 <td className="px-4 py-3">
                   {Array.isArray(order.mainProduct)
@@ -103,43 +113,43 @@ export default function VendorPaymentTracker({ orders: initialOrders }) {
                   ₦{order.grandTotal?.toLocaleString() || 0}
                 </td>
                 <td className="px-4 py-3 text-right">
-                 {editIndex === index ? (
-  <div className="flex flex-col sm:flex-row sm:items-center gap-2 justify-end w-full sm:w-auto">
-    <input
-      type="number"
-      min={0}
-      className="border border-gray-300 rounded px-3 py-1 w-full sm:w-28 text-right text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-      value={editedPayment}
-      onChange={(e) => setEditedPayment(e.target.value)}
-    />
-    <div className="flex gap-2 sm:flex-row flex-col w-full sm:w-auto">
-      <button
-        onClick={() => handleSave(index)}
-        className="flex items-center justify-center gap-1 bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-md text-sm font-medium transition"
-      >
-        <Save size={14} /> Save
-      </button>
-      <button
-        onClick={handleCancel}
-        className="flex items-center justify-center gap-1 bg-red-500 hover:bg-red-600 text-white px-4 py-1.5 rounded-md text-sm font-medium transition"
-      >
-        <X size={14} /> Cancel
-      </button>
-    </div>
-  </div>
-) : (
-  <div className="flex items-center gap-2 justify-end">
-    <span className="text-sm text-gray-800 font-medium">₦{order.paymentMade?.toLocaleString() || 0}</span>
-    <button
-      onClick={() => handleEdit(index, order.paymentMade)}
-      className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition"
-    >
-      <Pencil size={14} /> Edit
-    </button>
-  </div>
-)}
-
-
+                  {editIndex === index ? (
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 justify-end w-full sm:w-auto">
+                      <input
+                        type="number"
+                        min={0}
+                        className="border border-gray-300 rounded px-3 py-1 w-full sm:w-28 text-right text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                        value={editedPayment}
+                        onChange={(e) => setEditedPayment(e.target.value)}
+                      />
+                      <div className="flex gap-2 sm:flex-row flex-col w-full sm:w-auto">
+                        <button
+                          onClick={() => handleSave(index)}
+                          className="flex items-center justify-center gap-1 bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-md text-sm font-medium transition"
+                        >
+                          <Save size={14} /> Save
+                        </button>
+                        <button
+                          onClick={handleCancel}
+                          className="flex items-center justify-center gap-1 bg-red-500 hover:bg-red-600 text-white px-4 py-1.5 rounded-md text-sm font-medium transition"
+                        >
+                          <X size={14} /> Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 justify-end">
+                      <span className="text-sm text-gray-800 font-medium">
+                        ₦{order.paymentMade?.toLocaleString() || 0}
+                      </span>
+                      <button
+                        onClick={() => handleEdit(index, order.paymentMade)}
+                        className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition"
+                      >
+                        <Pencil size={14} /> Edit
+                      </button>
+                    </div>
+                  )}
                 </td>
                 <td className="px-4 py-3">{order.paymentDate || "—"}</td>
                 <td className="px-4 py-3 text-right">
@@ -157,6 +167,13 @@ export default function VendorPaymentTracker({ orders: initialOrders }) {
                   >
                     {order.status || "Not Paid"}
                   </span>
+                </td>
+                <td className="px-4 py-3">
+                  <Link href={`/memo/${order._id}`}>
+                    <button className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">
+                      View Memo
+                    </button>
+                  </Link>
                 </td>
               </tr>
             ))}
@@ -193,41 +210,41 @@ export default function VendorPaymentTracker({ orders: initialOrders }) {
             <div className="text-sm">
               <strong>Total:</strong> ₦{order.grandTotal?.toLocaleString()}
             </div>
-        <div className="text-sm flex items-center gap-2 flex-wrap">
-  <strong>Paid:</strong>
-  {editIndex === index ? (
-    <>
-      <input
-        type="number"
-        className="border border-gray-300 px-2 py-1 w-45 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
-        value={editedPayment}
-        onChange={(e) => setEditedPayment(e.target.value)}
-      />
-      <button
-        onClick={() => handleSave(index)}
-        className="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded text-xs"
-      >
-        <Save size={12} /> Save
-      </button>
-      <button
-        onClick={handleCancel}
-        className="flex items-center gap-1 bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded text-xs"
-      >
-        <X size={12} /> Cancel
-      </button>
-    </>
-  ) : (
-    <>
-      ₦{order.paymentMade?.toLocaleString() || 0}
-      <button
-        onClick={() => handleEdit(index, order.paymentMade)}
-        className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs"
-      >
-        <Pencil size={12} /> Edit
-      </button>
-    </>
-  )}
-</div>
+            <div className="text-sm flex items-center gap-2 flex-wrap">
+              <strong>Paid:</strong>
+              {editIndex === index ? (
+                <>
+                  <input
+                    type="number"
+                    className="border border-gray-300 px-2 py-1 w-45 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
+                    value={editedPayment}
+                    onChange={(e) => setEditedPayment(e.target.value)}
+                  />
+                  <button
+                    onClick={() => handleSave(index)}
+                    className="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded text-xs"
+                  >
+                    <Save size={12} /> Save
+                  </button>
+                  <button
+                    onClick={handleCancel}
+                    className="flex items-center gap-1 bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded text-xs"
+                  >
+                    <X size={12} /> Cancel
+                  </button>
+                </>
+              ) : (
+                <>
+                  ₦{order.paymentMade?.toLocaleString() || 0}
+                  <button
+                    onClick={() => handleEdit(index, order.paymentMade)}
+                    className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs"
+                  >
+                    <Pencil size={12} /> Edit
+                  </button>
+                </>
+              )}
+            </div>
 
             <div className="text-sm">
               <strong>Balance:</strong> ₦{order.balance?.toLocaleString() || 0}
@@ -247,6 +264,13 @@ export default function VendorPaymentTracker({ orders: initialOrders }) {
               >
                 {order.status || "Not Paid"}
               </span>
+            </div>
+            <div className="mt-3">
+              <Link href={`/memo/${order._id}`}>
+                <button className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">
+                  View Memo
+                </button>
+              </Link>
             </div>
           </div>
         ))}
