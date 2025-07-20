@@ -9,9 +9,10 @@ const PrintMemo = forwardRef(({ order, form, editing, handleChange }, ref) => {
 
   return (
     <div
-      ref={ref}
-      className="relative overflow-hidden bg-white w-[21cm] min-h-screen mt-5 mx-auto print:w-full"
-    >
+  ref={ref}
+  className="relative overflow-hidden bg-white w-[21cm] h-[29.7cm] mt-5 mx-auto print:w-[21cm] print:h-[29.7cm]"
+>
+
       {/* Letterhead */}
       {/* Left color strip */}
       <div className="absolute top-0 left-0 h-full w-[1.5cm] bg-[#D5F3F6] z-0" />
@@ -159,8 +160,7 @@ const PrintMemo = forwardRef(({ order, form, editing, handleChange }, ref) => {
                 <Image
                   src="/image/Logo.png"
                   alt="Watermark"
-                  width={32}
-                  height={32}
+                 width={300} height={300}
                   className="relative bottom-50 right-92 h-[28em] w-auto opacity-10 w-[300px] pointer-events-none z-0"
                 />
               </div>

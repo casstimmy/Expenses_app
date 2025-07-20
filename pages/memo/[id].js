@@ -78,7 +78,7 @@ export default function MemoPage() {
       />
 
       {/* Buttons */}
-      <div className="mt-8 mb-20  print:hidden flex justify-end gap-4">
+      <div className="mt-8 pb-10  print:hidden flex justify-end gap-4">
         {editing ? (
           <button
             onClick={() => setEditing(false)}
