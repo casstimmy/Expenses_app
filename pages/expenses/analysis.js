@@ -151,7 +151,7 @@ export default function ExpenseAnalysis() {
       !selectedLocation ||
       (recordLocation &&
         recordLocation.toLowerCase().includes(selectedLocation.toLowerCase()));
-    return matchesDate && matchesLocation;
+        return matchesDate && matchesLocation;
   };
 
   const applyFilters = (expense) => {
@@ -207,12 +207,17 @@ export default function ExpenseAnalysis() {
 
 
   // ─── Derived Data ───────────────────────────────────────────────────
-  const filteredExpenses = expenses
-  .filter((exp) => {
-    if (filters.startDate && filters.endDate) return true;
-    return isMatchByDateAndOrLocation(exp.createdAt, exp.location);
-  })
-  .filter(applyFilters);
+const filteredExpenses = expenses.filter((exp) => {
+  const expDate = new Date(exp.createdAt);
+  const matchesStart =
+    !filters.startDate || new Date(filters.startDate) <= expDate;
+  const matchesEnd =
+    !filters.endDate || new Date(filters.endDate) >= expDate;
+  const matchesLocation =
+    !filters.selectedLocation || exp.location === filters.selectedLocation;
+
+  return matchesStart && matchesEnd && matchesLocation;
+});
 
 
   const sortedExpenses = [...filteredExpenses].sort((a, b) => {

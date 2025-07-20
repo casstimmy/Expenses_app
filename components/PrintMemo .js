@@ -22,8 +22,7 @@ const PrintMemo = forwardRef(({ order, form, editing, handleChange }, ref) => {
           <Image
             src="/image/LogoName.png"
             alt="Ibile Mart Logo"
-            width={32}
-            height={32}
+            width={300} height={300}
             className="h-35 w-auto "
           />
         </div>
