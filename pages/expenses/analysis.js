@@ -50,7 +50,7 @@ export default function ExpenseAnalysis() {
     maxAmount: "",
     startDate: "",
     endDate: "",
-    location: "",
+    selectedLocation: "",
   });
 
   // ─── Effects ────────────────────────────────────────────────────────
@@ -509,7 +509,7 @@ const filteredExpenses = expenses.filter((exp) => {
               </div>
 
               {/* Show Chart + Expense List only if there are filteredExpenses */}
-              {filteredExpenses.length > 0 ? (
+              {sortedExpenses.length > 0 ? (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
                   <CategoryChart
                     chartData={chartData}

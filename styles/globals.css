@@ -36,3 +36,23 @@ html, body {
     animation: slide-down 0.3s ease-out forwards;
   }
 }
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #print-section, #print-section * {
+    visibility: visible;
+  }
+  #print-section {
+    position: absolute;
+    left: 0;
+    top: 0;
+  }
+}
+
+.printable {
+  --tw-bg-opacity: 1;
+  background-color: rgb(255, 255, 255); /* instead of oklch */
+  color: black; /* fallback safe color */
+}

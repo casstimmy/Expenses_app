@@ -65,15 +65,35 @@ export default async function handler(req, res) {
   }
 
   // GET request to fetch all orders
-  else if (req.method === "GET") {
-    try {
-      const orders = await StockOrder.find().sort({ createdAt: -1 });
-      res.status(200).json(orders);
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: "Failed to fetch stock orders" });
+ else if (req.method === "GET") {
+  try {
+    const { location, month, year } = req.query;
+
+    const filters = {};
+
+    if (location) {
+      filters.location = location;
     }
+
+    if (month && year) {
+      const startDate = new Date(`${year}-${month}-01`);
+      const endDate = new Date(startDate);
+      endDate.setMonth(endDate.getMonth() + 1); // Next month
+
+      filters.date = { $gte: startDate, $lt: endDate };
+    }
+
+    const orders = await StockOrder.find(filters)
+      .populate("vendor")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(orders);
+  } catch (err) {
+    console.error("Failed to fetch stock orders:", err);
+    res.status(500).json({ error: "Failed to fetch stock orders" });
   }
+}
+
 
   // Unsupported methods
   else {

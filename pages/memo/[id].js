@@ -4,7 +4,7 @@ import axios from "axios";
 import Layout from "@/components/Layout";
 import { toWords } from "number-to-words";
 import { useReactToPrint } from "react-to-print";
-import PrintMemo from "@/components/PrintMemo ";
+import PrintMemo from "@/components/PrintMemo";
 
 export default function MemoPage() {
   const router = useRouter();
@@ -14,6 +14,8 @@ export default function MemoPage() {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+
   const [form, setForm] = useState({
     accountName: "",
     accountNumber: "",
@@ -78,7 +80,7 @@ export default function MemoPage() {
       />
 
       {/* Buttons */}
-      <div className="mt-8 pb-10  print:hidden flex justify-end gap-4">
+      <div className="mt-8 pb-10 mr-42  print:hidden flex justify-end gap-4">
         {editing ? (
           <button
             onClick={() => setEditing(false)}
@@ -96,14 +98,19 @@ export default function MemoPage() {
         )}
 
         <button
-          onClick={() => {
-           if (componentRef.current) handlePrint();
-else alert("Print content is not ready yet.");
+          onClick={async () => {
+            if (componentRef.current) {
+              setDownloading(true);
+              await componentRef.current.generatePDF(); // assuming this returns a promise
+              setDownloading(false);
+            }
           }}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-60"
+          disabled={downloading}
         >
-          Print Memo
+          {downloading ? "Downloading..." : "Download PDF"}
         </button>
+
 
         <button
           onClick={() => router.push("/expenses/Pay_Tracker")}

@@ -70,12 +70,14 @@ export default async function handler(req, res) {
           }
 
           return {
-            product: productId,
-            name: name?.trim() || "", // Optional, fallback to empty string
-            quantity: quantity || 0,
-            costPerUnit: costPerUnit || 0,
-            total: total || 0,
-          };
+  product: productId,
+  name: name?.trim() || "",
+  quantity: quantity || 0,
+  costPerUnit: costPerUnit || 0,
+  total: total || 0,
+  price: price || costPerUnit || 0, // Ensures vendor schema validation
+};
+
         })
       );
 
