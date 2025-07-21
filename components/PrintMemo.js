@@ -5,22 +5,20 @@ import Image from "next/image";
 import { toWords } from "number-to-words";
 
 // Forwarding ref so parent component can access it
-const PrintMemo = forwardRef(({ order, form, editing, handleChange }, ref) => {
+const PrintMemo = forwardRef(({ order, form, editing, handleChange, onDownloading }, ref) => {
   const memoRef = useRef();
-const today = new Date().toISOString().split("T")[0]; 
-const companyName = order.vendor.companyName;
+  const today = new Date().toISOString().split("T")[0];
+  const companyName = order.vendor.companyName;
 
-
-
-  // PDF generator exposed to parent via ref
   useImperativeHandle(ref, () => ({
     generatePDF: async () => {
+      onDownloading(true); // Set button text to "Downloading..."
       const element = memoRef.current;
 
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
-        backgroundColor: "#ffffff", // force white background
+        backgroundColor: "#ffffff",
       });
 
       const imgData = canvas.toDataURL("image/png");
@@ -32,17 +30,15 @@ const companyName = order.vendor.companyName;
 
       pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
       pdf.save(`Transfer Instruction ${today} (From 9143 to ${companyName}).pdf`);
-
+      onDownloading(false); // Revert button text to "Download PDF"
     },
   }));
-
-  
 
   if (!order) return null;
 
   const amountInWords = `${toWords(form.amount).replace(/\b\w/g, (c) =>
-      c.toUpperCase()
-    )} Naira Only`;
+    c.toUpperCase()
+  )} Naira Only`;
 
   return (
     <div>
@@ -116,79 +112,85 @@ const companyName = order.vendor.companyName;
               <em>{amountInWords}</em>) and transfer as follows:
             </p>
 
-           <div>
-             <div style={{ margin: "3rem 0" }}>
-              {editing ? (
-                <>
-                  <p>
-                    Account Name -{" "}
-                    <input
-                      name="accountName"
-                      value={form.accountName}
-                      onChange={handleChange}
-                      style={{ border: "1px solid black", padding: "4px", fontSize: "0.875rem" }}
-                    />
-                  </p>
-                  <p>
-                    Account Number -{" "}
-                    <input
-                      name="accountNumber"
-                      value={form.accountNumber}
-                      onChange={handleChange}
-                      style={{ border: "1px solid black", padding: "4px", fontSize: "0.875rem" }}
-                    />
-                  </p>
-                  <p>
-                    Bank Name -{" "}
-                    <input
-                      name="bankName"
-                      value={form.bankName}
-                      onChange={handleChange}
-                      style={{ border: "1px solid black", padding: "4px", fontSize: "0.875rem" }}
-                    />
-                  </p>
-                  <p>
-                    Amount -{" "}
-                    <input
-                      name="amount"
-                      type="number"
-                      value={form.amount}
-                      onChange={handleChange}
-                      style={{ border: "1px solid black", padding: "4px", fontSize: "0.875rem" }}
-                    />
-                  </p>
-                </>
-              ) : (
-                order.vendor && (
-                  <div>
-                    <p>Account Name: {order.vendor.accountName}</p>
-                    <p>Account Number: {order.vendor.accountNumber}</p>
-                    <p>Bank Name: {order.vendor.bankName}</p>
-                  </div>
-                )
-              )}
+            <div>
+              <div style={{ margin: "3rem 0" }}>
+                {editing ? (
+                  <>
+                    <p>
+                      Account Name -{" "}
+                      <input
+                        name="accountName"
+                        value={form.accountName}
+                        onChange={handleChange}
+                        style={{ border: "1px solid black", padding: "4px", fontSize: "0.875rem" }}
+                      />
+                    </p>
+                    <p>
+                      Account Number -{" "}
+                      <input
+                        name="accountNumber"
+                        value={form.accountNumber}
+                        onChange={handleChange}
+                        style={{ border: "1px solid black", padding: "4px", fontSize: "0.875rem" }}
+                      />
+                    </p>
+                    <p>
+                      Bank Name -{" "}
+                      <input
+                        name="bankName"
+                        value={form.bankName}
+                        onChange={handleChange}
+                        style={{ border: "1px solid black", padding: "4px", fontSize: "0.875rem" }}
+                      />
+                    </p>
+                    <p>
+                      Amount -{" "}
+                      <input
+                        name="amount"
+                        type="number"
+                        value={form.amount}
+                        onChange={handleChange}
+                        style={{ border: "1px solid black", padding: "4px", fontSize: "0.875rem" }}
+                      />
+                    </p>
+                  </>
+                ) : (
+                  order.vendor && (
+                    <div>
+                      <p>Account Name: {order.vendor.accountName}</p>
+                      <p>Account Number: {order.vendor.accountNumber}</p>
+                      <p>Bank Name: {order.vendor.bankName}</p>
+                    </div>
+                  )
+                )}
+              </div>
+
+              <p style={{ fontWeight: "bold", marginBottom: "2rem", paddingTop: "7em" }}>Thank you.</p>
+
+              <p>Yours faithfully,</p>
+              <p style={{ marginBottom: "2rem" }}>
+                For: <span style={{ fontWeight: "600" }}>Ibile Trading Resource Limited.</span>
+              </p>
+              <p style={{ fontWeight: "bold", paddingTop: "4em" }}>Paul Farrer</p>
+              <p style={{ fontWeight: "bold" }}>Director</p>
             </div>
 
-            <p style={{ fontWeight: "bold", marginBottom: "2rem", paddingTop: "7em" }}>Thank you.</p>
-
-            <p>Yours faithfully,</p>
-            <p style={{ marginBottom: "2rem" }}>
-              For: <span style={{ fontWeight: "600" }}>Ibile Trading Resource Limited.</span>
-            </p>
-            <p style={{ fontWeight: "bold", paddingTop: "4em" }}>Paul Farrer</p>
-            <p style={{ fontWeight: "bold" }}>Director</p>
-           </div>
-
             {/* Footer */}
-            <div style={{ fontSize: "10px", color: "#444", position: "absolute", bottom: "-11.4rem", right: "1.2rem" }}>
+            <div
+              style={{
+                fontSize: "10px",
+                color: "#444",
+                position: "absolute",
+                bottom: "-11.4rem",
+                right: "1.2rem",
+              }}
+            >
               <div style={{ fontWeight: "bold", display: "flex", justifyContent: "flex-end" }}>
                 <p>Ibile Trading Resources Ltd.</p>
                 <span style={{ padding: "0 1rem" }}>||</span>
                 <p>Re 1s2414s</p>
               </div>
-              <p>
-                1, Garba Lawall Street, Off Ogombo Road, Abraham Adesanya, Ajah, Lagos.
-              </p>
+              <p>1, Garba Lawall Street, Off Ogombo Road, Abraham Adesanya, Ajah, Lagos.</p>
               <div style={{ display: "flex", justifyContent: "flex-end" }}>
                 <p>
                   W: <a href="https://ibilemart.com">ibilemart.com</a> ||
@@ -199,7 +201,7 @@ const companyName = order.vendor.companyName;
             </div>
 
             {/* Watermarks */}
-            <div style={{ position: "absolute", left: "-3em" , bottom: "-23em", opacity: 0.1, zIndex: 0 }}>
+            <div style={{ position: "absolute", left: "-3em", bottom: "-23em", opacity: 0.1, zIndex: 0 }}>
               <Image
                 src="/image/Logo.png"
                 alt="Watermark"
@@ -208,7 +210,7 @@ const companyName = order.vendor.companyName;
                 style={{ height: "28em", width: "auto" }}
               />
             </div>
-            <div style={{ position: "absolute", right: "-22em" , top: "20em", opacity: 0.1, zIndex: 0 }}>
+            <div style={{ position: "absolute", right: "-22em", top: "20em", opacity: 0.1, zIndex: 0 }}>
               <Image
                 src="/image/LogoWaterMark.png"
                 alt="Watermark"
@@ -227,5 +229,8 @@ const companyName = order.vendor.companyName;
     </div>
   );
 });
+
+// ✅ Fix ESLint: assign display name to forwardRef component
+PrintMemo.displayName = "PrintMemo";
 
 export default PrintMemo;

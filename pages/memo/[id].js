@@ -23,10 +23,6 @@ export default function MemoPage() {
     amount: 0,
   });
 
-  const handlePrint = useReactToPrint({
-    content: () => componentRef.current,
-    documentTitle: `Memo_${order?.vendor?.accountName || "Ibile"}`,
-  });
 
   useEffect(() => {
     if (id) {
@@ -67,13 +63,14 @@ export default function MemoPage() {
     <Layout>
       {/* Header with logo */}
 
-      <PrintMemo
-        ref={componentRef}
-        order={order}
-        form={form}
-        editing={editing}
-        handleChange={handleChange}
-      />
+     <PrintMemo
+  ref={componentRef}
+  order={order}
+  form={form}
+  editing={editing}
+  handleChange={handleChange}
+  onDownloading={setDownloading}
+/>
 
       {/* Buttons */}
       <div className="mt-8 pb-10 mr-42  print:hidden flex justify-end gap-4">
@@ -93,20 +90,14 @@ export default function MemoPage() {
           </button>
         )}
 
-        <button
-          onClick={async () => {
-            if (componentRef.current) {
-              setDownloading(true);
-              await componentRef.current.generatePDF(); // assuming this returns a promise
-              setDownloading(false);
-            }
-          }}
-          className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-60"
-          disabled={downloading}
-        >
-          {downloading ? "Downloading..." : "Download PDF"}
-        </button>
-
+       <button
+  onClick={() => {
+    if (componentRef.current) componentRef.current.generatePDF();
+  }}
+  className="bg-blue-600 text-white px-4 py-2 rounded"
+>
+  {downloading ? "Downloading..." : "Download PDF"}
+</button>
 
         <button
           onClick={() => router.push("/expenses/Pay_Tracker")}
