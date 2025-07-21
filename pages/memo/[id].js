@@ -29,10 +29,6 @@ export default function MemoPage() {
   });
 
   useEffect(() => {
-    console.log("componentRef.current", componentRef.current);
-  }, [componentRef.current]);
-
-  useEffect(() => {
     if (id) {
       axios.get(`/api/stock-orders/${id}`).then((res) => {
         const order = res.data.order; // ✅ grab the nested `order` field
