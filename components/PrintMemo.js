@@ -217,7 +217,7 @@ const PrintMemo = forwardRef(({ order, form, editing, handleChange, onDownloadin
 
           {/* Watermarks */}
           <img
-            src="/image/Logo.png"
+            src="/image/LogoWaterMarkFull.png"
             alt="WatermarkLeft"
             style={{
               position: "absolute",
