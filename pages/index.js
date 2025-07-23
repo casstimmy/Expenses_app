@@ -6,7 +6,7 @@ import { loadBasic } from "tsparticles-basic";
 import { useRouter } from "next/router";
 
 export default function Home({ staffList, locations }) {
-  const [name, setName] = useState( "");
+  const [name, setName] = useState("");
   const [location, setLocation] = useState(locations?.[0] || "");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -102,12 +102,13 @@ export default function Home({ staffList, locations }) {
         </div>
 
         {/* Main Content */}
-        <div className="relative z-10 flex-grow flex items-center justify-center px-4 sm:px-6 lg:px-20 py-8 sm:py-12">
-          <div className="w-full flex flex-col lg:flex-row items-center justify-between max-w-7xl">
+        <div className="relative z-10 flex-grow flex items-center justify-center px-4 sm:px-6 py-6 sm:py-12">
+          <div className="w-full flex flex-col lg:flex-row items-center justify-between max-w-7xl gap-8">
+            
             {/* Hero Section */}
-            <div className="hidden sm:block text-center lg:text-left lg:w-1/2 mb-10 sm:mb-12 lg:mb-0 animate-fade-in px-2 sm:px-0">
+            <div className="w-full lg:w-1/2 text-center lg:text-left animate-fade-in">
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-blue-800 mb-4 drop-shadow">
-              Expense
+                Expense
               </h1>
               <p className="text-base sm:text-lg text-gray-700 mb-6 max-w-xl mx-auto lg:mx-0">
                 Simple, powerful cash expense tracking for your business or personal use.
@@ -121,61 +122,47 @@ export default function Home({ staffList, locations }) {
             </div>
 
             {/* Login Box */}
-          <div className="w-full max-w-sm bg-white rounded-xl shadow-md px-4 py-6 sm:px-6 sm:py-8 animate-fade-in overflow-y-auto max-h-[calc(100vh-2rem)] sm:max-h-[80vh]">
+            <div className="w-full max-w-sm bg-white rounded-xl shadow-md px-4 py-6 sm:px-6 sm:py-8 animate-fade-in overflow-y-auto max-h-[80vh]">
               <h2 className="text-xl sm:text-2xl font-bold text-center text-blue-700 mb-6">
                 Staff Login
               </h2>
               <form onSubmit={handleLogin}>
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Staff Name
-                  </label>
-      <select
-  value={name}
-  onChange={(e) => setName(e.target.value)}
-  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm sm:text-base focus:ring-blue-500 focus:border-blue-500"
->
-  {/* Placeholder, unselectable after selection */}
-  <option value="" disabled>
-    Login Staff of...
-  </option>
-
-  {/* Show all staff names normally */}
-  {Array.isArray(staffList) &&
-    staffList.map((staff, idx) => (
-      <option key={idx} value={staff}>
-        {staff}
-      </option>
-    ))}
-</select>
-
-
-
-
-
-                </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Location
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Staff Name</label>
                   <select
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm sm:text-base focus:ring-blue-500 focus:border-blue-500"
                   >
-                    {Array.isArray(locations) &&
-                      locations.map((loc) => (
-                        <option key={loc} value={loc}>
-                          {loc}
+                    <option value="" disabled>
+                      Login Staff of...
+                    </option>
+                    {Array.isArray(staffList) &&
+                      staffList.map((staff, idx) => (
+                        <option key={idx} value={staff}>
+                          {staff}
                         </option>
                       ))}
                   </select>
                 </div>
 
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                  <select
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm sm:text-base focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    {locations.map((loc) => (
+                      <option key={loc} value={loc}>
+                        {loc}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 <div className="mb-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Password (PIN)
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Password (PIN)</label>
                   <div className="w-full h-12 px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-lg tracking-widest select-none flex items-center">
                     {"•".repeat(password.length)}
                   </div>
@@ -188,7 +175,8 @@ export default function Home({ staffList, locations }) {
                       key={key}
                       type="button"
                       onClick={() => handleKeypad(key)}
-                      className="bg-blue-100 hover:bg-blue-300 text-blue-800 font-bold py-2 sm:py-3 rounded-lg text-base sm:text-lg">
+                      className="bg-blue-100 hover:bg-blue-300 text-blue-800 font-bold py-2 sm:py-3 rounded-lg text-base sm:text-lg"
+                    >
                       {key === "clear" ? "C" : key === "back" ? "←" : key}
                     </button>
                   ))}
@@ -199,38 +187,31 @@ export default function Home({ staffList, locations }) {
                 <button
                   type="submit"
                   disabled={loading}
-                  className={`w-full py-3 sm:py-2 rounded-lg font-semibold text-sm sm:text-base transition ${
-                    loading
-                      ? "bg-blue-400 cursor-not-allowed"
-                      : "bg-blue-600 hover:bg-blue-700"
+                  className={`w-full py-3 rounded-lg font-semibold text-sm sm:text-base transition ${
+                    loading ? "bg-blue-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
                   } text-white`}
                 >
                   {loading ? "Logging in..." : "Log in"}
                 </button>
               </form>
+
               <p className="text-center text-sm text-gray-500 mt-4">
                 Don’t have an account?{" "}
-                <span className="text-blue-600 hover:underline cursor-pointer">
-                  Contact Admin
-                </span>
+                <span className="text-blue-600 hover:underline cursor-pointer">Contact Admin</span>
               </p>
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <footer className="relative z-10 mb-10 sm:mb-20 flex items-center justify-center px-4">
-          <div className="text-center">
-            <p className="text-sm sm:text-base text-gray-500 mb-1">
-              Built with <span className="text-red-500">❤️</span> by{" "}
-              <span className="text-blue-600 font-semibold tracking-wide">
-                Hetch Tech
-              </span>
-            </p>
-            <p className="text-xs sm:text-sm text-gray-400">
-              &copy; {new Date().getFullYear()} <strong>Expense App</strong>. All rights reserved.
-            </p>
-          </div>
+        <footer className="relative z-10 mb-6 sm:mb-10 px-4 text-center text-sm text-gray-500">
+          <p className="mb-1">
+            Built with <span className="text-red-500">❤️</span> by{" "}
+            <span className="text-blue-600 font-semibold">Hetch Tech</span>
+          </p>
+          <p className="text-xs sm:text-sm text-gray-400">
+            &copy; {new Date().getFullYear()} <strong>Expense App</strong>. All rights reserved.
+          </p>
         </footer>
       </div>
     </Layout>
@@ -244,7 +225,6 @@ export async function getServerSideProps() {
   await mongooseConnect();
   const staffDocs = await Staff.find({}, "name");
   const staffList = staffDocs.map((s) => s.name);
-
   const locations = ["Ibile 1", "Ibile 2"];
 
   return {
