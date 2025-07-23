@@ -73,7 +73,7 @@ export default function Nav() {
               }}
             >
               <Image
-                src="/image/logo.png"
+                src="/image/Logo.png"
                 alt="Ibile Expense Logo"
                 width={32}
                 height={32}
