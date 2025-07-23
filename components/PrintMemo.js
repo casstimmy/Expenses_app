@@ -68,7 +68,7 @@ const PrintMemo = forwardRef(({ order, form, editing, handleChange, onDownloadin
 
         <div style={{ position: "relative", zIndex: 10 }}>
           {/* Logo Header */}
-          <div style={{ position: "absolute", top: "1rem", right: "1rem" }}>
+          <div style={{ position: "absolute", top: "1rem", right: "-2rem" }}>
             <img
               src="/image/LogoName.png"
               alt="Ibile Mart Logo"
