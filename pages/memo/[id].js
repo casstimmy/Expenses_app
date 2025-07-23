@@ -58,52 +58,52 @@ export default function MemoPage() {
   };
 
   return (
-    <Layout>
-      {/* Header with logo */}
+  <Layout>
+    {/* Header with logo */}
+    <PrintMemo
+      ref={componentRef}
+      order={order}
+      form={form}
+      editing={editing}
+      handleChange={handleChange}
+      onDownloading={setDownloading}
+    />
 
-      <PrintMemo
-        ref={componentRef}
-        order={order}
-        form={form}
-        editing={editing}
-        handleChange={handleChange}
-        onDownloading={setDownloading}
-      />
-
-      {/* Buttons */}
-      <div className="mt-8 pb-10 mr-42  print:hidden flex justify-end gap-4">
-        {editing ? (
-          <button
-            onClick={() => setEditing(false)}
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-          >
-            Save
-          </button>
-        ) : (
-          <button
-            onClick={() => setEditing(true)}
-            className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
-          >
-            Edit
-          </button>
-        )}
-
+    {/* Buttons */}
+    <div className="mt-8 pb-10 px-4 print:hidden flex flex-roll sm:flex-roll sm:justify-end gap-4">
+      {editing ? (
         <button
-          onClick={() => {
-            if (componentRef.current) componentRef.current.generatePDF();
-          }}
-          className="bg-blue-600 text-white px-4 py-2 rounded"
+          onClick={() => setEditing(false)}
+          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 w-full sm:w-auto"
         >
-          {downloading ? "Downloading..." : "Download PDF"}
+          Save
         </button>
-
+      ) : (
         <button
-          onClick={() => router.push("/expenses/Pay_Tracker")}
-          className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400"
+          onClick={() => setEditing(true)}
+          className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 w-full sm:w-auto"
         >
-          Back
+          Edit
         </button>
-      </div>
-    </Layout>
-  );
+      )}
+
+      <button
+        onClick={() => {
+          if (componentRef.current) componentRef.current.generatePDF();
+        }}
+        className="bg-blue-600 text-white px-4 py-2 rounded w-full sm:w-auto"
+      >
+        {downloading ? "Downloading..." : "Download PDF"}
+      </button>
+
+      <button
+        onClick={() => router.push("/expenses/Pay_Tracker")}
+        className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400 w-full sm:w-auto"
+      >
+        Back
+      </button>
+    </div>
+  </Layout>
+);
+
 }

@@ -203,9 +203,9 @@ const PrintMemo = forwardRef(({ order, form, editing, handleChange, onDownloadin
             <div style={{ position: "absolute", left: "-3em", bottom: "-23em", opacity: 0.1, zIndex: 0 }}>
               <Image
                 src="/image/Logo.png"
-                alt="Watermark"
-                width={150}
-                height={150}
+                alt="WatermarkTwo"
+                width={50}
+                height={50}
                 style={{ height: "28em", width: "auto" }}
               />
             </div>
