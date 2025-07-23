@@ -34,13 +34,13 @@ export default async function handler(req, res) {
         const name = product.product;
 
         const quantity = Number(product.quantity) || 0;
-        const costPerUnit = Number(product.costPerUnit) || 0;
+        const costPrice = Number(product.costPrice) || 0;
 
         if (!mergedMap[key].productsMap[name]) {
           mergedMap[key].productsMap[name] = {
             product: name,
             quantity: 0,
-            costPerUnit: costPerUnit,
+            costPrice: costPrice,
           };
         }
 
@@ -53,7 +53,7 @@ export default async function handler(req, res) {
     const mergedOrders = Object.values(mergedMap);
     for (const entry of mergedOrders) {
       const mergedProducts = Object.values(entry.productsMap).map((p) => {
-        const total = Number(p.quantity) * Number(p.costPerUnit);
+        const total = Number(p.quantity) * Number(p.costPrice);
         return {
           ...p,
           total: isNaN(total) ? 0 : total, // ✅ Handle NaN safely

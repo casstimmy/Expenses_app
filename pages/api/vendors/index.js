@@ -30,56 +30,44 @@ export default async function handler(req, res) {
         products,
       } = req.body;
 
-      const productRefs = await Promise.all(
-        products.map(async (prod) => {
-          let productId;
+     const productRefs = await Promise.all(
+  products.map(async (prod) => {
+    let productId;
 
-          const {
-            product,
-            name,
-            category,
-            quantity,
-            costPerUnit,
-            total,
-            price, // optional for custom product
-          } = prod;
+    // Destructure all expected fields from prod
+    const { product, name, category, price, quantity, costPrice, total } = prod;
 
-          if (product && product !== "custom") {
-            // Existing product ID
-            if (
-              typeof product === "string" &&
-              mongoose.Types.ObjectId.isValid(product)
-            ) {
-              productId = new mongoose.Types.ObjectId(product);
-            } else {
-              throw new Error(`Invalid product ID: ${product}`);
-            }
-          } else {
-            // New custom product
-            if (!name || !category) {
-              throw new Error("Product name and category are required for custom products");
-            }
+    if (product && product !== "custom") {
+      if (typeof product === "string" && mongoose.Types.ObjectId.isValid(product)) {
+        productId = new mongoose.Types.ObjectId(product);
+      } else {
+        throw new Error(`Invalid product ID: ${product}`);
+      }
+    } else {
+      // Custom product
+      if (!name || !category) {
+        throw new Error("Product name and category are required for custom product");
+      }
 
-            const newProduct = await Product.create({
-              name: name.trim(),
-              category: category.trim(),
-              costPrice: price || costPerUnit || 0,
-            });
+      const newProduct = await Product.create({
+        name: name.trim(),
+        category: category.trim(),
+        price: price || 0, // Optional fallback
+      });
 
-            productId = newProduct._id;
-          }
+      productId = newProduct._id;
+    }
 
-          return {
-  product: productId,
-  name: name?.trim() || "",
-  quantity: quantity || 0,
-  costPerUnit: costPerUnit || 0,
-  total: total || 0,
-  price: price || costPerUnit || 0, // Ensures vendor schema validation
-};
+    return {
+      product: productId,
+      name,
+      quantity,
+      price,
+      total,
+    };
+  })
+);
 
-        })
-      );
 
       const vendor = await Vendor.create({
         companyName,

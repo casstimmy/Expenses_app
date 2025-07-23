@@ -1,11 +1,12 @@
 import mongoose from "mongoose";
 
 const productSchema = new mongoose.Schema({
-  name: String,
+  productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
   quantity: Number,
   price: Number,
   total: Number,
-}, { _id: false });
+});
+
 
 const stockOrderSchema = new mongoose.Schema({
   date: { type: Date, required: true },
@@ -16,16 +17,16 @@ const stockOrderSchema = new mongoose.Schema({
   reason: { type: String },
   grandTotal: { type: Number, required: true },
   products: [productSchema],
+  vendor: { type: mongoose.Schema.Types.ObjectId, ref: "Vendor", required: true },
 
+  // ✅ New: track which staff submitted this order
+  staff: { type: mongoose.Schema.Types.ObjectId, ref: "Staff", required: true },
 
-  vendor: { type: mongoose.Schema.Types.ObjectId, ref: "Vendor", required: true }, // <-- change this
-
-
-  // ✅ New fields for payment tracking
+  // ✅ Payment tracking
   paymentMade: { type: Number, default: 0 },
   balance: { type: Number, default: 0 },
   status: { type: String, enum: ["Not Paid", "Partly Paid", "Paid"], default: "Not Paid" },
-  paymentDate: { type: String }, // you can use Date type too, but string is OK for display
+  paymentDate: { type: String }, // You can use Date if preferred
 }, { timestamps: true });
 
 const StockOrder = mongoose.models.StockOrder || mongoose.model("StockOrder", stockOrderSchema);

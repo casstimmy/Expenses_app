@@ -3,7 +3,6 @@ import React, { useRef, useEffect, useState } from "react";
 import axios from "axios";
 import Layout from "@/components/Layout";
 import { toWords } from "number-to-words";
-import { useReactToPrint } from "react-to-print";
 import PrintMemo from "@/components/PrintMemo";
 
 export default function MemoPage() {
@@ -22,7 +21,6 @@ export default function MemoPage() {
     bankName: "",
     amount: 0,
   });
-
 
   useEffect(() => {
     if (id) {
@@ -63,14 +61,14 @@ export default function MemoPage() {
     <Layout>
       {/* Header with logo */}
 
-     <PrintMemo
-  ref={componentRef}
-  order={order}
-  form={form}
-  editing={editing}
-  handleChange={handleChange}
-  onDownloading={setDownloading}
-/>
+      <PrintMemo
+        ref={componentRef}
+        order={order}
+        form={form}
+        editing={editing}
+        handleChange={handleChange}
+        onDownloading={setDownloading}
+      />
 
       {/* Buttons */}
       <div className="mt-8 pb-10 mr-42  print:hidden flex justify-end gap-4">
@@ -90,14 +88,14 @@ export default function MemoPage() {
           </button>
         )}
 
-       <button
-  onClick={() => {
-    if (componentRef.current) componentRef.current.generatePDF();
-  }}
-  className="bg-blue-600 text-white px-4 py-2 rounded"
->
-  {downloading ? "Downloading..." : "Download PDF"}
-</button>
+        <button
+          onClick={() => {
+            if (componentRef.current) componentRef.current.generatePDF();
+          }}
+          className="bg-blue-600 text-white px-4 py-2 rounded"
+        >
+          {downloading ? "Downloading..." : "Download PDF"}
+        </button>
 
         <button
           onClick={() => router.push("/expenses/Pay_Tracker")}

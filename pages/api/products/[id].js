@@ -2,6 +2,7 @@
 
 import StockOrder from '@/models/StockOrder';
 import { mongooseConnect } from "@/lib/mongoose";
+import Product from "@/models/Product";
 
 export default async function handler(req, res) {
   const { id, index } = req.query;
@@ -24,6 +25,22 @@ export default async function handler(req, res) {
     }
   } else {
     res.setHeader("Allow", ["PUT"]);
+    res.status(405).end(`Method ${req.method} Not Allowed`);
+  }
+
+ if (req.method === "GET") {
+    try {
+      const product = await Product.findById(id);
+      if (!product) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+      res.status(200).json(product);
+    } catch (err) {
+      console.error("GET /api/products/:id failed", err);
+      res.status(500).json({ error: "Failed to fetch product" });
+    }
+  } else {
+    res.setHeader("Allow", ["GET"]);
     res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 }

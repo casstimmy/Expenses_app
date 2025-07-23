@@ -49,6 +49,10 @@ export default function Nav() {
       { href: "/expenses/Pay_Tracker", label: "Pay Tracker" },
       { href: "/admin/staff", label: "Staff" },
     );
+  }else if (role === "account") {
+     navLinks.push(
+      { href: "/expenses/Pay_Tracker", label: "Pay Tracker" },
+    );
   }
 
   const isActive = (href) => pathname.startsWith(href);

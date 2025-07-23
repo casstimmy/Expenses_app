@@ -23,8 +23,8 @@ export default function VendorList({
                 location: staff?.location || "",
                 products: vendor.products.map((p) => ({
                   ...p.product,
-                  costPerUnit: p.price || 0,
-                  qty: 1,
+                  costPrice: p.price || 0,
+                  quantity: 1,
                 })),
               }));
             }}

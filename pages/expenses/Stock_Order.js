@@ -20,6 +20,7 @@ export default function StockOrder() {
   const [staff, setStaff] = useState(null);
   const [loadingVendors, setLoadingVendors] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [editingOrder, setEditingOrder] = useState(false);
   const [loadingSubmittedOrders, setLoadingSubmittedOrders] = useState(false);
 
   const [form, setForm] = useState({
@@ -31,22 +32,25 @@ export default function StockOrder() {
     location: "",
   });
 
-  useEffect(() => {
-    const initialize = async () => {
-      const stored = localStorage.getItem("staff");
-      if (stored) {
-        const parsedStaff = JSON.parse(stored);
-        setStaff(parsedStaff);
-        if (parsedStaff.location) {
-          setForm((prev) => ({ ...prev, location: parsedStaff.location }));
-        }
-      }
-      await loadVendors();
-      await loadSubmittedOrders();
-    };
 
-    initialize();
-  }, []);
+ useEffect(() => {
+  const initialize = async () => {
+    const stored = localStorage.getItem("staff");
+    if (stored) {
+      const parsedStaff = JSON.parse(stored);
+      setStaff(parsedStaff);
+      if (parsedStaff.location) {
+        setForm((prev) => ({ ...prev, location: parsedStaff.location }));
+      }
+    }
+
+    await loadVendors();
+    await loadSubmittedOrders(); 
+  };
+
+  initialize(); 
+}, []);
+
 
   const loadVendors = async () => {
     setLoadingVendors(true);
@@ -60,6 +64,8 @@ export default function StockOrder() {
       setLoadingVendors(false);
     }
   };
+
+
 
   const loadSubmittedOrders = async () => {
     setLoadingSubmittedOrders(true);
@@ -78,50 +84,77 @@ export default function StockOrder() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const updatedOrders = form.products.map((prod) => ({
-      date: form.date,
-      supplier: selectedVendor?.companyName,
-      contact: form.contact,
-      mainProduct: selectedVendor?.mainProduct || "",
-      product: prod.name,
-      quantity: prod.qty,
-      costPerUnit: prod.costPerUnit || 0,
-      total: prod.qty * (prod.costPerUnit || 0),
-      location: form.location,
-    }));
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    setOrders([...orders, ...updatedOrders]);
 
-    setForm({
-      date: getToday(),
-      supplier: "",
-      contact: "",
-      mainProduct: "",
-      products: [],
-      location: staff?.location || "",
-    });
-    setSelectedVendor(null);
+  const submittedProducts = form.products.map((product, i) => ({
+    productId: product._id,
+    quantity: Number(form.products[i].quantity),
+    price: Number(product.costPrice),
+    total: Number(product.quantity) * Number(product.costPrice),
+  }));
+
+  const updatedOrders = form.products.map((prod) => ({
+    date: form.date,
+    supplier: selectedVendor?.companyName,
+    contact: form.contact,
+    mainProduct: selectedVendor?.mainProduct || "",
+    product: prod.name,
+    quantity: prod.quantity,
+    costPrice: prod.costPrice || 0,
+    total: prod.quantity * (prod.costPrice || 0),
+    location: form.location,
+    vendor: selectedVendor?._id,
+  }));
+
+  setOrders([...orders, ...updatedOrders]);
+
+  setForm({
+    date: getToday(),
+    supplier: "",
+    contact: "",
+    mainProduct: "",
+    products: [],
+    location: staff?.location || "",
+  });
+
+  setSelectedVendor(null);
+};
+
+  
+
+const handleStockOrderSubmit = async () => {
+  setSubmitting(true);
+
+  const payload = {
+    date: orders[0].date,
+    supplier: orders[0].supplier,
+    contact: orders[0].contact,
+    location: orders[0].location,
+    mainProduct: orders[0].mainProduct || "",
+    vendor: orders[0].vendor, // 👈 use vendor from the first order item
+    products: orders.map((o) => ({
+      productId: o._id,
+      name: o.product,
+      quantity: o.quantity,
+      costPrice: o.costPrice,
+      total: o.total * o.quantity,
+    })),
+    grandTotal: orders.reduce((sum, o) => sum + parseFloat(o.total), 0),
+    staff: staff?._id,
   };
 
-  const handleStockOrderSubmit = async () => {
-    setSubmitting(true);
 
-    const payload = {
-      date: orders[0].date,
-      supplier: orders[0].supplier,
-      contact: orders[0].contact,
-      location: orders[0].location,
-      mainProduct: orders[0].mainProduct || "",
-      products: orders.map((o) => ({
-        product: o.product,
-        quantity: o.quantity,
-        costPerUnit: o.costPerUnit,
-        total: o.total,
-      })),
-      grandTotal: orders.reduce((sum, o) => sum + parseFloat(o.total), 0),
-    };
+   
+
+
+
+    if (!staff?._id) {
+  alert("Staff information not loaded. Please try again.");
+  setSubmitting(false);
+  return;
+}
 
     try {
       const res = await fetch("/api/stock-orders", {
@@ -145,6 +178,7 @@ export default function StockOrder() {
     } finally {
       setSubmitting(false);
     }
+
   };
 
   const mergeOrders = async () => {
@@ -164,6 +198,9 @@ export default function StockOrder() {
     }
     setMerging(false);
   };
+
+  
+
 
   return (
     <Layout>
@@ -356,7 +393,8 @@ export default function StockOrder() {
                       {form.products
                         .reduce(
                           (sum, item) =>
-                            sum + (item.qty || 0) * (item.costPerUnit || 0),
+                            sum +
+                            (item.quantity || 0) * (item.costPrice || 0),
                           0
                         )
                         .toLocaleString()}
@@ -377,66 +415,145 @@ export default function StockOrder() {
           )}
 
           {/* Order Review */}
-         {orders.length > 0 && (
-  <section className="bg-white p-6 rounded-xl shadow-lg space-y-6">
-    <h2 className="text-xl font-bold text-gray-800 border-b pb-2">Stock Order Summary</h2>
+          {orders.length > 0 && (
+            <section className="bg-white p-6 rounded-xl shadow-lg space-y-6">
+              <h2 className="text-xl font-bold text-gray-800 border-b pb-2">
+                Stock Order Summary
+              </h2>
 
-    <div className="overflow-x-auto">
-      <table className="min-w-full text-sm text-left border border-gray-200">
-        <thead className="bg-blue-50 text-gray-700 uppercase tracking-wide">
-          <tr>
-            <th className="px-4 py-2 border">#</th>
-            <th className="px-4 py-2 border">Product Name</th>
-            <th className="px-4 py-2 border">Quantity</th>
-            <th className="px-4 py-2 border">Unit Price (₦)</th>
-            <th className="px-4 py-2 border">Total (₦)</th>
-          </tr>
-        </thead>
-        <tbody className="text-gray-800">
-          {orders.map((item, index) => (
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm text-left border border-gray-200">
+                  <thead className="bg-blue-50 text-gray-700 uppercase tracking-wide">
+                    <tr>
+                      <th className="px-4 py-2 border">#</th>
+                      <th className="px-4 py-2 border">Product Name</th>
+                      <th className="px-4 py-2 border">Quantity</th>
+                      <th className="px-4 py-2 border">Unit Price (₦)</th>
+                      <th className="px-4 py-2 border">Total (₦)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-gray-800">
+                    {orders.map((item, index) => (
+                      <tr
+                        key={index}
+                        className="hover:bg-gray-50 transition-all"
+                      >
+                        <td className="px-4 py-2 border">{index + 1}</td>
+                        <td className="px-4 py-2 border">{item.product}</td>
+                        <td className="px-4 py-2 border">
+                          {editingOrder ? (
+                            <input
+                              type="number"
+                              min={0}
+                              value={item.quantity}
+                              onChange={(e) => {
+                                const updatedOrders = [...orders];
+                                updatedOrders[index].quantity =
+                                  parseFloat(e.target.value) || 0;
+                                updatedOrders[index].total =
+                                  updatedOrders[index].quantity *
+                                  updatedOrders[index].costPrice;
+                                setOrders(updatedOrders);
+                              }}
+                              className="w-16 border rounded px-1 py-0.5 text-sm"
+                            />
+                          ) : (
+                            item.quantity
+                          )}
+                        </td>
+                        <td className="px-4 py-2 border">
+                          {editingOrder ? (
+                            <input
+                              type="number"
+                              min={0}
+                              step={0.01}
+                              value={item.costPrice}
+                              onChange={(e) => {
+                                const updatedOrders = [...orders];
+                                updatedOrders[index].costPrice =
+                                  parseFloat(e.target.value) || 0;
+                                updatedOrders[index].total =
+                                  updatedOrders[index].quantity *
+                                  updatedOrders[index].costPrice;
+                                setOrders(updatedOrders);
+                              }}
+                              className="w-20 border rounded px-1 py-0.5 text-sm"
+                            />
+                          ) : (
+                            parseFloat(item.costPrice).toLocaleString()
+                          )}
+                        </td>
+                        <td className="px-4 py-2 border font-semibold">
+                          {parseFloat(item.total).toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-blue-100 text-blue-800 font-bold">
+                      <td colSpan="4" className="px-4 py-2 text-right border">
+                        T-Total:
+                      </td>
+                      <td className="px-4 py-2 border">
+                        ₦
+                        {orders
+                          .reduce((sum, o) => sum + parseFloat(o.total), 0)
+                          .toLocaleString()}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
 
-            <tr key={index} className="hover:bg-gray-50 transition-all">
-              <td className="px-4 py-2 border">{index + 1}</td>
-              <td className="px-4 py-2 border">{item.product}</td>
-              <td className="px-4 py-2 border">{item.quantity}</td>
-              <td className="px-4 py-2 border">
-                {parseFloat(item.costPerUnit).toLocaleString()}
-              </td>
-              <td className="px-4 py-2 border font-semibold">
-                {parseFloat(item.total).toLocaleString()}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-        <tfoot>
-          <tr className="bg-blue-100 text-blue-800 font-bold">
-            <td colSpan="4" className="px-4 py-2 text-right border">
-              T-Total:
-            </td>
-            <td className="px-4 py-2 border">
-              ₦
-              {orders
-                .reduce((sum, o) => sum + parseFloat(o.total), 0)
-                .toLocaleString()}
-            </td>
-          </tr>
-        </tfoot>
-      </table>
-    </div>
+              <div className="flex flex-wrap justify-end items-center gap-3 mt-4">
+                {editingOrder && (
+                  <button
+                    onClick={() => {
+                      setEditingOrder(false);
+                      setForm((prev) => ({ ...prev, products: [] }));
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-all shadow-sm"
+                  >
+                    Cancel Edit
+                  </button>
+                )}
 
-    <div className="text-right">
-      <button
-  onClick={handleStockOrderSubmit}
-  className="bg-green-600 text-white px-6 py-3 rounded-lg shadow hover:bg-green-700 transition-all"
-  disabled={submitting}
->
-  {submitting ? "Processing Order..." : "✅ Submit Order"}
-</button>
+                {editingOrder ? (
+                  <button
+                    onClick={() => {
+                      setEditingOrder(false);
+                      alert("Changes saved successfully.");
+                    }}
+                    className="px-5 py-2 text-sm font-semibold bg-yellow-500 text-white rounded-sm hover:bg-yellow-600 transition-all shadow-sm"
+                    disabled={submitting}
+                  >
+                    💾 Save Edit
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setEditingOrder(true);
+                      window.scrollTo({ top: 700, behavior: "smooth" });
+                    }}
+                    className="px-5 py-2 text-sm font-semibold border border-red-600 text-red-600 hover:bg-red-600 hover:text-white rounded-sm transition-all shadow-sm"
+                    disabled={submitting}
+                  >
+                    ✏️ Edit Order
+                  </button>
+                )}
 
-    </div>
-  </section>
-)}
-
+                {!editingOrder && (
+                  <button
+                    onClick={handleStockOrderSubmit}
+                    className="px-6 py-3 text-sm font-semibold bg-green-600 text-white rounded-sm hover:bg-green-700 transition-all shadow-sm"
+                    disabled={submitting}
+                  >
+                    {submitting ? "Processing Order..." : "✅ Submit Order"}
+                  </button>
+                )}
+              </div>
+            </section>
+          )}
 
           {staff?.role === "admin" && (
             <div className="text-right mt-4">
@@ -458,19 +575,15 @@ export default function StockOrder() {
               </div>
             )}
 
-            <OrderList
-              submittedOrders={(staff?.role === "admin"
-                ? submittedOrders
-                : submittedOrders.filter(
-                    (order) =>
-                      order.location === staff?.location ||
-                      order.location === "All Locations (Merged)"
-                  )
-              ).filter((order) => !order.reason)}
-              selectedOrder={selectedOrder}
-              setSelectedOrder={setSelectedOrder}
-              staff={staff}
-            />
+            {["admin", "account"].includes(staff?.role) && (
+              <OrderList
+                submittedOrders={submittedOrders}
+                setSubmittedOrders={setSubmittedOrders}
+                selectedOrder={selectedOrder}
+                setSelectedOrder={setSelectedOrder}
+                staff={staff}
+              />
+            )}
           </div>
         </div>
       </div>

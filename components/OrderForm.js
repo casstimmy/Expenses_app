@@ -21,16 +21,16 @@ export default function OrderForm({ product, index, form, setForm }) {
 <input
   type="number"
   min={1}
-  placeholder="Qty"
+  placeholder="quantity"
   value={
-    product.qty === undefined || product.qty === null
+    product.quantity === undefined || product.quantity === null
       ? ""
-      : product.qty
+      : product.quantity
   }
   onChange={(e) => {
     const updated = [...form.products];
     const value = e.target.value === "" ? "" : Number(e.target.value);
-    updated[index].qty = value;
+    updated[index].quantity = value;
     setForm({ ...form, products: updated });
   }}
   className="border p-2 rounded"
@@ -44,14 +44,14 @@ export default function OrderForm({ product, index, form, setForm }) {
   min={0}
   step="any" // <- Allows decimals like 0.01, 150.75 etc.
   value={
-    product.costPerUnit !== undefined && product.costPerUnit !== null
-      ? product.costPerUnit
+    product.costPrice !== undefined && product.costPrice !== null
+      ? product.costPrice
       : ""
   }
   onChange={(e) => {
     const updated = [...form.products];
     const cost = e.target.value === "" ? "" : parseFloat(e.target.value);
-    updated[index].costPerUnit = cost;
+    updated[index].costPrice = cost;
     setForm({ ...form, products: updated });
   }}
   className="border p-2 rounded"
@@ -61,9 +61,9 @@ export default function OrderForm({ product, index, form, setForm }) {
 
       {/* Total */}
       <div className="text-right font-medium pt-2">
-        {Number(product.qty) && Number(product.costPerUnit)
+        {Number(product.quantity) && Number(product.costPrice)
           ? `₦${(
-              Number(product.qty) * Number(product.costPerUnit)
+              Number(product.quantity) * Number(product.costPrice)
             ).toLocaleString()}`
           : "₦0"}{" "}
       </div>

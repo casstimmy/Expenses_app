@@ -1,5 +1,5 @@
 import { Printer } from "lucide-react";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { useRouter } from "next/router";
@@ -18,6 +18,51 @@ export default function OrderTracker({
   const printRef = useRef();
   const router = useRouter();
   const [saving, setSaving] = useState(false);
+  const [fullStaff, setFullStaff] = useState(null);
+
+  useEffect(() => {
+  async function fetchStaffDetails() {
+    if (staff && typeof staff === "string") {
+      try {
+        const res = await fetch(`/api/staff/${staff}`);
+        if (!res.ok) throw new Error("Failed to fetch staff");
+
+        const data = await res.json();
+        setFullStaff(data);
+      } catch (err) {
+        console.error("Error fetching staff:", err);
+      }
+    } else {
+      setFullStaff(staff); // Already full object
+    }
+  }
+
+  fetchStaffDetails();
+}, [staff]);
+
+
+  
+  useEffect(() => {
+    async function enrichProducts() {
+      const updated = { ...order };
+
+      for (let i = 0; i < updated.products.length; i++) {
+        const p = updated.products[i];
+
+        if (p._id) {
+
+          const res = await fetch(`/api/products/${p._id}`);
+          if (res.ok) {
+            const data = await res.json();
+            updated.products[i].name = data.name;
+          }
+        }
+      }
+      setOrder(updated);
+    }
+
+    enrichProducts();
+  }, []);
 
   if (!order) return null;
 
@@ -28,7 +73,7 @@ export default function OrderTracker({
       order.products
         .map(
           (item) =>
-            `• ${item.product} - Qty: ${item.quantity}, ₦${item.costPerUnit} = ₦${item.total}`
+            `• ${item.product} - Qty: ${item.quantity}, ₦${item.costPrice} = ₦${item.total}`
         )
         .join("\n") +
       `\n\nTotal: ₦${parseFloat(order.grandTotal).toLocaleString()}`;
@@ -62,7 +107,6 @@ export default function OrderTracker({
       alert("Failed to generate PDF.");
     }
   };
-  
 
   // Print Order
   const handlePrint = () => {
@@ -106,7 +150,10 @@ export default function OrderTracker({
           price: Number(p.price),
           total: Number(p.total),
         })),
+       staff: staff,
       };
+
+
 
       const res = await fetch("/api/stock-orders", {
         method: "POST",
@@ -154,15 +201,15 @@ export default function OrderTracker({
 
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 text-gray-700 mb-6">
           <p>
-            <strong>Date:</strong> {order.date
-  ? new Date(order.date).toLocaleDateString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    })
-  : "—"}
-
+            <strong>Date:</strong>{" "}
+            {order.date
+              ? new Date(order.date).toLocaleDateString("en-US", {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })
+              : "—"}
           </p>
           <p>
             <strong>Supplier:</strong> {order.supplier}
@@ -184,7 +231,7 @@ export default function OrderTracker({
                 <th className="px-3 py-2 border text-right">Qty</th>
                 <th className="px-3 py-2 border text-right">Unit Cost</th>
                 <th className="px-3 py-2 border text-right">Total</th>
-                {staff?.role === "admin" && (
+                {fullStaff?.role === "admin" && (
                   <th className="px-3 py-2 border text-center">Actions</th>
                 )}
               </tr>
@@ -198,9 +245,6 @@ export default function OrderTracker({
                         value={item.name}
                         onChange={(e) => {
                           const updated = { ...order };
-
-
-
                           updated.products[i].product = e.target.value;
                           setOrder(updated);
                         }}
@@ -210,6 +254,7 @@ export default function OrderTracker({
                       item.name
                     )}
                   </td>
+
                   <td className="px-3 py-2 text-right border">
                     {editingIndex === i ? (
                       <input
@@ -217,11 +262,11 @@ export default function OrderTracker({
                         value={item.quantity}
                         onChange={(e) => {
                           const updated = { ...order };
-                          const qty = parseFloat(e.target.value) || 0;
+                          const quantity = parseFloat(e.target.value) || 0;
                           const unit =
                             parseFloat(updated.products[i].price) || 0;
-                          updated.products[i].quantity = qty;
-                          updated.products[i].total = qty * unit;
+                          updated.products[i].quantity = quantity;
+                          updated.products[i].total = quantity * unit;
                           updated.grandTotal = updated.products.reduce(
                             (sum, p) => sum + (p.total || 0),
                             0
@@ -234,67 +279,73 @@ export default function OrderTracker({
                       item.quantity
                     )}
                   </td>
-                  <td className="px-3 py-2 text-right border">
-                    {editingIndex === i ? (
-                      <input
-                        type="number"
-                        value={item.price}
-                        onChange={(e) => {
-                          const updated = { ...order };
-                          const unit = parseFloat(e.target.value) || 0;
-                          const qty =
-                            parseFloat(updated.products[i].quantity) || 0;
-                          updated.products[i].price = unit;
-                          updated.products[i].total = qty * unit;
-                          updated.grandTotal = updated.products.reduce(
-                            (sum, p) => sum + (p.total || 0),
-                            0
-                          );
-                          setOrder(updated);
-                        }}
-                        className="border px-2 py-1 rounded w-24 text-right"
-                      />
-                    ) : (
-                      `₦${parseFloat(item.price)}`
-                    )}
-                  </td>
+                 <td className="px-3 py-2 text-right border">
+  {editingIndex === i ? (
+    <input
+      type="number"
+      value={item.price}
+      onChange={(e) => {
+        const updated = { ...order };
+        const unit = parseFloat(e.target.value) || 0;
+        const quantity = parseFloat(updated.products[i].quantity) || 0;
+        updated.products[i].price = unit;
+        updated.products[i].total = quantity * unit;
+        updated.grandTotal = updated.products.reduce(
+          (sum, p) => sum + (p.total || 0),
+          0
+        );
+        setOrder(updated);
+      }}
+      className="border px-2 py-1 rounded w-24 text-right"
+    />
+  ) : (
+    `₦${item.product?.costPrice || item.price}`
+  )}
+</td>
+
                   <td className="px-3 py-2 text-right border">
                     ₦{parseFloat(item.total)}
                   </td>
-                  {staff?.role === "admin" && (
+                 {fullStaff?.role === "admin" && (
                     <td className="px-3 py-2 text-center border">
                       <div className="flex gap-2 justify-center">
                         {editingIndex === i ? (
                           <>
-                          <button
-  onClick={async () => {
-    setSaving(true);
-    try {
-      const res = await fetch(`/api/stock-orders/${order._id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(order),
-      });
+                            <button
+                              onClick={async () => {
+                                setSaving(true);
+                                try {
+                                  const res = await fetch(
+                                    `/api/stock-orders/${order._id}`,
+                                    {
+                                      method: "PUT",
+                                      headers: {
+                                        "Content-Type": "application/json",
+                                      },
+                                      body: JSON.stringify(order),
+                                    }
+                                  );
 
-      if (!res.ok) throw new Error("Failed to save");
+                                  if (!res.ok)
+                                    throw new Error("Failed to save");
 
-      setEditingIndex(null);
-    } catch (err) {
-      console.error("Error saving:", err);
-      alert("Failed to save. Try again.");
-    } finally {
-      setSaving(false);
-    }
-  }}
-  disabled={saving}
-  className={`${
-    saving ? "opacity-50 cursor-not-allowed" : "hover:text-white hover:bg-green-500"
-  } text-green-600 border border-green-500 px-3 py-1 rounded text-sm`}
->
-  {saving ? "Saving..." : "Save"}
-</button>
+                                  setEditingIndex(null);
+                                } catch (err) {
+                                  console.error("Error saving:", err);
+                                  alert("Failed to save. Try again.");
+                                } finally {
+                                  setSaving(false);
+                                }
+                              }}
+                              disabled={saving}
+                              className={`${
+                                saving
+                                  ? "opacity-50 cursor-not-allowed"
+                                  : "hover:text-white hover:bg-green-500"
+                              } text-green-600 border border-green-500 px-3 py-1 rounded text-sm`}
+                            >
+                              {saving ? "Saving..." : "Save"}
+                            </button>
                             <button
                               onClick={() => setEditingIndex(null)}
                               className="text-gray-600 hover:text-white border border-gray-400 hover:bg-gray-400 px-3 py-1 rounded text-sm"
@@ -373,7 +424,7 @@ export default function OrderTracker({
         >
           <Printer /> Print
         </button>
-        {staff?.role === "admin" && onDeleteOrder && (
+        {fullStaff?.role === "admin" && onDeleteOrder && (
           <button
             onClick={async () => {
               if (confirm("Delete entire order?")) {

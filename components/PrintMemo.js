@@ -8,8 +8,7 @@ import { toWords } from "number-to-words";
 const PrintMemo = forwardRef(({ order, form, editing, handleChange, onDownloading }, ref) => {
   const memoRef = useRef();
   const today = new Date().toISOString().split("T")[0];
-  const companyName = order.vendor.companyName;
-
+  const companyName = order.supplier;
   useImperativeHandle(ref, () => ({
     generatePDF: async () => {
       onDownloading(true); // Set button text to "Downloading..."

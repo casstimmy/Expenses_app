@@ -1,14 +1,15 @@
 import { mongooseConnect } from "@/lib/mongoose";
 import StockOrder from "@/models/StockOrder";
-import Product from "@/models/Product"; // Needed if you want to link product details
+import Product from "@/models/Product";
 import Vendor from "@/models/Vendor";
-
-
+import { Staff } from "@/models/Staff";
 
 export default async function handler(req, res) {
   await mongooseConnect();
 
-  if (req.method === "POST") {
+  const { method } = req;
+
+  if (method === "POST") {
     try {
       const {
         date,
@@ -19,83 +20,90 @@ export default async function handler(req, res) {
         products,
         grandTotal,
         location,
+        staff,
+        vendor,
       } = req.body;
 
+      
+
+
+
+      // Validate required fields
+      if (!staff) return res.status(400).json({ error: "Missing staff ID" });
       if (!date || !supplier || !products || products.length === 0) {
         return res.status(400).json({ error: "Missing required fields" });
       }
-      // Lookup the vendor by companyName
-      const vendor = await Vendor.findOne({ companyName: supplier });
 
-
-
-
-      if (!vendor) {
+      // Validate vendor
+      const vendorDoc = await Vendor.findById(vendor);
+      if (!vendorDoc) {
         return res.status(400).json({ error: "Vendor not found for supplier" });
       }
 
+      // Create a price map from the vendor's product list
+      const vendorPricesMap = {};
+      vendorDoc.products.forEach((item) => {
+        vendorPricesMap[item.product.toString()] = item.price;
+      });
 
-      // Transform product list to include name, price, quantity, total
-      const formattedProducts = products.map((prod) => ({
-        name: prod.product || "",
-        price: prod.costPerUnit || 0,
-        quantity: prod.quantity || 0,
-        total: prod.total || 0,
-      }));
+      // Prepare product data
+    const formattedProducts = products.map((product) => ({
+  name: product.name,
+  quantity: product.quantity,
+  price: product.costPrice, // or use product.price depending on naming
+  total: product.total,
+}));
 
-      const cleanSupplier = typeof supplier === "string" ? supplier.trim() : supplier;
 
-     const order = await StockOrder.create({
-  date,
-  vendor: vendor._id,
-  supplier: cleanSupplier,
-  contact,
-  location,
-  mainProduct,
-  reason,
-  products: formattedProducts,
-  grandTotal,
-});
 
-      res.status(201).json({ success: true, order });
+      // Create stock order
+      const order = await StockOrder.create({
+        date,
+        vendor,
+        supplier: supplier.trim(),
+        contact,
+        location,
+        mainProduct,
+        reason,
+        products: formattedProducts,
+        grandTotal,
+        staff,
+      });
+
+      return res.status(201).json({ success: true, order });
+
     } catch (err) {
-      console.error("Failed to save stock order:", err);
-      res.status(500).json({ success: false, error: "Server error" });
+      console.error("Failed to save stock order:", err.message);
+      return res.status(500).json({ success: false, error: "Server error" });
     }
   }
 
-  // GET request to fetch all orders
- else if (req.method === "GET") {
-  try {
-    const { location, month, year } = req.query;
+  else if (method === "GET") {
+    try {
+      const { location, month, year } = req.query;
+      const filters = {};
 
-    const filters = {};
+      if (location) filters.location = location;
+      if (month && year) {
+        const startDate = new Date(`${year}-${month}-01`);
+        const endDate = new Date(startDate);
+        endDate.setMonth(endDate.getMonth() + 1);
+        filters.date = { $gte: startDate, $lt: endDate };
+      }
 
-    if (location) {
-      filters.location = location;
+      const orders = await StockOrder.find(filters)
+        .populate("vendor")
+        .populate("staff")
+        .populate("products._id")
+        .sort({ createdAt: -1 });
+
+      return res.status(200).json(orders);
+
+    } catch (err) {
+      console.error("Failed to fetch stock orders:", err);
+      return res.status(500).json({ error: "Failed to fetch stock orders" });
     }
-
-    if (month && year) {
-      const startDate = new Date(`${year}-${month}-01`);
-      const endDate = new Date(startDate);
-      endDate.setMonth(endDate.getMonth() + 1); // Next month
-
-      filters.date = { $gte: startDate, $lt: endDate };
-    }
-
-    const orders = await StockOrder.find(filters)
-      .populate("vendor")
-      .sort({ createdAt: -1 });
-
-    res.status(200).json(orders);
-  } catch (err) {
-    console.error("Failed to fetch stock orders:", err);
-    res.status(500).json({ error: "Failed to fetch stock orders" });
   }
-}
-
-
-  // Unsupported methods
   else {
     res.setHeader("Allow", ["POST", "GET"]);
     res.status(405).end(`Method ${req.method} Not Allowed`);
