@@ -14,7 +14,7 @@ export default function MemoPage() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [downloading, setDownloading] = useState(false);
-
+   const [timeoutTriggered, setTimeoutTriggered] = useState(false);
   const [form, setForm] = useState({
     accountName: "",
     accountNumber: "",
@@ -40,6 +40,19 @@ export default function MemoPage() {
       });
     }
   }, [id]);
+
+   useEffect(() => {
+    if (downloading) {
+      const timer = setTimeout(() => {
+        setTimeoutTriggered(true);
+        router.push("/paytracker"); // ✅ Redirect after timeout
+      }, 15000); // 15 seconds timeout
+
+      return () => clearTimeout(timer); // cleanup
+    }
+  }, [downloading]);
+
+
 
   if (loading) return <div className="p-10 text-center">Loading memo...</div>;
   if (!order)

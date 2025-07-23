@@ -222,10 +222,10 @@ const PrintMemo = forwardRef(({ order, form, editing, handleChange, onDownloadin
             style={{
               position: "absolute",
               left: "-3em",
-              bottom: "-23em",
+              bottom: "-21em",
               opacity: 0.1,
               zIndex: 0,
-              height: "28em",
+              height: "25em",
               width: "auto",
             }}
           />
@@ -234,13 +234,13 @@ const PrintMemo = forwardRef(({ order, form, editing, handleChange, onDownloadin
             alt="WatermarkRight"
             style={{
               position: "absolute",
-              right: "-22em",
+              right: "-21em",
               top: "20em",
               opacity: 0.1,
               zIndex: 0,
               height: "40em",
               width: "auto",
-              transform: "rotate(330deg)",
+              transform: "rotate(340deg)",
             }}
           />
         </div>
