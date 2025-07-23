@@ -108,7 +108,7 @@ export default function Home({ staffList, locations }) {
             {/* Hero Section */}
             <div className="w-full lg:w-1/2 text-center lg:text-left animate-fade-in">
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-blue-800 mb-4 drop-shadow">
-                Expense
+                BizSuits™
               </h1>
               <p className="text-base sm:text-lg text-gray-700 mb-6 max-w-xl mx-auto lg:mx-0">
                 Simple, powerful cash expense tracking for your business or personal use.
@@ -210,7 +210,7 @@ export default function Home({ staffList, locations }) {
             <span className="text-blue-600 font-semibold">Hetch Tech</span>
           </p>
           <p className="text-xs sm:text-sm text-gray-400">
-            &copy; {new Date().getFullYear()} <strong>Expense App</strong>. All rights reserved.
+            &copy; {new Date().getFullYear()} <strong>BizSuits™</strong>. All rights reserved.
           </p>
         </footer>
       </div>

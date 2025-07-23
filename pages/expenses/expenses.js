@@ -291,7 +291,7 @@ export default function ManageExpenses() {
           </div>
 
           {/* Expense and Cash Entry Panels */}
-          <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-3 lg:gap-8">
+          <div className="grid grid-cols-1  md:grid-cols-1 lg:grid-cols-3 lg:gap-8">
             <div className="bg-white p-6 rounded-xl shadow-lg border border-blue-100 col-span-1 lg:col-span-1">
               <h2 className="text-xl font-semibold text-blue-700 mb-4">
                 Add New Expense
@@ -306,7 +306,7 @@ export default function ManageExpenses() {
             </div>
 
             {/* Expenses */}
-            <div className="col-span-2 grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="col-span-2 sm:mt-7 grid grid-cols-1 lg:grid-cols-2 gap-8">
               <div className="bg-white p-6 rounded-xl shadow-lg border border-blue-100 h-[800px] flex flex-col">
                 <h2 className="text-xl font-semibold mb-4 text-gray-700">
                   Recent Expenses

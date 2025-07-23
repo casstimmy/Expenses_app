@@ -6,7 +6,7 @@ export default function App({ Component, pageProps }) {
   return (
     <>
      <Head>
-        <title>Ibile Expense</title>
+        <title>BizSuits™</title>
         <meta name="description" content="Best products at the best prices!" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
