@@ -8,8 +8,6 @@ import { FaFilePdf, FaWhatsapp, FaTrash } from "react-icons/fa";
 export default function OrderTracker({
   order,
   onDeleteOrder,
-  onDeleteProduct,
-  onEditProduct,
   editingIndex,
   setEditingIndex,
   setOrder,
@@ -43,26 +41,41 @@ export default function OrderTracker({
 
   
   useEffect(() => {
-    async function enrichProducts() {
-      const updated = { ...order };
+  async function enrichProducts() {
+    const updated = { ...order };
+  
+    for (let i = 0; i < updated.products.length; i++) {
+      const p = updated.products[i];
 
-      for (let i = 0; i < updated.products.length; i++) {
-        const p = updated.products[i];
+      // Check for ObjectId reference (product._id or product is a string)
+      const id =
+        typeof p.product === "string" ? p.product : p?._id;
 
-        if (p._id) {
-
-          const res = await fetch(`/api/products/${p._id}`);
+      if (id) {
+        try {
+          const res = await fetch(`/api/products/${id}`);
           if (res.ok) {
             const data = await res.json();
             updated.products[i].name = data.name;
+            updated.products[i].price = data.costPrice;
+          } else {
+            console.warn(`Failed to fetch product ${id}. Status: ${res.status}`);
           }
+        } catch (err) {
+          console.error("Failed to fetch product", err);
         }
+      } else {
+        console.warn(`No valid productId for product at index ${i}:`, p);
       }
-      setOrder(updated);
     }
 
-    enrichProducts();
-  }, []);
+    setOrder(updated);
+  }
+
+  enrichProducts();
+}, []);
+
+
 
   if (!order) return null;
 
@@ -154,7 +167,6 @@ export default function OrderTracker({
       };
 
 
-
       const res = await fetch("/api/stock-orders", {
         method: "POST",
         headers: {
@@ -187,6 +199,7 @@ export default function OrderTracker({
       setSaving(false);
     }
   };
+
 
   return (
     <>
@@ -242,16 +255,16 @@ export default function OrderTracker({
                   <td className="px-3 py-2 border">
                     {editingIndex === i ? (
                       <input
-                        value={item.name}
+                        value={item.name  }
                         onChange={(e) => {
                           const updated = { ...order };
-                          updated.products[i].product = e.target.value;
+                          updated.products[i].name = e.target.value;
                           setOrder(updated);
                         }}
                         className="border px-2 py-1 rounded w-full"
                       />
                     ) : (
-                      item.name
+                    item.name 
                     )}
                   </td>
 

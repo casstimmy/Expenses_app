@@ -88,19 +88,24 @@ const handleSubmit = async (e) => {
   e.preventDefault();
 
 
+
   const submittedProducts = form.products.map((product, i) => ({
     productId: product._id,
+    name: product.name,
     quantity: Number(form.products[i].quantity),
     price: Number(product.costPrice),
     total: Number(product.quantity) * Number(product.costPrice),
   }));
+
+
+
 
   const updatedOrders = form.products.map((prod) => ({
     date: form.date,
     supplier: selectedVendor?.companyName,
     contact: form.contact,
     mainProduct: selectedVendor?.mainProduct || "",
-    product: prod.name,
+    product: submittedProducts.find((p) => p.productId === prod._id)?.name || prod.name,
     quantity: prod.quantity,
     costPrice: prod.costPrice || 0,
     total: prod.quantity * (prod.costPrice || 0),
@@ -109,6 +114,7 @@ const handleSubmit = async (e) => {
   }));
 
   setOrders([...orders, ...updatedOrders]);
+
 
   setForm({
     date: getToday(),
@@ -122,7 +128,8 @@ const handleSubmit = async (e) => {
   setSelectedVendor(null);
 };
 
-  
+
+console.log("Form submitted with orders:", orders); // Debugging log
 
 const handleStockOrderSubmit = async () => {
   setSubmitting(true);
@@ -200,9 +207,8 @@ const handleStockOrderSubmit = async () => {
   };
 
   
-
-
-  return (
+  
+return (
     <Layout>
       <div className="min-h-screen bg-gray-100 p-6">
         <div className="max-w-6xl mx-auto space-y-6">
@@ -237,7 +243,7 @@ const handleStockOrderSubmit = async () => {
             {/* Vendor Section */}
             <div className="relative">
               {loadingVendors && (
-                <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-10">
+               <div className="absolute inset-0 backdrop-blur-sm bg-white/30 flex items-center justify-center z-10">
                   <div className="w-10 h-10 border-4 border-white border-t-blue-600 rounded-full animate-spin" />
                 </div>
               )}
@@ -262,7 +268,7 @@ const handleStockOrderSubmit = async () => {
 
           {/* Vendor Modal */}
           {showVendorForm && (
-            <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+            <div className="fixed inset-0 backdrop-blur-md bg-white/30 flex items-center justify-center z-50">
               <div className="bg-white rounded-lg shadow-lg w-full max-w-xl p-6 relative">
                 <div className="flex justify-between items-center border-b pb-2 mb-4">
                   <h2 className="text-lg font-semibold text-gray-800">

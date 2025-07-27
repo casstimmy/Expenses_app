@@ -30,42 +30,44 @@ export default async function handler(req, res) {
       } = req.body;
 
      const productRefs = await Promise.all(
-  products.map(async (prod) => {
-    let productId;
+products.map(async (prod) => {
+  let productId;
 
-    // Detect existing product
-    if (prod.product && prod.product !== "custom") {
-      if (
-        typeof prod.product === "string" &&
-        mongoose.Types.ObjectId.isValid(prod.product)
-      ) {
-        productId = new mongoose.Types.ObjectId(prod.product);
-      } else {
-        throw new Error(`Invalid product ID: ${prod.product}`);
-      }
+  const { product, name, category, price, quantity, costPrice, total } = prod;
+
+  if (product && product !== "custom") {
+    if (
+      typeof product === "string" &&
+      mongoose.Types.ObjectId.isValid(product)
+    ) {
+      productId = new mongoose.Types.ObjectId(product);
     } else {
-      // Custom product: validate input
-      if (!prod.name || !prod.category) {
-        throw new Error("Product name and category are required for custom product");
-      }
-
-      const newProduct = await Product.create({
-        name: prod.name.trim(),
-        category: prod.category.trim(),
-        costPrice: prod.price || 0, // Optional
-      });
-
-      productId = newProduct._id;
+      throw new Error(`Invalid product ID: ${product}`);
+    }
+  } else {
+    // Custom product: validate input
+    if (!name || !category) {
+      throw new Error("Product name and category are required for custom product");
     }
 
-    return {
-            product: productId,
-            name,
-            quantity,
-            costPrice,
-            total,
-          };
-  })
+    const newProduct = await Product.create({
+      name: name.trim(),
+      category: category.trim(),
+      price: price || 0,
+    });
+
+    productId = newProduct._id;
+  }
+
+  return {
+    product: productId,
+    name,
+    quantity,
+    price,
+    total,
+  };
+})
+
 );
 
 

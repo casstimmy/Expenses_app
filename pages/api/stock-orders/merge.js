@@ -24,23 +24,24 @@ export default async function handler(req, res) {
           supplier: order.supplier,
           contact: order.contact,
           mainProduct: order.mainProduct,
-          vendor: order.vendor, // ✅ Include vendor
+          vendor: order.vendor,
+          staff: order.staff, // ✅ collect staff from original order
           productsMap: {},
           _ids: [],
         };
       }
 
       for (const product of order.products) {
-        const name = product.product;
+        const name = product.name; // ✅ use `name`, not `product`
 
         const quantity = Number(product.quantity) || 0;
-        const costPrice = Number(product.costPrice) || 0;
+        const price = Number(product.price) || 0;
 
         if (!mergedMap[key].productsMap[name]) {
           mergedMap[key].productsMap[name] = {
-            product: name,
+            name: name, // ✅ use `name` key for new schema
             quantity: 0,
-            costPrice: costPrice,
+            price: price,
           };
         }
 
@@ -51,12 +52,15 @@ export default async function handler(req, res) {
     }
 
     const mergedOrders = Object.values(mergedMap);
+
     for (const entry of mergedOrders) {
       const mergedProducts = Object.values(entry.productsMap).map((p) => {
-        const total = Number(p.quantity) * Number(p.costPrice);
+        const total = Number(p.quantity) * Number(p.price);
         return {
-          ...p,
-          total: isNaN(total) ? 0 : total, // ✅ Handle NaN safely
+          name: p.name,
+          quantity: p.quantity,
+          price: p.price,
+          total: isNaN(total) ? 0 : total,
         };
       });
 
@@ -67,7 +71,8 @@ export default async function handler(req, res) {
         supplier: entry.supplier,
         contact: entry.contact,
         mainProduct: entry.mainProduct,
-        vendor: entry.vendor || "Unknown", // ✅ Ensure vendor is provided
+        vendor: entry.vendor,
+        staff: entry.staff, // ✅ required field now passed
         products: mergedProducts,
         grandTotal,
         location: "All Locations (Merged)",

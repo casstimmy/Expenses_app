@@ -6,6 +6,9 @@ export default function OrderForm({ product, index, form, setForm }) {
     setForm({ ...form, products: updatedProducts });
   };
 
+
+
+
   return (
     <>
     <div className="grid grid-cols-1 md:grid-cols-5 gap-4 bg-blue-50 p-4 rounded items-end">

@@ -1,8 +1,8 @@
 // pages/api/stock-orders/[id]/products/[index].js
 
 import StockOrder from '@/models/StockOrder';
-import { mongooseConnect } from "@/lib/mongoose";
-import Product from "@/models/Product";
+import Product from '@/models/Product';
+import { mongooseConnect } from '@/lib/mongoose';
 
 export default async function handler(req, res) {
   const { id, index } = req.query;
@@ -18,29 +18,31 @@ export default async function handler(req, res) {
       order.grandTotal = order.products.reduce((sum, p) => sum + p.total, 0);
       await order.save();
 
-      res.status(200).json({ success: true, order });
+      return res.status(200).json({ success: true, order });
     } catch (error) {
       console.error(error);
-      res.status(500).json({ error: "Failed to delete product" });
+      return res.status(500).json({ error: "Failed to delete product" });
     }
-  } else {
-    res.setHeader("Allow", ["PUT"]);
-    res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 
- if (req.method === "GET") {
+  if (req.method === 'GET') {
     try {
       const product = await Product.findById(id);
-      if (!product) {
-        return res.status(404).json({ error: "Product not found" });
-      }
-      res.status(200).json(product);
+      if (!product) return res.status(404).json({ error: "Product not found" });
+
+      return res.status(200).json(product);
     } catch (err) {
-      console.error("GET /api/products/:id failed", err);
-      res.status(500).json({ error: "Failed to fetch product" });
+      console.error("Error fetching product:", err);
+      return res.status(500).json({ error: "Failed to fetch product" });
     }
   } else {
     res.setHeader("Allow", ["GET"]);
-    res.status(405).end(`Method ${req.method} Not Allowed`);
+    return res.status(405).end(`Method ${req.method} Not Allowed`);
   }
+
+  // If neither GET nor PUT
+  res.setHeader("Allow", ["GET", "PUT"]);
+  res.status(405).end(`Method ${req.method} Not Allowed`);
 }
+
+  
