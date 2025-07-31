@@ -16,10 +16,16 @@ export default async function handler(req, res) {
 
   await mongooseConnect();
 
-  const staff = await Staff.findOne({ name }).select("+password"); // if password is being excluded
+ const staff = await Staff.findOne({ name, role: { $ne: "junior staff" } }).select("+password");
 
-  if (!staff) {
-    return res.status(401).json({ message: "Staff not found" });
+if (!staff) {
+  return res.status(401).json({ message: "Staff not found" });
+}
+
+
+  // 🚫 Reject junior staff
+  if (staff.role === "junior staff") {
+    return res.status(403).json({ message: "Unauthorized: Access denied" });
   }
 
   const isMatch = await bcrypt.compare(password, staff.password);
@@ -27,17 +33,8 @@ export default async function handler(req, res) {
     return res.status(401).json({ message: "Invalid password" });
   }
 
-  // Now convert to plain object and remove password manually
   const staffObj = staff.toObject();
   delete staffObj.password;
 
   res.status(200).json(staffObj);
-
-  try {
-  // login logic here...
-} catch (err) {
-  console.error("Login error:", err);
-  res.status(500).json({ message: "Server error" });
-}
-
 }

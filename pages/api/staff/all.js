@@ -6,7 +6,8 @@ export default async function handler(req, res) {
 
   if (req.method === "GET") {
     try {
-      const staffList = await Staff.find({}, "name location role"); // <-- include fields
+      const staffList = await Staff.find({});
+
       res.status(200).json(staffList);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch staff." });

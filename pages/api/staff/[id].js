@@ -19,16 +19,32 @@ export default async function handler(req, res) {
       res.status(500).json({ message: "Server error" });
     }
   } else if (req.method === "PUT") {
-    const { name, password, location, role } = req.body;
+const { name, password, location, role, bank, salary } = req.body;
 
-    if (!name || !location || !role) {
-      return res.status(400).json({ message: "Missing fields" });
-    }
+
+   const missingFields = [];
+if (!name) missingFields.push("name");
+if (!location) missingFields.push("location");
+if (!role) missingFields.push("role");
+
+if (missingFields.length > 0) {
+  return res.status(400).json({ message: `Missing fields: ${missingFields.join(", ")}` });
+}
+
 
     const updateData = {
       name,
       location,
       role,
+      ...(typeof salary !== "undefined" && salary !== null ? { salary } : {}),
+     ...(bank ? {
+  bank: {
+    accountName: bank?.accountName ?? "",
+    accountNumber: bank?.accountNumber ?? "",
+    bankName: bank?.bankName ?? "",
+  }
+} : {})
+
     };
 
     if (password && password.trim() !== "") {

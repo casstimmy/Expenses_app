@@ -98,20 +98,24 @@ export default function Home({ staffList, locations }) {
       <div className="flex flex-col min-h-screen relative">
         {/* Particle Background */}
         <div className="absolute inset-0 z-0">
-          <Particles id="tsparticles" init={particlesInit} options={particlesOptions} />
+          <Particles
+            id="tsparticles"
+            init={particlesInit}
+            options={particlesOptions}
+          />
         </div>
 
         {/* Main Content */}
         <div className="relative z-10 flex-grow flex items-center justify-center px-4 sm:px-6 py-6 sm:py-12">
           <div className="w-full flex flex-col lg:flex-row items-center justify-between max-w-7xl gap-8">
-            
             {/* Hero Section */}
             <div className="w-full lg:w-1/2 text-center lg:text-left animate-fade-in">
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-blue-800 mb-4 drop-shadow">
                 BizSuits™
               </h1>
               <p className="text-base sm:text-lg text-gray-700 mb-6 max-w-xl mx-auto lg:mx-0">
-                Simple, powerful cash expense tracking for your business or personal use.
+                Simple, powerful cash expense tracking for your business or
+                personal use.
               </p>
               <Link
                 href="/expenses/getStarted"
@@ -128,7 +132,9 @@ export default function Home({ staffList, locations }) {
               </h2>
               <form onSubmit={handleLogin}>
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Staff Name</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Staff Name
+                  </label>
                   <select
                     value={name}
                     onChange={(e) => setName(e.target.value)}
@@ -138,16 +144,23 @@ export default function Home({ staffList, locations }) {
                       Login Staff of...
                     </option>
                     {Array.isArray(staffList) &&
-                      staffList.map((staff, idx) => (
-                        <option key={idx} value={staff}>
-                          {staff}
-                        </option>
-                      ))}
+                      staffList
+                        .filter(
+                          (staff) =>
+                            (staff.role || "").toLowerCase() !== "junior staff"
+                        )
+                        .map((staff, idx) => (
+                          <option key={idx} value={staff.name}>
+                            {staff.name}
+                          </option>
+                        ))}
                   </select>
                 </div>
 
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Location
+                  </label>
                   <select
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
@@ -162,7 +175,9 @@ export default function Home({ staffList, locations }) {
                 </div>
 
                 <div className="mb-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Password (PIN)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Password (PIN)
+                  </label>
                   <div className="w-full h-12 px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-lg tracking-widest select-none flex items-center">
                     {"•".repeat(password.length)}
                   </div>
@@ -170,16 +185,18 @@ export default function Home({ staffList, locations }) {
 
                 {/* Keypad */}
                 <div className="grid grid-cols-3 gap-3 my-4">
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, "clear", 0, "back"].map((key) => (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => handleKeypad(key)}
-                      className="bg-blue-100 hover:bg-blue-300 text-blue-800 font-bold py-2 sm:py-3 rounded-lg text-base sm:text-lg"
-                    >
-                      {key === "clear" ? "C" : key === "back" ? "←" : key}
-                    </button>
-                  ))}
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, "clear", 0, "back"].map(
+                    (key) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => handleKeypad(key)}
+                        className="bg-blue-100 hover:bg-blue-300 text-blue-800 font-bold py-2 sm:py-3 rounded-lg text-base sm:text-lg"
+                      >
+                        {key === "clear" ? "C" : key === "back" ? "←" : key}
+                      </button>
+                    )
+                  )}
                 </div>
 
                 {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
@@ -188,7 +205,9 @@ export default function Home({ staffList, locations }) {
                   type="submit"
                   disabled={loading}
                   className={`w-full py-3 rounded-lg font-semibold text-sm sm:text-base transition ${
-                    loading ? "bg-blue-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+                    loading
+                      ? "bg-blue-400 cursor-not-allowed"
+                      : "bg-blue-600 hover:bg-blue-700"
                   } text-white`}
                 >
                   {loading ? "Logging in..." : "Log in"}
@@ -197,7 +216,9 @@ export default function Home({ staffList, locations }) {
 
               <p className="text-center text-sm text-gray-500 mt-4">
                 Don’t have an account?{" "}
-                <span className="text-blue-600 hover:underline cursor-pointer">Contact Admin</span>
+                <span className="text-blue-600 hover:underline cursor-pointer">
+                  Contact Admin
+                </span>
               </p>
             </div>
           </div>
@@ -210,7 +231,8 @@ export default function Home({ staffList, locations }) {
             <span className="text-blue-600 font-semibold">Hetch Tech</span>
           </p>
           <p className="text-xs sm:text-sm text-gray-400">
-            &copy; {new Date().getFullYear()} <strong>BizSuits™</strong>. All rights reserved.
+            &copy; {new Date().getFullYear()} <strong>BizSuits™</strong>. All
+            rights reserved.
           </p>
         </footer>
       </div>
@@ -223,8 +245,11 @@ export async function getServerSideProps() {
   const Staff = (await import("@/models/Staff")).Staff;
 
   await mongooseConnect();
-  const staffDocs = await Staff.find({}, "name");
-  const staffList = staffDocs.map((s) => s.name);
+  const staffDocs = await Staff.find({}, "name role").lean();
+  const staffList = staffDocs.map((s) => ({
+    name: s.name,
+    role: s.role,
+  }));
   const locations = ["Ibile 1", "Ibile 2"];
 
   return {

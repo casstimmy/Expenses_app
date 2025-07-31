@@ -1,27 +1,31 @@
-// pages/api/send-reminder.js
+// pages/api/cron.js
 import { mongooseConnect } from "@/lib/mongoose";
 import StockOrder from "@/models/StockOrder";
 import nodemailer from "nodemailer";
 
 export default async function handler(req, res) {
   const auth = req.headers.authorization;
-   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+
+  // Only check auth in production
+  if (process.env.NODE_ENV === "production" && auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return res.status(401).send("Unauthorized");
   }
+
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
     await mongooseConnect();
+    console.log("✅ Connected to MongoDB");
 
     const { EMAIL_USER, EMAIL_PASS } = process.env;
     if (!EMAIL_USER || !EMAIL_PASS) {
+      console.error("❌ Missing EMAIL_USER or EMAIL_PASS in environment.");
       return res.status(500).json({ error: "Missing email credentials" });
     }
 
     const allOrders = await StockOrder.find();
-
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -35,6 +39,8 @@ export default async function handler(req, res) {
 
       return dueDate < today;
     });
+
+    console.log("🚨 Overdue Orders:", overdueOrders.length);
 
     if (overdueOrders.length === 0) {
       return res.status(200).json({ message: "No overdue orders to email." });
@@ -50,6 +56,8 @@ export default async function handler(req, res) {
       },
     });
 
+    console.log("📧 Preparing email to cass2artclassic@gmail.com...");
+
     const mailHtml = `
     <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f4f8; padding: 30px;">
       <div style="max-width: 700px; margin: auto;">
@@ -58,11 +66,11 @@ export default async function handler(req, res) {
           .map((order) => {
             return `
               <div style="background-color: #ffffff; border-radius: 10px; padding: 20px 25px; margin-bottom: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border-left: 6px solid #333;">
-                <p style="margin: 5px 0;"><strong>📦 Supplier:</strong> <span style="color: #2c3e50;">${order.supplier}</span></p>
-                <p style="margin: 5px 0;"><strong>📞 Contact:</strong> <span style="color: #2c3e50;">${order.contact}</span></p>
-                <p style="margin: 5px 0;"><strong>📅 Date:</strong> <span style="color: #2980b9;">${new Date(order.createdAt).toLocaleDateString()}</span></p>
-                <p style="margin: 5px 0;"><strong>🧾 Main Product:</strong> <span style="color: #8e44ad;">${order.mainProduct}</span></p>
-                <p style="margin: 10px 0 0;"><strong>💰 Total:</strong> <span style="font-size: 1.2em; font-weight: bold; color: #27ae60;">₦${order.grandTotal.toLocaleString()}</span></p>
+                <p><strong>📦 Supplier:</strong> ${order.supplier || "N/A"}</p>
+                <p><strong>📞 Contact:</strong> ${order.contact || "N/A"}</p>
+                <p><strong>📅 Date:</strong> ${new Date(order.createdAt).toLocaleDateString()}</p>
+                <p><strong>🧾 Main Product:</strong> ${order.mainProduct || "N/A"}</p>
+                <p><strong>💰 Total:</strong> ₦${order.grandTotal?.toLocaleString() || "0"}</p>
               </div>
             `;
           })
@@ -74,16 +82,23 @@ export default async function handler(req, res) {
     </div>
     `;
 
-    await transporter.sendMail({
-      from: `"Stock Reminder" <${EMAIL_USER}>`,
-      to: "cass2artclassic@gmail.com",
-      subject: "⚠️ Overdue Vendor Orders",
-      html: mailHtml,
-    });
-
-    return res.status(200).json({ message: "Email sent successfully!" });
+    try {
+      await transporter.sendMail({
+        from: `"Stock Reminder" <${EMAIL_USER}>`,
+        to: "cass2artclassic@gmail.com",
+        subject: "⚠️ Overdue Vendor Orders",
+        html: mailHtml,
+      });
+      console.log("✅ Email sent successfully!");
+      return res.status(200).json({ message: "Email sent successfully!" });
+    } catch (mailErr) {
+      console.error("❌ Email sending error:", mailErr.message);
+      console.error(mailErr.stack);
+      return res.status(500).json({ error: "Failed to send email", details: mailErr.message });
+    }
   } catch (err) {
-    console.error("Email error:", err);
-    return res.status(500).json({ error: "Failed to send email" });
+    console.error("❌ General cron error:", err.message);
+    console.error(err.stack);
+    return res.status(500).json({ error: "Failed to run cron job", details: err.message });
   }
 }
