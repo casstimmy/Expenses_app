@@ -79,9 +79,11 @@ export default function ManageStaff() {
     }
   }, [staffList]);
 
+
+
   const fetchStaff = async () => {
     setLoadingStaffList(true);
-    setIsSending(true);
+
 
     try {
       // Step 1: Fetch the staff list
@@ -103,7 +105,11 @@ export default function ManageStaff() {
     }
 
     setLoadingStaffList(false);
+  };
 
+  const handleSendingMail = async () => {
+
+        setIsSending(true);
     try {
       // Step 2: Send the salary mail
       const mailRes = await fetch("/api/staff/salary-mail/cron", {
@@ -124,8 +130,7 @@ export default function ManageStaff() {
     }
 
     setIsSending(false);
-  };
-
+  }
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -772,7 +777,7 @@ export default function ManageStaff() {
           {currentStaff?.role === "admin" && (
             <div className="flex justify-end mt-6 gap-3">
               <button
-                onClick={fetchStaff}
+                onClick={handleSendingMail}
                 disabled={isSending}
                 className={`mt-4 ${
                   isSending ? "bg-gray-400" : "bg-gray-500 hover:bg-gray-700"

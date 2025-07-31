@@ -54,7 +54,6 @@ export default async function handler(req, res) {
 
     const formattedTotal = Number(totalNetSalary || 0).toLocaleString();
 
-
     const tableRows = staffList
       .map((staff) => {
         // Calculate total penalties directly from staff.penalty array
@@ -65,9 +64,6 @@ export default async function handler(req, res) {
         const netSalary = Number(
           (staff.salary || 0) - totalPenalty
         ).toLocaleString();
-
-
-
 
         return `
           <tr>
@@ -87,7 +83,7 @@ export default async function handler(req, res) {
       })
       .join("");
 
-   const mailHtml = `
+    const mailHtml = `
   <div style="font-family:'Segoe UI',Roboto,sans-serif;background:#f0f4f8;padding:30px;">
     <div style="max-width:700px;margin:auto;background:#ffffff;padding:40px 30px;border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,0.1);border:1px solid #e1e1e1;">
       
@@ -137,8 +133,6 @@ export default async function handler(req, res) {
   </div>
 `;
 
-
-
     const mailOptions = {
       from: `"Ibile Mail" <${EMAIL_USER}>`,
       to: "paul@oakleighinvestments.com",
@@ -160,8 +154,9 @@ export default async function handler(req, res) {
     return res.status(200).json({ message: "Salary email sent successfully." });
   } catch (err) {
     console.error("❌ Error sending salary email:", err);
-    return res
-      .status(500)
-      .json({ error: "Internal Server Error", details: err.message });
+    return res.status(500).json({
+      error: "Failed to send salary email. Please try again.",
+      details: err.message,
+    });
   }
 }
