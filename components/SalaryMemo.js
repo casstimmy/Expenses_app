@@ -4,7 +4,7 @@ import { useRef, forwardRef, useImperativeHandle, useState } from "react";
 import { toWords } from "number-to-words";
 
 const SalaryMemo = forwardRef(
-  ({ staffList = [], onDownloading, selectedAccount }, ref) => {
+  ({ staffList = [], onDownloading, selectedAccount, memoIndex  }, ref) => {
     const memoRef = useRef();
     const today = new Date().toISOString().split("T")[0];
 
@@ -26,7 +26,8 @@ const SalaryMemo = forwardRef(
         const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
         pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-        pdf.save(`Salary Memo ${today}.pdf`);
+        const pageNum = (memoIndex ?? 0) + 1;
+        pdf.save(`Ibile Payroll ${today} Part${pageNum}.pdf`);
         onDownloading(false);
       },
     }));
@@ -97,9 +98,14 @@ const SalaryMemo = forwardRef(
                     zIndex: 2,
                   }}
                 >
-                  <p style={{ fontWeight: "bold", fontSize: "14px" }}>
-                    {today}
+                  <p style={{ fontWeight: "bold", marginBottom: "0.5rem" }}>
+                    {new Date(today).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
                   </p>
+
                   <p>The Branch Manager</p>
                   <p>Access Bank Plc</p>
                   <p style={{ marginBottom: "1.5rem" }}>

@@ -30,10 +30,11 @@ const SalaryTable = forwardRef(({ staffList = [], currentStaff }, ref) => {
     );
 
   // View memo: store chunk in localStorage and navigate
-  const handleViewMemo = (staffChunk) => {
-    localStorage.setItem("staffPayroll", JSON.stringify(staffChunk));
-    window.open("/memo/salary", "_blank");
-  };
+  const handleViewMemo = (staffChunk, index) => {
+  localStorage.setItem("staffPayroll", JSON.stringify(staffChunk));
+  localStorage.setItem("payrollChunkIndex", index); // Store the index
+  window.open("/memo/salary", "_blank");
+};
 
   console.log("Rendering SalaryTable with staffList:", currentStaff);
 
@@ -94,12 +95,13 @@ const SalaryTable = forwardRef(({ staffList = [], currentStaff }, ref) => {
               <p className="text-blue-700 font-semibold">
                 Subtotal: ₦{chunkTotal.toLocaleString()}
               </p>
-              <button
-                className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm cursor-pointer"
-                onClick={() => handleViewMemo(chunk)}
-              >
-                View Memo
-              </button>
+             <button
+  className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm cursor-pointer"
+  onClick={() => handleViewMemo(chunk, index)} 
+>
+  View Memo
+</button>
+
             </div>
                )}
           </div>

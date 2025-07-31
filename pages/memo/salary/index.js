@@ -11,13 +11,15 @@ export default function SalaryMemoPage() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [downloading, setDownloading] = useState(false);
-  const [selectedAccount, setSelectedAccount] = useState(
-    accountOptions[0].value
-  );
-  const memoRef = useRef(); // ✅ This is passed to the SalaryMemo component
+  const [selectedAccount, setSelectedAccount] = useState(accountOptions[0].value);
+  const [memoIndex, setMemoIndex] = useState(0); // moved this to state
+  const memoRef = useRef();
 
   useEffect(() => {
+    // Safe access to localStorage
     const storedList = localStorage.getItem("staffPayroll");
+    const storedIndex = localStorage.getItem("payrollChunkIndex");
+
     if (storedList) {
       try {
         setStaffList(JSON.parse(storedList));
@@ -25,7 +27,12 @@ export default function SalaryMemoPage() {
         console.error("Invalid JSON in staffPayroll:", err);
       }
     }
-    setLoading(false); // ✅ End loading after processing
+
+    if (storedIndex) {
+      setMemoIndex(Number(storedIndex));
+    }
+
+    setLoading(false);
   }, []);
 
   if (loading) return <div className="p-10 text-center">Loading memo...</div>;
@@ -34,38 +41,36 @@ export default function SalaryMemoPage() {
 
   return (
     <div className="pb-5">
-    <div className="mt-5 pb-3 print:hidden">
-  <div className="flex flex-wrap items-end justify-center gap-6 max-w-xl mx-auto">
-    {/* Select Account */}
-    <div className="flex flex-col w-full sm:w-auto">
-      <label className="text-sm font-medium text-gray-700 mb-1">
-        Select Account:
-      </label>
-      <select
-        value={selectedAccount}
-        onChange={(e) => setSelectedAccount(e.target.value)}
-        className="w-full sm:w-64 px-4 py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-      >
-        {accountOptions.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
-    </div>
+      <div className="mt-5 pb-3 print:hidden">
+        <div className="flex flex-wrap items-end justify-center gap-6 max-w-xl mx-auto">
+          {/* Select Account */}
+          <div className="flex flex-col w-full sm:w-auto">
+            <label className="text-sm font-medium text-gray-700 mb-1">
+              Select Account:
+            </label>
+            <select
+              value={selectedAccount}
+              onChange={(e) => setSelectedAccount(e.target.value)}
+              className="w-full sm:w-64 px-4 py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              {accountOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
 
-    {/* Download Button */}
-    <button
-      onClick={() => memoRef.current?.generatePDF()}
-      className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2.5 rounded-md shadow transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-      disabled={downloading}
-    >
-      {downloading ? "Downloading..." : "Download PDF"}
-    </button>
-  </div>
-</div>
-
-
+          {/* Download Button */}
+          <button
+            onClick={() => memoRef.current?.generatePDF()}
+            className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2.5 rounded-md shadow transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={downloading}
+          >
+            {downloading ? "Downloading..." : "Download PDF"}
+          </button>
+        </div>
+      </div>
 
       <SalaryMemo
         ref={memoRef}
@@ -73,6 +78,7 @@ export default function SalaryMemoPage() {
         editing={editing}
         onDownloading={setDownloading}
         selectedAccount={selectedAccount}
+        memoIndex={memoIndex}
       />
     </div>
   );

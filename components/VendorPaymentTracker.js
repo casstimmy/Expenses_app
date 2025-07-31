@@ -181,10 +181,14 @@ export default function VendorPaymentTracker({ orders: initialOrders }) {
                   </span>
                 </td>
                 <td className="px-4 py-3">
-                  <Link href={`/memo/${order._id}`}>
-                    <button className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">
+                  <Link href={`/memo/${order._id}`} passHref legacyBehavior>
+                    <a
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 inline-block"
+                    >
                       View Memo
-                    </button>
+                    </a>
                   </Link>
                 </td>
               </tr>
@@ -212,10 +216,14 @@ export default function VendorPaymentTracker({ orders: initialOrders }) {
                     : "—"}
                 </p>
               </div>
-              <Link href={`/memo/${order._id}`}>
-                <button className="text-xs bg-blue-500 text-white px-3 py-2 rounded-md hover:bg-blue-600">
+              <Link href={`/memo/${order._id}`} passHref legacyBehavior>
+                <a
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs bg-blue-500 text-white px-3 py-2 rounded-md hover:bg-blue-600 inline-block"
+                >
                   View Memo
-                </button>
+                </a>
               </Link>
             </div>
 

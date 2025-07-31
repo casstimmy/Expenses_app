@@ -9,59 +9,26 @@ const PrintMemo = forwardRef(({ order, form, editing, handleChange, onDownloadin
   const companyName = order?.supplier || "Unknown";
 
   useImperativeHandle(ref, () => ({
-  generateAllPDFs: async () => {
-    const pdf = new jsPDF("landscape", "mm", "a4");
+    generatePDF: async () => {
+        if (!memoRef.current) return;
+        onDownloading(true);
 
-    for (let i = 0; i < memoRefs.current.length; i++) {
-      for (let j = 0; j < memoRefs.current[i].length; j++) {
-        const el = memoRefs.current[i][j];
-        if (!el) continue;
-
-        const canvas = await html2canvas(el, {
+        const canvas = await html2canvas(memoRef.current, {
           scale: 2,
           useCORS: true,
           backgroundColor: "#ffffff",
         });
 
         const imgData = canvas.toDataURL("image/png");
+        const pdf = new jsPDF("p", "mm", "a4");
         const imgProps = pdf.getImageProperties(imgData);
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
-        if (i > 0 || j > 0) pdf.addPage(); // Add new page except first
         pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-      }
-    }
-
-    pdf.save(`Salary Memo All Pages - ${today}.pdf`);
-  },
-
-  generatePDF: async (index) => {
-    setDownloadingIndex(index); // Set loading state (optional)
-    const pdf = new jsPDF("landscape", "mm", "a4");
-
-    for (let j = 0; j < (memoRefs.current[index]?.length || 0); j++) {
-      const el = memoRefs.current[index][j];
-      if (!el) continue;
-
-      const canvas = await html2canvas(el, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: "#ffffff",
-      });
-
-      const imgData = canvas.toDataURL("image/png");
-      const imgProps = pdf.getImageProperties(imgData);
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-      if (j > 0) pdf.addPage();
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-    }
-
-    pdf.save(`Salary Memo Page ${index + 1} - ${today}.pdf`);
-    setDownloadingIndex(null); // Clear loading state
-  }
+         pdf.save(`Transfer Instruction ${today} (From 9143 to ${companyName}).pdf`);
+        onDownloading(false);
+      },
 }));
 
 
