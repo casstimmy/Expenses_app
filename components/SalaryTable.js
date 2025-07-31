@@ -117,4 +117,6 @@ const SalaryTable = forwardRef(({ staffList = [], currentStaff }, ref) => {
   );
 });
 
+SalaryTable.displayName = "SalaryTable"; // ✅ Add this line
+
 export default SalaryTable;
