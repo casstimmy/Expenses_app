@@ -14,6 +14,8 @@ export default function MemoPage() {
   const [editing, setEditing] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [timeoutTriggered, setTimeoutTriggered] = useState(false);
+  const [originalForm, setOriginalForm] = useState(null);
+
   const [form, setForm] = useState({
     accountName: "",
     accountNumber: "",
@@ -22,23 +24,26 @@ export default function MemoPage() {
   });
 
   useEffect(() => {
-    if (id) {
-      axios.get(`/api/stock-orders/${id}`).then((res) => {
-        const order = res.data.order;
-        setOrder(order);
+  if (id) {
+    axios.get(`/api/stock-orders/${id}`).then((res) => {
+      const order = res.data.order;
+      setOrder(order);
 
-        const vendor = order.vendor || {};
-        setForm({
-          accountName: vendor.accountName || "",
-          accountNumber: vendor.accountNumber || "",
-          bankName: vendor.bankName || "",
-          amount: parseFloat(order.grandTotal || 0),
-        });
+      const vendor = order.vendor || {};
+      const initialForm = {
+        accountName: vendor.accountName || "",
+        accountNumber: vendor.accountNumber || "",
+        bankName: vendor.bankName || "",
+        amount: parseFloat(order.grandTotal || 0),
+      };
 
-        setLoading(false);
-      });
-    }
-  }, [id]);
+      setForm(initialForm);
+      setOriginalForm(initialForm); // 👈 Store a copy for reverting
+      setLoading(false);
+    });
+  }
+}, [id]);
+
 
   useEffect(() => {
     if (downloading) {
@@ -54,9 +59,10 @@ export default function MemoPage() {
   if (!order)
     return <div className="p-10 text-center text-red-600">Memo not found.</div>;
 
-  const amountInWords = `${toWords(form.amount).replace(/\b\w/g, (c) =>
-    c.toUpperCase()
-  )} Naira Only`;
+  const amountInWords = form.amount && !isNaN(Number(form.amount))
+  ? `${toWords(Number(form.amount)).replace(/\b\w/g, (c) => c.toUpperCase())} Naira Only`
+  : "";
+
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -72,11 +78,21 @@ export default function MemoPage() {
       <div className="mt-8 print:hidden flex flex-col sm:flex-row justify-center items-center gap-4">
         {editing ? (
           <button
-            onClick={() => setEditing(false)}
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 w-full sm:w-auto"
-          >
-            Save
-          </button>
+          onClick={() => {
+    // Revert any empty fields back to original values
+    setForm((prev) => ({
+      accountName: prev.accountName.trim() || originalForm.accountName,
+      accountNumber: prev.accountNumber.trim() || originalForm.accountNumber,
+      bankName: prev.bankName.trim() || originalForm.bankName,
+      amount: prev.amount || originalForm.amount,
+    }));
+
+    setEditing(false);
+  }}
+  className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 w-full sm:w-auto"
+>
+  Save
+</button>
         ) : (
           <button
             onClick={() => setEditing(true)}
@@ -101,6 +117,7 @@ export default function MemoPage() {
         ref={componentRef}
         order={order}
         form={form}
+          originalForm={originalForm}
         editing={editing}
         handleChange={handleChange}
         onDownloading={setDownloading}

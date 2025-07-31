@@ -9,6 +9,9 @@ const PrintMemo = forwardRef(({ order, form, editing, handleChange, onDownloadin
   const companyName = order?.supplier || "Unknown";
 
   useImperativeHandle(ref, () => ({
+
+  
+
     generatePDF: async () => {
         if (!memoRef.current) return;
         onDownloading(true);
@@ -34,7 +37,9 @@ const PrintMemo = forwardRef(({ order, form, editing, handleChange, onDownloadin
 
   if (!order) return null;
 
-  const amountInWords = `${toWords(form.amount).replace(/\b\w/g, (c) => c.toUpperCase())} Naira Only`;
+ const amountInWords = form.amount && !isNaN(Number(form.amount))
+  ? `${toWords(Number(form.amount)).replace(/\b\w/g, (c) => c.toUpperCase())} Naira Only`
+  : "";
 
   return (
     <div>
