@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { format } from "date-fns";
-import { Pencil, Save, X } from "lucide-react";
+import { Trash2, Pencil, Save, X } from "lucide-react";
 import Link from "next/link";
 
 export default function VendorPaymentTracker({ orders: initialOrders }) {
@@ -11,6 +11,10 @@ export default function VendorPaymentTracker({ orders: initialOrders }) {
   const [editedPayment, setEditedPayment] = useState("");
   const [selectedVendor, setSelectedVendor] = useState("");
   const [vendors, setVendors] = useState([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+  const scrollRef = useRef(null);
 
   useEffect(() => {
     const uniqueVendors = Array.from(
@@ -33,6 +37,29 @@ export default function VendorPaymentTracker({ orders: initialOrders }) {
   const handleCancel = () => {
     setEditIndex(null);
     setEditedPayment("");
+  };
+
+  const handleDelete = async (orderId) => {
+    const confirm = window.confirm(
+      "Are you sure you want to delete this order?"
+    );
+    if (!confirm) return;
+
+    try {
+      const res = await fetch(`/api/payments/${orderId}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        // Refresh or filter out the deleted order from state
+        setOrders((prev) => prev.filter((o) => o._id !== orderId));
+      } else {
+        alert("Failed to delete order");
+      }
+    } catch (err) {
+      console.error("Delete error:", err);
+      alert("An error occurred while deleting.");
+    }
   };
 
   const handleSave = async (index) => {
@@ -81,11 +108,37 @@ export default function VendorPaymentTracker({ orders: initialOrders }) {
     return <p className="text-gray-500">No vendor orders found.</p>;
   }
 
+  const handleMouseDown = (e) => {
+    setIsDragging(true);
+    setStartX(e.pageX - scrollRef.current.offsetLeft);
+    setScrollLeft(scrollRef.current.scrollLeft);
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    const x = e.pageX - scrollRef.current.offsetLeft;
+    const walk = (x - startX) * 1.5; // Speed factor
+    scrollRef.current.scrollLeft = scrollLeft - walk;
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
   return (
     <div className="space-y-8">
       {/* Desktop Table */}
-      <div className="hidden md:block bg-white rounded-xl shadow overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-300 text-sm">
+      <div
+        className="hidden md:block bg-white rounded-xl shadow overflow-x-auto"
+        ref={scrollRef}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        style={{ cursor: isDragging ? "grabbing" : "grab" }}
+      >
+        <table className="min-w-full divide-y divide-gray-300 text-sm select-none">
           <thead className="bg-blue-50 text-gray-700 font-semibold uppercase tracking-wide">
             <tr>
               <th className="px-4 py-3 text-left">Date</th>
@@ -98,6 +151,7 @@ export default function VendorPaymentTracker({ orders: initialOrders }) {
               <th className="px-4 py-3 text-right">Balance</th>
               <th className="px-4 py-3 text-left">Status</th>
               <th className="px-4 py-3 text-left">Memo</th>
+              <th className="px-4 py-3 text-left">Actions</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-100">
@@ -180,17 +234,26 @@ export default function VendorPaymentTracker({ orders: initialOrders }) {
                     {order.status || "Not Paid"}
                   </span>
                 </td>
-                <td className="px-4 py-3">
-                  <Link href={`/memo/${order._id}`} passHref legacyBehavior>
-                    <a
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 inline-block"
-                    >
-                      View Memo
-                    </a>
-                  </Link>
-                </td>
+              <td className="px-4 py-3">
+  <Link href={`/memo/${order._id}`} passHref legacyBehavior>
+    <a
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-2 bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-md shadow hover:bg-blue-700 transition"
+    >
+     Memo
+    </a>
+  </Link>
+</td>
+<td className="px-4 py-3">
+  <button
+    onClick={() => handleDelete(order._id)}
+    className="inline-flex items-center gap-1 bg-red-100 text-red-600 text-sm font-medium px-3 py-2 rounded-md shadow hover:bg-red-200 hover:text-red-700 transition"
+  >
+    Delete
+  </button>
+</td>
+
               </tr>
             ))}
           </tbody>
@@ -202,10 +265,10 @@ export default function VendorPaymentTracker({ orders: initialOrders }) {
         {filteredOrders.map((order, index) => (
           <div
             key={order._id}
-            className="bg-white p-4 rounded-xl shadow-md border border-gray-200 space-y-3"
+            className="bg-white p-4 rounded-2xl shadow border border-gray-200 space-y-4"
           >
             {/* Header */}
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-start">
               <div>
                 <h2 className="text-base font-semibold text-gray-800">
                   {order.supplier || "Unknown Vendor"}
@@ -220,24 +283,25 @@ export default function VendorPaymentTracker({ orders: initialOrders }) {
                 <a
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs bg-blue-500 text-white px-3 py-2 rounded-md hover:bg-blue-600 inline-block"
+                  className="text-xs bg-blue-500 text-white px-3 py-1.5 rounded-md hover:bg-blue-600 transition"
                 >
                   View Memo
                 </a>
               </Link>
             </div>
 
+            {/* Contact */}
             <div className="text-sm text-gray-600">
               <strong>Contact:</strong> {order.contact || "—"}
             </div>
 
             {/* Products */}
             <div className="text-sm">
-              <strong>Products:</strong>{" "}
+              <strong>Products:</strong>
               <div className="pl-2 mt-1 space-y-1">
                 {Array.isArray(order.mainProduct) ? (
                   order.mainProduct.map((p, i) => (
-                    <div key={i} className="text-gray-700 text-sm">
+                    <div key={i} className="text-gray-700">
                       {p.product} × {p.quantity}
                     </div>
                   ))
@@ -247,10 +311,8 @@ export default function VendorPaymentTracker({ orders: initialOrders }) {
               </div>
             </div>
 
-            <hr className="border-gray-200" />
-
             {/* Payment Info */}
-            <div className="grid grid-cols-2 gap-2 text-sm text-gray-700">
+            <div className="grid grid-cols-2 gap-3 text-sm text-gray-700 border-t border-gray-100 pt-3">
               <div>
                 <strong>Total:</strong>
                 <div>₦{order.grandTotal?.toLocaleString() || 0}</div>
@@ -280,8 +342,8 @@ export default function VendorPaymentTracker({ orders: initialOrders }) {
             </div>
 
             {/* Editable Paid Field */}
-            <div className="text-sm mt-3">
-              <strong>Paid:</strong>{" "}
+            <div className="text-sm">
+              <strong>Paid:</strong>
               {editIndex === index ? (
                 <div className="flex flex-wrap items-center gap-2 mt-2">
                   <input
@@ -316,6 +378,16 @@ export default function VendorPaymentTracker({ orders: initialOrders }) {
                   </button>
                 </div>
               )}
+            </div>
+
+            {/* Delete Button */}
+            <div className="pt-2 flex justify-end">
+              <button
+                onClick={() => handleDelete(order._id)}
+                className="flex items-center gap-1 bg-red-600 text-white px-4 py-1.5 rounded text-sm hover:bg-red-700 transition"
+              >
+                <Trash2 size={14} /> Delete
+              </button>
             </div>
           </div>
         ))}

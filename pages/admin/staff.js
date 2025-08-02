@@ -79,11 +79,8 @@ export default function ManageStaff() {
     }
   }, [staffList]);
 
-
-
   const fetchStaff = async () => {
     setLoadingStaffList(true);
-
 
     try {
       // Step 1: Fetch the staff list
@@ -108,8 +105,7 @@ export default function ManageStaff() {
   };
 
   const handleSendingMail = async () => {
-
-        setIsSending(true);
+    setIsSending(true);
     try {
       // Step 2: Send the salary mail
       const mailRes = await fetch("/api/staff/salary-mail/cron", {
@@ -130,7 +126,7 @@ export default function ManageStaff() {
     }
 
     setIsSending(false);
-  }
+  };
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -723,6 +719,8 @@ export default function ManageStaff() {
                 <input
                   type="number"
                   name="amount"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   placeholder="Penalty Amount"
                   value={form.amount}
                   onChange={handleChange}
@@ -733,6 +731,7 @@ export default function ManageStaff() {
                 <input
                   type="text"
                   name="reason"
+                  inputMode="text"
                   placeholder="Reason"
                   value={form.reason}
                   onChange={handleChange}
