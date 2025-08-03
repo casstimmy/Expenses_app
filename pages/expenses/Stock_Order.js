@@ -1,27 +1,14 @@
+import { useEffect, useState, useRef, useMemo } from "react";
+import Layout from "@/components/Layout";
 import VendorForm from "@/components/VendorForm";
 import OrderForm from "@/components/OrderForm";
 import VendorList from "@/components/VendorList";
 import OrderList from "@/components/OrderList";
-import Layout from "@/components/Layout";
-import { useEffect, useState, useRef } from "react";
 
 const getToday = () => new Date().toISOString().split("T")[0];
 
 export default function StockOrder() {
   const orderFormRef = useRef(null);
-  const [orders, setOrders] = useState([]);
-  const [vendors, setVendors] = useState([]);
-  const [submittedOrders, setSubmittedOrders] = useState([]);
-  const [showVendorForm, setShowVendorForm] = useState(false);
-  const [editingVendor, setEditingVendor] = useState(null);
-  const [selectedVendor, setSelectedVendor] = useState(null);
-  const [selectedOrder, setSelectedOrder] = useState(null);
-  const [merging, setMerging] = useState(false);
-  const [staff, setStaff] = useState(null);
-  const [loadingVendors, setLoadingVendors] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [editingOrder, setEditingOrder] = useState(false);
-  const [loadingSubmittedOrders, setLoadingSubmittedOrders] = useState(false);
 
   const [form, setForm] = useState({
     date: getToday(),
@@ -32,25 +19,53 @@ export default function StockOrder() {
     location: "",
   });
 
+  const [staff, setStaff] = useState(null);
+  const [vendors, setVendors] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [submittedOrders, setSubmittedOrders] = useState([]);
 
- useEffect(() => {
-  const initialize = async () => {
-    const stored = localStorage.getItem("staff");
-    if (stored) {
-      const parsedStaff = JSON.parse(stored);
-      setStaff(parsedStaff);
-      if (parsedStaff.location) {
-        setForm((prev) => ({ ...prev, location: parsedStaff.location }));
+  const [selectedVendor, setSelectedVendor] = useState(null);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+
+  const [showVendorForm, setShowVendorForm] = useState(false);
+  const [editingVendor, setEditingVendor] = useState(null);
+  const [editingOrder, setEditingOrder] = useState(false);
+
+  const [loadingVendors, setLoadingVendors] = useState(false);
+  const [loadingSubmittedOrders, setLoadingSubmittedOrders] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [merging, setMerging] = useState(false);
+
+  const [productSearch, setProductSearch] = useState("");
+
+  // Fetch vendors and products on mount
+  useEffect(() => {
+    fetch("/api/vendors")
+      .then((res) => res.json())
+      .then(setVendors);
+
+    fetch("/api/products")
+      .then((res) => res.json())
+      .then(setProducts);
+  }, []);
+
+  // Load staff info, vendors, and submitted orders
+  useEffect(() => {
+    const initialize = async () => {
+      const stored = localStorage.getItem("staff");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setStaff(parsed);
+        if (parsed.location) {
+          setForm((prev) => ({ ...prev, location: parsed.location }));
+        }
       }
-    }
-
-    await loadVendors();
-    await loadSubmittedOrders(); 
-  };
-
-  initialize(); 
-}, []);
-
+      await loadVendors();
+      await loadSubmittedOrders();
+    };
+    initialize();
+  }, []);
 
   const loadVendors = async () => {
     setLoadingVendors(true);
@@ -64,8 +79,6 @@ export default function StockOrder() {
       setLoadingVendors(false);
     }
   };
-
-
 
   const loadSubmittedOrders = async () => {
     setLoadingSubmittedOrders(true);
@@ -84,84 +97,69 @@ export default function StockOrder() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
+  const handleSubmit = (e) => {
+    e.preventDefault();
 
+    const submittedProducts = form.products.map((product) => ({
+      productId: product._id,
+      name: product.name,
+      quantity: Number(product.quantity),
+      price: Number(product.costPrice),
+      total: Number(product.quantity) * Number(product.costPrice),
+    }));
 
+    const newOrders = submittedProducts.map((prod) => ({
+      date: form.date,
+      supplier: selectedVendor?.companyName,
+      contact: form.contact,
+      mainProduct: selectedVendor?.mainProduct || "",
+      product: prod.name,
+      quantity: prod.quantity,
+      costPrice: prod.price,
+      total: prod.total,
+      location: form.location,
+      vendor: selectedVendor?._id,
+    }));
 
-  const submittedProducts = form.products.map((product, i) => ({
-    productId: product._id,
-    name: product.name,
-    quantity: Number(form.products[i].quantity),
-    price: Number(product.costPrice),
-    total: Number(product.quantity) * Number(product.costPrice),
-  }));
+    setOrders((prev) => [...prev, ...newOrders]);
 
+    setForm({
+      date: getToday(),
+      supplier: "",
+      contact: "",
+      mainProduct: "",
+      products: [],
+      location: staff?.location || "",
+    });
 
-
-
-  const updatedOrders = form.products.map((prod) => ({
-    date: form.date,
-    supplier: selectedVendor?.companyName,
-    contact: form.contact,
-    mainProduct: selectedVendor?.mainProduct || "",
-    product: submittedProducts.find((p) => p.productId === prod._id)?.name || prod.name,
-    quantity: prod.quantity,
-    costPrice: prod.costPrice || 0,
-    total: prod.quantity * (prod.costPrice || 0),
-    location: form.location,
-    vendor: selectedVendor?._id,
-  }));
-
-  setOrders([...orders, ...updatedOrders]);
-
-
-  setForm({
-    date: getToday(),
-    supplier: "",
-    contact: "",
-    mainProduct: "",
-    products: [],
-    location: staff?.location || "",
-  });
-
-  setSelectedVendor(null);
-};
-
-
-
-
-const handleStockOrderSubmit = async () => {
-  setSubmitting(true);
-
-  const payload = {
-    date: orders[0].date,
-    supplier: orders[0].supplier,
-    contact: orders[0].contact,
-    location: orders[0].location,
-    mainProduct: orders[0].mainProduct || "",
-    vendor: orders[0].vendor, // 👈 use vendor from the first order item
-    products: orders.map((o) => ({
-      productId: o._id,
-      name: o.product,
-      quantity: o.quantity,
-      costPrice: o.costPrice,
-      total: o.total * o.quantity,
-    })),
-    grandTotal: orders.reduce((sum, o) => sum + parseFloat(o.total), 0),
-    staff: staff?._id,
+    setSelectedVendor(null);
   };
 
-
-   
-
-
-
+  const handleStockOrderSubmit = async () => {
     if (!staff?._id) {
-  alert("Staff information not loaded. Please try again.");
-  setSubmitting(false);
-  return;
-}
+      alert("Staff information not loaded. Please try again.");
+      return;
+    }
+
+    setSubmitting(true);
+
+    const payload = {
+      date: orders[0].date,
+      supplier: orders[0].supplier,
+      contact: orders[0].contact,
+      location: orders[0].location,
+      mainProduct: orders[0].mainProduct || "",
+      vendor: orders[0].vendor,
+      products: orders.map((o) => ({
+        productId: o._id,
+        name: o.product,
+        quantity: o.quantity,
+        costPrice: o.costPrice,
+        total: o.total * o.quantity,
+      })),
+      grandTotal: orders.reduce((sum, o) => sum + parseFloat(o.total), 0),
+      staff: staff._id,
+    };
 
     try {
       const res = await fetch("/api/stock-orders", {
@@ -180,12 +178,11 @@ const handleStockOrderSubmit = async () => {
         alert("Error: " + data.error);
       }
     } catch (err) {
-      console.error(err);
+      console.error("Submit error:", err);
       alert("Failed to submit order.");
     } finally {
       setSubmitting(false);
     }
-
   };
 
   const mergeOrders = async () => {
@@ -200,15 +197,23 @@ const handleStockOrderSubmit = async () => {
         alert("Merge failed");
       }
     } catch (err) {
-      console.error(err);
+      console.error("Merge error:", err);
       alert("Merge request failed.");
+    } finally {
+      setMerging(false);
     }
-    setMerging(false);
   };
 
-  
-  
-return (
+  const filteredVendors = useMemo(() => {
+    if (!productSearch.trim()) return vendors;
+    return vendors.filter((vendor) =>
+      vendor.products?.some((p) =>
+        p?.product?.name?.toLowerCase().includes(productSearch.toLowerCase())
+      )
+    );
+  }, [productSearch, vendors]);
+
+  return (
     <Layout>
       <div className="min-h-screen bg-gray-100 p-6">
         <div className="max-w-6xl mx-auto space-y-6">
@@ -231,6 +236,24 @@ return (
 
           {/* Vendor Section */}
           <section className="bg-white p-6 rounded shadow relative">
+            <div className="flex flex-col mb-4 sm:flex-row sm:items-center gap-4 sm:gap-6 w-full">
+              <label
+                htmlFor="searchProduct"
+                className="text-sm font-medium text-gray-700 whitespace-nowrap"
+              >
+                Search Product
+              </label>
+
+              <input
+                id="searchProduct"
+                type="text"
+                value={productSearch}
+                onChange={(e) => setProductSearch(e.target.value)}
+                placeholder="Enter Product Name"
+                className="flex-grow border border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md px-3 py-2 text-sm transition-all duration-200"
+              />
+            </div>
+
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold text-gray-800">Vendors</h2>
               <button
@@ -243,13 +266,13 @@ return (
             {/* Vendor Section */}
             <div className="relative">
               {loadingVendors && (
-               <div className="absolute inset-0 backdrop-blur-sm bg-white/30 flex items-center justify-center z-10">
+                <div className="absolute inset-0 backdrop-blur-sm bg-white/30 flex items-center justify-center z-10">
                   <div className="w-10 h-10 border-4 border-white border-t-blue-600 rounded-full animate-spin" />
                 </div>
               )}
 
               <VendorList
-                vendors={vendors}
+                vendors={filteredVendors}
                 setSelectedVendor={(vendor) => {
                   setSelectedVendor(vendor);
                   setTimeout(() => {
@@ -399,8 +422,7 @@ return (
                       {form.products
                         .reduce(
                           (sum, item) =>
-                            sum +
-                            (item.quantity || 0) * (item.costPrice || 0),
+                            sum + (item.quantity || 0) * (item.costPrice || 0),
                           0
                         )
                         .toLocaleString()}
