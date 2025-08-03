@@ -1,7 +1,6 @@
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { useRef, forwardRef, useImperativeHandle, useState } from "react";
-import { toWords } from "number-to-words";
 
 const OrderMemo = forwardRef(
   ({ order = {}, onDownloading = () => {}, memoIndex }, ref) => {
@@ -34,7 +33,7 @@ const OrderMemo = forwardRef(
 
         pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
         const pageNum = (memoIndex ?? 0) + 1;
-        pdf.save(`Ibile Payroll ${today} Part${pageNum}.pdf`);
+        pdf.save(`Ibile Order ${order.companyName} on Part${today}.pdf`);
         if (typeof onDownloading === "function") onDownloading(false);
       },
     }));
