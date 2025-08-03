@@ -25,7 +25,7 @@ export default async function handler(req, res) {
       category,
       description,
       location,
-      staff, // ✅ expect "staff" (not staffName)
+      staff, 
     } = req.body;
 
     if (!title || !amount || !category) {

@@ -4,6 +4,9 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { useRouter } from "next/router";
 import { FaFilePdf, FaWhatsapp, FaTrash } from "react-icons/fa";
+import OrderMemo from "./OrderMemo";
+import ReactDOMServer from "react-dom/server";
+
 
 export default function OrderTracker({
   order,
@@ -19,63 +22,60 @@ export default function OrderTracker({
   const [fullStaff, setFullStaff] = useState(null);
 
   useEffect(() => {
-  async function fetchStaffDetails() {
-    if (staff && typeof staff === "string") {
-      try {
-        const res = await fetch(`/api/staff/${staff}`);
-        if (!res.ok) throw new Error("Failed to fetch staff");
-
-        const data = await res.json();
-        setFullStaff(data);
-      } catch (err) {
-        console.error("Error fetching staff:", err);
-      }
-    } else {
-      setFullStaff(staff); // Already full object
-    }
-  }
-
-  fetchStaffDetails();
-}, [staff]);
-
-
-  
-  useEffect(() => {
-  async function enrichProducts() {
-    const updated = { ...order };
-  
-    for (let i = 0; i < updated.products.length; i++) {
-      const p = updated.products[i];
-
-      // Check for ObjectId reference (product._id or product is a string)
-      const id =
-        typeof p.product === "string" ? p.product : p?._id;
-
-      if (id) {
+    async function fetchStaffDetails() {
+      if (staff && typeof staff === "string") {
         try {
-          const res = await fetch(`/api/products/${id}`);
-          if (res.ok) {
-            const data = await res.json();
-            updated.products[i].name = data.name;
-            updated.products[i].price = data.costPrice;
-          } else {
-            console.warn(`Failed to fetch product ${id}. Status: ${res.status}`);
-          }
+          const res = await fetch(`/api/staff/${staff}`);
+          if (!res.ok) throw new Error("Failed to fetch staff");
+
+          const data = await res.json();
+          setFullStaff(data);
         } catch (err) {
-          console.error("Failed to fetch product", err);
+          console.error("Error fetching staff:", err);
         }
       } else {
-        console.warn(`No valid productId for product at index ${i}:`, p);
+        setFullStaff(staff); // Already full object
       }
     }
 
-    setOrder(updated);
-  }
+    fetchStaffDetails();
+  }, [staff]);
 
-  enrichProducts();
-}, []);
+  useEffect(() => {
+    async function enrichProducts() {
+      const updated = { ...order };
 
+      for (let i = 0; i < updated.products.length; i++) {
+        const p = updated.products[i];
 
+        // Check for ObjectId reference (product._id or product is a string)
+        const id = typeof p.product === "string" ? p.product : p?._id;
+
+        if (id) {
+          try {
+            const res = await fetch(`/api/products/${id}`);
+            if (res.ok) {
+              const data = await res.json();
+              updated.products[i].name = data.name;
+              updated.products[i].price = data.costPrice;
+            } else {
+              console.warn(
+                `Failed to fetch product ${id}. Status: ${res.status}`
+              );
+            }
+          } catch (err) {
+            console.error("Failed to fetch product", err);
+          }
+        } else {
+          console.warn(`No valid productId for product at index ${i}:`, p);
+        }
+      }
+
+      setOrder(updated);
+    }
+
+    enrichProducts();
+  }, []);
 
   if (!order) return null;
 
@@ -86,7 +86,7 @@ export default function OrderTracker({
       order.products
         .map(
           (item) =>
-            `• ${item.product} - Qty: ${item.quantity}, ₦${item.costPrice} = ₦${item.total}`
+            `• ${item.name} - Qty: ${item.quantity}, ₦${item.price} = ₦${item.total}`
         )
         .join("\n") +
       `\n\nTotal: ₦${parseFloat(order.grandTotal).toLocaleString()}`;
@@ -96,30 +96,39 @@ export default function OrderTracker({
   };
 
   // PDF Download
-  const handleDownloadPDF = async () => {
-    const input = printRef.current;
-    if (!input) return;
+const handleDownloadPDF = async () => {
+    if (!order) return alert("Order is not available for PDF export.");
+  try {
+    const pdfContent = ReactDOMServer.renderToStaticMarkup(
+      <OrderMemo order={order} />
+    );
 
-    try {
-      const canvas = await html2canvas(input, {
-        backgroundColor: "#ffffff",
-        scale: 2,
-        useCORS: true,
-        scrollY: -window.scrollY,
-      });
+    const container = document.createElement("div");
+    container.innerHTML = pdfContent;
+    document.body.appendChild(container);
 
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+    const canvas = await html2canvas(container, {
+      backgroundColor: "#ffffff",
+      scale: 2,
+      useCORS: true,
+      scrollY: -window.scrollY,
+    });
 
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`Order-${order.supplier}-${order.date}.pdf`);
-    } catch (err) {
-      console.error("PDF generation failed:", err);
-      alert("Failed to generate PDF.");
-    }
-  };
+    document.body.removeChild(container);
+
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF("p", "mm", "a4");
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+    pdf.save(`Order-${order.supplier}-${order.date}.pdf`);
+  } catch (err) {
+    console.error("PDF generation failed:", err);
+    alert("Failed to generate PDF.");
+  }
+};
+
 
   // Print Order
   const handlePrint = () => {
@@ -144,7 +153,6 @@ export default function OrderTracker({
     printWindow.print();
   };
 
-
   // Save Order
   const handleSaveOrder = async () => {
     if (!order || !order.products?.length) {
@@ -163,9 +171,8 @@ export default function OrderTracker({
           price: Number(p.price),
           total: Number(p.total),
         })),
-       staff: staff,
+        staff: staff,
       };
-
 
       const res = await fetch("/api/stock-orders", {
         method: "POST",
@@ -199,7 +206,6 @@ export default function OrderTracker({
       setSaving(false);
     }
   };
-
 
   return (
     <>
@@ -255,7 +261,7 @@ export default function OrderTracker({
                   <td className="px-3 py-2 border">
                     {editingIndex === i ? (
                       <input
-                        value={item.name  }
+                        value={item.name}
                         onChange={(e) => {
                           const updated = { ...order };
                           updated.products[i].name = e.target.value;
@@ -264,7 +270,7 @@ export default function OrderTracker({
                         className="border px-2 py-1 rounded w-full"
                       />
                     ) : (
-                    item.name 
+                      item.name
                     )}
                   </td>
 
@@ -292,34 +298,35 @@ export default function OrderTracker({
                       item.quantity
                     )}
                   </td>
-                 <td className="px-3 py-2 text-right border">
-  {editingIndex === i ? (
-    <input
-      type="number"
-      value={item.price}
-      onChange={(e) => {
-        const updated = { ...order };
-        const unit = parseFloat(e.target.value) || 0;
-        const quantity = parseFloat(updated.products[i].quantity) || 0;
-        updated.products[i].price = unit;
-        updated.products[i].total = quantity * unit;
-        updated.grandTotal = updated.products.reduce(
-          (sum, p) => sum + (p.total || 0),
-          0
-        );
-        setOrder(updated);
-      }}
-      className="border px-2 py-1 rounded w-24 text-right"
-    />
-  ) : (
-    `₦${item.product?.costPrice || item.price}`
-  )}
-</td>
+                  <td className="px-3 py-2 text-right border">
+                    {editingIndex === i ? (
+                      <input
+                        type="number"
+                        value={item.price}
+                        onChange={(e) => {
+                          const updated = { ...order };
+                          const unit = parseFloat(e.target.value) || 0;
+                          const quantity =
+                            parseFloat(updated.products[i].quantity) || 0;
+                          updated.products[i].price = unit;
+                          updated.products[i].total = quantity * unit;
+                          updated.grandTotal = updated.products.reduce(
+                            (sum, p) => sum + (p.total || 0),
+                            0
+                          );
+                          setOrder(updated);
+                        }}
+                        className="border px-2 py-1 rounded w-24 text-right"
+                      />
+                    ) : (
+                      `₦${item.product?.costPrice || item.price}`
+                    )}
+                  </td>
 
                   <td className="px-3 py-2 text-right border">
                     ₦{parseFloat(item.total)}
                   </td>
-                 {fullStaff?.role === "admin" && (
+                  {fullStaff?.role === "admin" && (
                     <td className="px-3 py-2 text-center border">
                       <div className="flex gap-2 justify-center">
                         {editingIndex === i ? (
