@@ -33,8 +33,7 @@ export default function OrderList({
   };
 
 
-  console.log("Filtered Orders:", filteredOrders); // Debugging log
-  console.log("Selected Order:", selectedOrder); // Debugging log
+
   return (
     <section className="bg-white p-6 rounded shadow">
       <h2 className="text-lg font-semibold text-gray-800 mb-4">

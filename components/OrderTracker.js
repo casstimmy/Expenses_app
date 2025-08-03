@@ -1,11 +1,8 @@
 import { Printer } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 import { useRouter } from "next/router";
 import { FaFilePdf, FaWhatsapp, FaTrash } from "react-icons/fa";
-import OrderMemo from "./OrderMemo";
-import ReactDOMServer from "react-dom/server";
+
 
 
 export default function OrderTracker({
@@ -96,38 +93,35 @@ export default function OrderTracker({
   };
 
   // PDF Download
+
+{/**Fix this to work with both merge and unmerged order */}
 const handleDownloadPDF = async () => {
-    if (!order) return alert("Order is not available for PDF export.");
+  if (!order) return alert("Order is not available for PDF export.");
+
   try {
-    const pdfContent = ReactDOMServer.renderToStaticMarkup(
-      <OrderMemo order={order} />
-    );
-
-    const container = document.createElement("div");
-    container.innerHTML = pdfContent;
-    document.body.appendChild(container);
-
-    const canvas = await html2canvas(container, {
-      backgroundColor: "#ffffff",
-      scale: 2,
-      useCORS: true,
-      scrollY: -window.scrollY,
+    // 1. Send order to backend for saving to stock-orders
+    const res = await fetch("/api/stock-orders/merge", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(order),
     });
 
-    document.body.removeChild(container);
+    if (!res.ok) {
+      throw new Error("Failed to save order to stock-orders.");
+    }
 
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jsPDF("p", "mm", "a4");
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+    // 2. Open /memo/order in a new tab
+    const orderData = await res.json(); // assuming this returns the saved order with _id
+    const orderId = orderData._id || order._id; // fallback to existing _id if merge didn't return a new one
 
-    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-    pdf.save(`Order-${order.supplier}-${order.date}.pdf`);
+    window.open(`/memo/order?id=${orderId}`, "_blank");
   } catch (err) {
-    console.error("PDF generation failed:", err);
-    alert("Failed to generate PDF.");
+    console.error("Failed to save order or redirect:", err);
+    alert("Failed to complete action.");
   }
 };
+
+
 
 
   // Print Order
@@ -432,12 +426,13 @@ const handleDownloadPDF = async () => {
         >
           <FaWhatsapp /> WhatsApp
         </button>
-        <button
-          onClick={handleDownloadPDF}
-          className="flex items-center gap-2 px-4 py-2 border border-gray-500 text-gray-700 rounded hover:bg-gray-600 hover:text-white"
-        >
-          <FaFilePdf /> PDF
-        </button>
+       <button
+  onClick={handleDownloadPDF}
+  className="flex items-center gap-2 px-4 py-2 border border-gray-500 text-gray-700 rounded hover:bg-gray-600 hover:text-white"
+>
+  <FaFilePdf /> PDF
+</button>
+
         <button
           onClick={handlePrint}
           className="flex items-center gap-2 px-4 py-2 border border-blue-500 text-blue-700 rounded hover:bg-blue-700 hover:text-white"

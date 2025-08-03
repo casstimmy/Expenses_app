@@ -17,7 +17,7 @@ export default async function handler(req, res) {
 
   try {
     await mongooseConnect();
-    console.log("✅ Connected to MongoDB");
+
 
     const { EMAIL_USER, EMAIL_PASS } = process.env;
     if (!EMAIL_USER || !EMAIL_PASS) {
@@ -40,7 +40,7 @@ export default async function handler(req, res) {
       return dueDate < today;
     });
 
-    console.log("🚨 Overdue Orders:", overdueOrders.length);
+
 
     if (overdueOrders.length === 0) {
       return res.status(200).json({ message: "No overdue orders to email." });
@@ -56,7 +56,7 @@ export default async function handler(req, res) {
       },
     });
 
-    console.log("📧 Preparing email to cass2artclassic@gmail.com...");
+
 
     const mailHtml = `
     <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f4f8; padding: 30px;">
@@ -89,7 +89,7 @@ export default async function handler(req, res) {
         subject: "⚠️ Overdue Vendor Orders",
         html: mailHtml,
       });
-      console.log("✅ Email sent successfully!");
+
       return res.status(200).json({ message: "Email sent successfully!" });
     } catch (mailErr) {
       console.error("❌ Email sending error:", mailErr.message);

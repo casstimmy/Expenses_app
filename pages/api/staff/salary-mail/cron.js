@@ -19,7 +19,7 @@ export default async function handler(req, res) {
 
   try {
     await mongooseConnect();
-    console.log("✅ Connected to MongoDB");
+
 
     const { EMAIL_USER, EMAIL_PASS } = process.env;
     if (!EMAIL_USER || !EMAIL_PASS) {
@@ -149,7 +149,7 @@ export default async function handler(req, res) {
     };
 
     await transporter.sendMail(mailOptions);
-    console.log("✅ Salary email sent!");
+
 
     return res.status(200).json({ message: "Salary email sent successfully." });
   } catch (err) {

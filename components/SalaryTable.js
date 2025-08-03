@@ -36,7 +36,7 @@ const SalaryTable = forwardRef(({ staffList = [], currentStaff }, ref) => {
   window.open("/memo/salary", "_blank");
 };
 
-  console.log("Rendering SalaryTable with staffList:", currentStaff);
+
 
   return (
     <div ref={ref} className="space-y-8 mt-4">

@@ -129,7 +129,7 @@ const handleSubmit = async (e) => {
 };
 
 
-console.log("Form submitted with orders:", orders); // Debugging log
+
 
 const handleStockOrderSubmit = async () => {
   setSubmitting(true);
