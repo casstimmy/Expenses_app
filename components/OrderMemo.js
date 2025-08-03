@@ -8,21 +8,21 @@ export default function OrderMemo({ order }) {
   const vendor = order.vendor || {};
 
   return (
-    <div
-      style={{
-        fontFamily: `"Segoe UI", "Helvetica Neue", Arial, sans-serif`,
-        backgroundColor: "#ffffff",
-        color: "#000000",
-        width: "21cm",
-        height: "29.7cm",
-        margin: "0 auto",
-        paddingLeft: "2cm",
-        paddingRight: "1.5cm",
-        fontSize: "13px",
-        position: "relative",
-        overflow: "hidden",
-      }}
-    >
+   <div
+  style={{
+    fontFamily: `"Segoe UI", "Helvetica Neue", Arial, sans-serif`,
+    backgroundColor: "#ffffff",
+    color: "#000000",
+    width: "21cm",
+    height: "29.7cm",
+    margin: "0 auto",
+    padding: "2cm 1.5cm",
+    fontSize: "13px",
+    position: "relative",
+    boxSizing: "border-box",
+  }}
+>
+
       {/* Left color stripe */}
       <div
         style={{
