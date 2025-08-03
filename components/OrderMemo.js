@@ -33,7 +33,7 @@ const OrderMemo = forwardRef(
 
         pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
         const pageNum = (memoIndex ?? 0) + 1;
-        pdf.save(`Ibile Order ${order.companyName} on Part${today}.pdf`);
+        pdf.save(`Ibile Order ${vendor.companyName} on Part${today}.pdf`);
         if (typeof onDownloading === "function") onDownloading(false);
       },
     }));
