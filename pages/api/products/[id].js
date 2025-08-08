@@ -25,17 +25,21 @@ export default async function handler(req, res) {
     }
   }
 
-  if (req.method === 'GET') {
-    try {
-      const product = await Product.findById(id);
-      if (!product) return res.status(404).json({ error: "Product not found" });
+ if (req.method === 'GET') {
+  try {
+    const order = await StockOrder.findById(id);
+    if (!order) return res.status(404).json({ error: "Order not found" });
 
-      return res.status(200).json(product);
-    } catch (err) {
-      console.error("Error fetching product:", err);
-      return res.status(500).json({ error: "Failed to fetch product" });
-    }
-  } else {
+    const productEntry = order.products[index];
+    if (!productEntry) return res.status(404).json({ error: "Product at index not found" });
+
+    return res.status(200).json(productEntry);
+  } catch (err) {
+    console.error("Error fetching product:", err);
+    return res.status(500).json({ error: "Failed to fetch product" });
+  }
+}
+ else {
     res.setHeader("Allow", ["GET"]);
     return res.status(405).end(`Method ${req.method} Not Allowed`);
   }

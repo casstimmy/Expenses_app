@@ -10,15 +10,29 @@ export default function OrderMemoPage() {
   const [downloading, setDownloading] = useState(false);
 
 
+  console.log("Order ID:", id);
 
-  useEffect(() => {
-    if (id) {
-      fetch(`/api/stock-orders/${id}`)
-        .then(res => res.json())
-        .then(data => setOrder(data))
-        .catch(err => console.error("Failed to fetch order:", err));
-    }
-  }, [id]);
+
+
+ useEffect(() => {
+  if (!id || typeof id !== "string") return;
+
+  console.log("Order ID:", id);
+
+  fetch(`/api/stock-orders/${id}`)
+    .then((res) => {
+      if (!res.ok) throw new Error("Order not found");
+      return res.json();
+    })
+    .then((data) => setOrder(data.order))
+    .catch((err) => console.error("Failed to load order:", err));
+}, [id]);
+
+if (!id) {
+  return <div className="p-6 text-center text-gray-600">Preparing order...</div>;
+}
+
+
 
 
   return (
@@ -57,7 +71,7 @@ export default function OrderMemoPage() {
           {order ? (
             <OrderMemo
               ref={memoRef}
-              order={order.order}
+              order={order}
               onDownloading={setDownloading}
             />
           ) : (

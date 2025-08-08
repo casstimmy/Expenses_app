@@ -39,7 +39,7 @@ export default function Nav() {
 
   let navLinks = [
     { href: "/expenses/expenses", label: "Expenses" },
-    { href: "/expenses/Stock_Order", label: "Stock Order" },
+    { href: "/expenses/Stock_Order", label: "Inventory" },
   ];
 
   if (role === "admin" || role === "Senior staff") {

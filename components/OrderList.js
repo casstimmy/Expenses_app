@@ -8,6 +8,10 @@ export default function OrderList({
   setSelectedOrder,
   staff,
 }) {
+
+
+
+
   const [editingProductIndex, setEditingProductIndex] = useState(null);
   const orderDetailsRef = useRef(null);
 
@@ -183,7 +187,7 @@ export default function OrderList({
             setEditingIndex={setEditingProductIndex}
             onDeleteOrder={handleDeleteOrder}
             staff={staff._id}
-            setSubmittedOrders={setSubmittedOrders} // ✅ add this if needed
+            setSubmittedOrders={setSubmittedOrders}
           />
 
           <div className="text-right border-t border-gray-300 pt-4 mt-5">

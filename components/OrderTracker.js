@@ -18,6 +18,7 @@ export default function OrderTracker({
   const [saving, setSaving] = useState(false);
   const [fullStaff, setFullStaff] = useState(null);
 
+console.log("Order in Order Tracker: ", order)
   useEffect(() => {
     async function fetchStaffDetails() {
       if (staff && typeof staff === "string") {
@@ -94,32 +95,22 @@ export default function OrderTracker({
 
   // PDF Download
 
-{/**Fix this to work with both merge and unmerged order */}
-const handleDownloadPDF = async () => {
-  if (!order) return alert("Order is not available for PDF export.");
-
+{/**handle Order Pdf Download */}
+const handleDownloadPDF = () => {
   try {
-    // 1. Send order to backend for saving to stock-orders
-    const res = await fetch("/api/stock-orders/merge", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(order),
-    });
-
-    if (!res.ok) {
-      throw new Error("Failed to save order to stock-orders.");
+    if (!order || !order._id) {
+      throw new Error("Order is not available yet.");
     }
 
-    // 2. Open /memo/order in a new tab
-    const orderData = await res.json(); // assuming this returns the saved order with _id
-    const orderId = orderData._id || order._id; // fallback to existing _id if merge didn't return a new one
-
-    window.open(`/memo/order?id=${orderId}`, "_blank");
+    const pdfUrl = `/memo/order?id=${order._id}`;
+    window.open(pdfUrl, "_blank");
   } catch (err) {
-    console.error("Failed to save order or redirect:", err);
-    alert("Failed to complete action.");
+    console.error("PDF Download Error:", err.message);
   }
 };
+
+
+
 
 
 

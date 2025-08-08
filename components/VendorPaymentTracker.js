@@ -15,6 +15,8 @@ export default function VendorPaymentTracker({ orders: initialOrders }) {
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
   const scrollRef = useRef(null);
+  const [editedTotal, setEditedTotal] = useState("");
+  const [editedDate, setEditedDate] = useState("");
 
   useEffect(() => {
     const uniqueVendors = Array.from(
@@ -30,8 +32,13 @@ export default function VendorPaymentTracker({ orders: initialOrders }) {
     : [];
 
   const handleEdit = (index, currentPayment) => {
+    const currentOrder = orders[index];
     setEditIndex(index);
     setEditedPayment(currentPayment || "");
+    setEditedTotal(currentOrder.grandTotal || "");
+    setEditedDate(
+      currentOrder.date ? format(new Date(currentOrder.date), "yyyy-MM-dd") : ""
+    );
   };
 
   const handleCancel = () => {
@@ -62,47 +69,55 @@ export default function VendorPaymentTracker({ orders: initialOrders }) {
     }
   };
 
-  const handleSave = async (index) => {
-    const updatedOrders = [...orders];
-    const payment = Number(editedPayment) || 0;
-    const grandTotal = Number(updatedOrders[index].grandTotal) || 0;
-    const currentDate = format(new Date(), "yyyy-MM-dd");
+ const handleSave = async (index) => {
+  const updatedOrders = [...orders];
+  const payment = Number(editedPayment) || 0;
+  const grandTotal = Number(editedTotal) || 0;
+  const currentDate = editedDate || format(new Date(), "yyyy-MM-dd");
 
-    const balance = grandTotal - payment;
-    const status =
-      payment === 0
-        ? "Not Paid"
-        : payment < grandTotal
-        ? "Partly Paid"
-        : "Paid";
+  const balance = grandTotal - payment;
+  const status =
+    payment === 0
+      ? "Not Paid"
+      : payment < grandTotal
+      ? "Partly Paid"
+      : payment === grandTotal
+      ? "Paid"
+      : "Credit";
 
-    updatedOrders[index] = {
-      ...updatedOrders[index],
-      paymentMade: payment,
-      paymentDate: currentDate,
-      balance,
-      status,
-    };
-
-    setOrders(updatedOrders);
-    setEditIndex(null);
-    setEditedPayment("");
-
-    try {
-      await fetch(`/api/payments/${updatedOrders[index]._id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          paymentMade: payment,
-          paymentDate: currentDate,
-          balance,
-          status,
-        }),
-      });
-    } catch (error) {
-      console.error("Payment update failed", error);
-    }
+  // Merge updated fields into the order
+  const updatedOrder = {
+    ...updatedOrders[index],
+    paymentMade: payment,
+    date: currentDate,
+    grandTotal,
+    balance,
+    status,
   };
+
+  updatedOrders[index] = updatedOrder;
+
+  setOrders(updatedOrders);
+  setEditIndex(null);
+  setEditedPayment("");
+  setEditedTotal("");
+  setEditedDate("");
+
+  try {
+    const response = await fetch(`/api/payments/${updatedOrder._id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updatedOrder), // ✅ Send full updated order
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to update order");
+    }
+  } catch (error) {
+    console.error("Payment update failed", error);
+  }
+};
+
 
   if (!filteredOrders.length) {
     return <p className="text-gray-500">No vendor orders found.</p>;
@@ -157,11 +172,24 @@ export default function VendorPaymentTracker({ orders: initialOrders }) {
           <tbody className="bg-white divide-y divide-gray-100">
             {filteredOrders.map((order, index) => (
               <tr key={order._id} className="hover:bg-gray-50 transition">
+                {/* Order Date Editable */}
                 <td className="px-4 py-3">
-                  {order.date
-                    ? format(new Date(order.date), "dd MMM yyyy")
-                    : "—"}
+                  {editIndex === index ? (
+                    <input
+                      type="date"
+                      className="border border-gray-300 px-2 py-1 rounded text-sm"
+                      value={editedDate}
+                      onChange={(e) => setEditedDate(e.target.value)}
+                    />
+                  ) : (
+                    <span>
+                      {order.date
+                        ? format(new Date(order.date), "dd MMM yyyy")
+                        : "—"}
+                    </span>
+                  )}
                 </td>
+
                 <td className="px-4 py-3 font-medium text-gray-800">
                   {order.supplier || "—"}
                 </td>
@@ -175,8 +203,17 @@ export default function VendorPaymentTracker({ orders: initialOrders }) {
                       ))
                     : order.mainProduct || "—"}
                 </td>
-                <td className="px-4 py-3 text-right text-gray-700">
-                  ₦{order.grandTotal?.toLocaleString() || 0}
+                <td className="px-4 py-3 text-right">
+                  {editIndex === index ? (
+                    <input
+                      type="number"
+                      className="w-24 border border-gray-300 px-2 py-1 rounded text-sm text-right"
+                      value={editedTotal}
+                      onChange={(e) => setEditedTotal(e.target.value)}
+                    />
+                  ) : (
+                    `₦${order.grandTotal?.toLocaleString() || 0}`
+                  )}
                 </td>
                 <td className="px-4 py-3 text-right">
                   {editIndex === index ? (
@@ -228,32 +265,34 @@ export default function VendorPaymentTracker({ orders: initialOrders }) {
                         ? "bg-green-100 text-green-800"
                         : order.status === "Partly Paid"
                         ? "bg-yellow-100 text-yellow-800"
+                        : order.status === "Credit"
+                        ? "bg-blue-100 text-blue-800"
                         : "bg-red-100 text-red-800"
                     }`}
                   >
                     {order.status || "Not Paid"}
                   </span>
                 </td>
-              <td className="px-4 py-3">
-  <Link href={`/memo/${order._id}`} passHref legacyBehavior>
-    <a
-      target="_blank"
-      rel="noopener noreferrer"
-      className="inline-flex items-center gap-2 bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-md shadow hover:bg-blue-700 transition"
-    >
-     Memo
-    </a>
-  </Link>
-</td>
-<td className="px-4 py-3">
-  <button
-    onClick={() => handleDelete(order._id)}
-    className="inline-flex items-center gap-1 bg-red-100 text-red-600 text-sm font-medium px-3 py-2 rounded-md shadow hover:bg-red-200 hover:text-red-700 transition"
-  >
-    Delete
-  </button>
-</td>
 
+                <td className="px-4 py-3">
+                  <Link href={`/memo/${order._id}`} passHref legacyBehavior>
+                    <a
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-md shadow hover:bg-blue-700 transition"
+                    >
+                      Memo
+                    </a>
+                  </Link>
+                </td>
+                <td className="px-4 py-3">
+                  <button
+                    onClick={() => handleDelete(order._id)}
+                    className="inline-flex items-center gap-1 bg-red-100 text-red-600 text-sm font-medium px-3 py-2 rounded-md shadow hover:bg-red-200 hover:text-red-700 transition"
+                  >
+                    Delete
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>

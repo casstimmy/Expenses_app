@@ -8,15 +8,16 @@ export default async function handler(req, res) {
 
   if (req.method === "PUT") {
     try {
-      const { paymentMade, paymentDate, status, balance } = req.body;
+      const { paymentMade, date, grandTotal, balance, status } = req.body;
 
       const updated = await StockOrder.findByIdAndUpdate(
         id,
         {
           paymentMade,
-          paymentDate,
-          status,
+          date, 
+          grandTotal,
           balance,
+          status,
         },
         { new: true }
       );

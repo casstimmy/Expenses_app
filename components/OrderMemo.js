@@ -5,7 +5,7 @@ import { useRef, forwardRef, useImperativeHandle, useState } from "react";
 const OrderMemo = forwardRef(
   ({ order = {}, onDownloading = () => {}, memoIndex }, ref) => {
     
-
+console.log("Order Details:", order)
 
     const memoRef = useRef();
     const today = order.createdAt
