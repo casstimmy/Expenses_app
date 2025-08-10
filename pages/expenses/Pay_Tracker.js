@@ -20,7 +20,7 @@ export default function PayTracker() {
     return ordersList.filter((order) => {
       if (!order.date) return false;
 
-      console.log("Order List:", [ordersList[0]]);
+      console.log("Order List:", [ordersList[20]]);
 
       const date = new Date(order.date);
       if (isNaN(date)) return false;
@@ -82,15 +82,16 @@ function calculateFilteredTotalPaid(filterType, range = {}) {
   const todayEnd = new Date(todayStart);
   todayEnd.setDate(todayEnd.getDate() + 1); // next day midnight
 
+  const validStatuses = ["paid", "partly paid", "credit"];
+
   return orders
-    .filter((o) => o.status?.toLowerCase() === "paid")
+    .filter((o) => validStatuses.includes(o.status?.toLowerCase()))
     .filter((o) => {
-      const date = new Date(o.date);
+      const date = new Date(o.paymentDate);
       if (isNaN(date)) return false;
 
       switch (filterType) {
         case "day":
-          // Between today's midnight and tomorrow's midnight
           return date >= todayStart && date < todayEnd;
 
         case "week": {
@@ -103,12 +104,22 @@ function calculateFilteredTotalPaid(filterType, range = {}) {
           const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
           return date >= monthStart && date < todayEnd;
         }
-        default: // "all"
+
+        case "period": {
+          if (!range.start || !range.end) return true;
+          const startDate = new Date(range.start);
+          const endDate = new Date(range.end);
+          endDate.setHours(23, 59, 59, 999);
+          return date >= startDate && date <= endDate;
+        }
+
+        default:
           return true;
       }
     })
-    .reduce((sum, o) => sum + (o.grandTotal || 0), 0);
+    .reduce((sum, o) => sum + (o.paymentMade || 0), 0);
 }
+
 
 
   const handleReminderSend = async () => {
@@ -151,12 +162,12 @@ function calculateFilteredTotalPaid(filterType, range = {}) {
 
   // Calculate totals
   const totalOverdueValue = unpaidDueOrders.reduce(
-    (sum, order) => sum + (order.grandTotal || 0),
+    (sum, order) => sum + (order.balance || 0),
     0
   );
   const totalOutstanding = orders
     .filter((o) => o.status.toLowerCase() !== "paid")
-    .reduce((sum, order) => sum + (order.grandTotal || 0), 0);
+    .reduce((sum, order) => sum + (order.balance || 0), 0);
   const totalPaid = calculateFilteredTotalPaid(paidFilter, customRange);
 
   return (
@@ -249,7 +260,7 @@ function calculateFilteredTotalPaid(filterType, range = {}) {
                   colorFrom="from-green-400"
                   colorTo="to-green-600"
                   options={[
-                    { value: "today", label: "Today" },
+                    { value: "today", label: "Till Date" },
                     { value: "week", label: "Week" },
                     { value: "month", label: "Month" },
                   ]}
