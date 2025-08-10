@@ -88,7 +88,7 @@ export default function WebProductCenter() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 p-8">
+    <div className="min-h-screen">
       <div className="max-w-7xl mx-auto bg-white rounded-2xl shadow-xl p-6 space-y-8 border border-blue-200">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">

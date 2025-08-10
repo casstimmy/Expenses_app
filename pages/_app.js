@@ -10,7 +10,7 @@ export default function App({ Component, pageProps }) {
         <meta name="description" content="Best products at the best prices!" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <Component {...pageProps} />
+     <Component {...pageProps} />
       </>
   )
 }
