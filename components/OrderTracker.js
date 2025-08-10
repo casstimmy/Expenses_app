@@ -3,8 +3,6 @@ import { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { FaFilePdf, FaWhatsapp, FaTrash } from "react-icons/fa";
 
-
-
 export default function OrderTracker({
   order,
   onDeleteOrder,
@@ -17,8 +15,9 @@ export default function OrderTracker({
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [fullStaff, setFullStaff] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-console.log("Order in Order Tracker: ", order)
+  console.log("Order in Order Tracker: ", order);
   useEffect(() => {
     async function fetchStaffDetails() {
       if (staff && typeof staff === "string") {
@@ -95,25 +94,48 @@ console.log("Order in Order Tracker: ", order)
 
   // PDF Download
 
-{/**handle Order Pdf Download */}
-const handleDownloadPDF = () => {
-  try {
-    if (!order || !order._id) {
-      throw new Error("Order is not available yet.");
-    }
-
-    const pdfUrl = `/memo/order?id=${order._id}`;
-    window.open(pdfUrl, "_blank");
-  } catch (err) {
-    console.error("PDF Download Error:", err.message);
+  {
+    /**handle Order Pdf Download */
   }
-};
+  const handleDownloadPDF = () => {
+    try {
+      if (!order || !order._id) {
+        throw new Error("Order is not available yet.");
+      }
 
+      const pdfUrl = `/memo/order?id=${order._id}`;
+      window.open(pdfUrl, "_blank");
+    } catch (err) {
+      console.error("PDF Download Error:", err.message);
+    }
+  };
 
+  const handleDelete = async () => {
+    if (!confirm("Are you sure you want to delete the entire order?")) return;
 
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/stock-orders/${order._id}`, {
+        method: "DELETE",
+      });
 
+      if (!res.ok) {
+        const error = await res.json();
+        alert("Delete failed: " + (error.error || "Unknown error"));
+        return;
+      }
 
-
+      // Wait for DB deletion confirmation
+      await res.json(); // If API returns some success message
+      alert("Order deleted successfully.");
+      onDeleteOrder(order._id);
+    } catch (err) {
+      console.error("Delete failed:", err);
+      alert("An error occurred while deleting the order.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Print Order
   const handlePrint = () => {
@@ -199,9 +221,55 @@ const handleDownloadPDF = () => {
         ref={printRef}
         className="mt-6 bg-white px-4 py-6 sm:p-6 rounded-md shadow-md text-sm sm:text-base"
       >
-        <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4">
-          Order Details for: {order.supplier}
-        </h3>
+     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-gray-200 mb-3">
+  <h3 className="text-lg sm:text-xl font-semibold text-gray-800">
+    Order Details for: <span className="text-blue-600">{order.supplier}</span>
+  </h3>
+
+  <button
+    onClick={async () => {
+      if (!order?.products?.length)
+        return alert("No products to check.");
+
+      const updated = {
+        ...order,
+        products: order.products.filter(
+          (p) => Number(p.quantity) !== 0
+        ),
+      };
+      updated.grandTotal = updated.products.reduce(
+        (sum, p) => sum + (p.total || 0),
+        0
+      );
+
+      try {
+        setSaving(true);
+        const res = await fetch(`/api/stock-orders/${order._id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updated),
+        });
+
+        if (!res.ok) throw new Error("Failed to update order");
+        setOrder(updated);
+        alert("Removed zero quantity items and updated order.");
+      } catch (err) {
+        console.error(err);
+        alert("Error updating order");
+      } finally {
+        setSaving(false);
+      }
+    }}
+    className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg shadow-md 
+               bg-gradient-to-r from-yellow-400 to-yellow-500 text-white
+               hover:from-yellow-500 hover:to-yellow-600 
+               focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-400 
+               transition-all duration-300"
+  >
+    🧹 Remove Zero Qty
+  </button>
+</div>
+
 
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 text-gray-700 mb-6">
           <p>
@@ -366,24 +434,7 @@ const handleDownloadPDF = () => {
                             >
                               Edit
                             </button>
-                            <button
-                              onClick={() => {
-                                if (
-                                  confirm(`Delete "${item.name}" from order?`)
-                                ) {
-                                  const updated = { ...order };
-                                  updated.products.splice(i, 1);
-                                  updated.grandTotal = updated.products.reduce(
-                                    (sum, p) => sum + p.total,
-                                    0
-                                  );
-                                  setOrder(updated);
-                                }
-                              }}
-                              className="text-red-600 hover:text-white border border-red-500 hover:bg-red-500 px-3 py-1 rounded text-sm"
-                            >
-                              Delete
-                            </button>
+                      
                           </>
                         )}
                       </div>
@@ -417,12 +468,12 @@ const handleDownloadPDF = () => {
         >
           <FaWhatsapp /> WhatsApp
         </button>
-       <button
-  onClick={handleDownloadPDF}
-  className="flex items-center gap-2 px-4 py-2 border border-gray-500 text-gray-700 rounded hover:bg-gray-600 hover:text-white"
->
-  <FaFilePdf /> PDF
-</button>
+        <button
+          onClick={handleDownloadPDF}
+          className="flex items-center gap-2 px-4 py-2 border border-gray-500 text-gray-700 rounded hover:bg-gray-600 hover:text-white"
+        >
+          <FaFilePdf /> PDF
+        </button>
 
         <button
           onClick={handlePrint}
@@ -432,24 +483,18 @@ const handleDownloadPDF = () => {
         </button>
         {fullStaff?.role === "admin" && onDeleteOrder && (
           <button
-            onClick={async () => {
-              if (confirm("Delete entire order?")) {
-                const res = await fetch(`/api/stock-orders/${order._id}`, {
-                  method: "DELETE",
-                });
-
-                if (res.ok) {
-                  alert("Order deleted.");
-                  onDeleteOrder(order._id);
-                } else {
-                  const error = await res.json();
-                  alert("Delete failed: " + error.error);
-                }
-              }
-            }}
-            className="flex items-center gap-2 px-4 py-2 border border-red-500 text-red-600 rounded hover:bg-red-600 hover:text-white"
+            onClick={handleDelete}
+            disabled={loading}
+            className={`flex items-center gap-2 px-4 py-2 border border-red-500 rounded transition-all duration-200
+        ${
+          loading
+            ? "bg-red-300 text-white cursor-not-allowed"
+            : "text-red-600 hover:bg-red-600 hover:text-white"
+        }
+      `}
           >
-            <FaTrash /> Delete Order
+            <FaTrash />
+            {loading ? "Deleting..." : "Delete Order"}
           </button>
         )}
       </div>
