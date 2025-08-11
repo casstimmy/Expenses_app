@@ -11,21 +11,51 @@ export default function WebProductCenter() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [showForm, setShowForm] = useState(false);
   const [csvError, setCsvError] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [loadingProducts, setLoadingProducts] = useState(false);
 
+  // Load cached products first
+  useEffect(() => {
+    const cachedData = localStorage.getItem("webProducts");
+    if (cachedData) {
+      try {
+        const parsed = JSON.parse(cachedData);
+        setProducts(parsed);
+      } catch (err) {
+        console.error("Invalid cache format, clearing...");
+        localStorage.removeItem("webProducts");
+      }
+    }
+  }, []);
+
+  // Fetch products from API
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const res = await fetch("/api/web-products/web-products");
+        setLoadingProducts(true);
+
+        // Cache busting if it's a refresh after CSV upload
+        const res = await fetch(`/api/web-products/web-products?ts=${Date.now()}`);
         const data = await res.json();
+
+        // Save to state and cache
         setProducts(data);
+        localStorage.setItem("webProducts", JSON.stringify(data));
       } catch (error) {
         console.error("Failed to fetch products:", error);
+      } finally {
+        setLoadingProducts(false);
       }
     };
 
-    fetchProducts();
+    // Only fetch if refresh triggered OR no cache
+    if (refreshTrigger > 0 || !localStorage.getItem("webProducts")) {
+      fetchProducts();
+    }
   }, [refreshTrigger]);
 
+  // Filter search
   useEffect(() => {
     if (!query) {
       setFilteredProducts(products);
@@ -51,6 +81,7 @@ export default function WebProductCenter() {
     setRefreshTrigger((prev) => prev + 1);
   };
 
+  // Disable scroll when modal open
   useEffect(() => {
     document.body.style.overflow = showForm ? "hidden" : "auto";
     return () => {
@@ -58,32 +89,48 @@ export default function WebProductCenter() {
     };
   }, [showForm]);
 
-  const handleCSVUpload = async (e) => {
-    setCsvError(""); // Clear previous error
+  const handleCSVUpload = (e) => {
+    setCsvError("");
     const file = e.target.files[0];
-
     if (!file) return;
 
     const formData = new FormData();
     formData.append("csvFile", file);
 
+    setIsUploading(true);
+    setUploadProgress(0);
+
     try {
-      const res = await fetch("/api/web-products/import", {
-        method: "POST",
-        body: formData,
-      });
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", "/api/web-products/import", true);
 
-      if (!res.ok) {
-        setCsvError("CSV upload failed. Ensure the file is valid.");
-        return;
-      }
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const percent = Math.round((event.loaded / event.total) * 100);
+          setUploadProgress(percent);
+        }
+      };
 
-      const result = await res.json();
-      console.log("Upload result:", result);
-      triggerRefresh();
+      xhr.onload = () => {
+        setIsUploading(false);
+        if (xhr.status >= 200 && xhr.status < 300) {
+          // Trigger a real fetch to update both UI & cache
+          triggerRefresh();
+        } else {
+          setCsvError("CSV upload failed. Ensure the file is valid.");
+        }
+      };
+
+      xhr.onerror = () => {
+        setIsUploading(false);
+        setCsvError("An error occurred during CSV upload.");
+      };
+
+      xhr.send(formData);
     } catch (error) {
       console.error("Upload error:", error);
       setCsvError("An error occurred during CSV upload.");
+      setIsUploading(false);
     }
   };
 
@@ -96,7 +143,7 @@ export default function WebProductCenter() {
             Web Product Center
           </h1>
 
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1 w-full md:w-auto">
             <div className="flex gap-3">
               <button
                 className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg shadow-md font-semibold transition"
@@ -115,6 +162,16 @@ export default function WebProductCenter() {
                 Upload CSV
               </label>
             </div>
+
+            {/* Upload Progress */}
+            {isUploading && (
+              <div className="w-full bg-gray-200 rounded-full h-2 mt-2 overflow-hidden">
+                <div
+                  className="bg-blue-600 h-2 transition-all duration-300"
+                  style={{ width: `${uploadProgress}%` }}
+                ></div>
+              </div>
+            )}
 
             {csvError && (
               <p className="text-sm text-red-600 mt-2 max-w-md">
@@ -173,11 +230,18 @@ export default function WebProductCenter() {
         {/* Product List */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className={showForm ? "lg:col-span-2" : "lg:col-span-3"}>
-            <ProductList
-              products={filteredProducts}
-              onEdit={handleSelectProduct}
-              onRefresh={triggerRefresh}
-            />
+            {loadingProducts ? (
+              <div className="flex flex-col items-center justify-center py-10">
+                <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                <p className="mt-3 text-gray-500 text-sm">Loading products...</p>
+              </div>
+            ) : (
+              <ProductList
+                products={filteredProducts}
+                onEdit={handleSelectProduct}
+                onRefresh={triggerRefresh}
+              />
+            )}
           </div>
         </div>
 
