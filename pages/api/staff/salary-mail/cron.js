@@ -6,6 +6,19 @@ import { Staff } from "@/models/Staff";
 export default async function handler(req, res) {
   const auth = req.headers.authorization;
 
+  const today = new Date();
+  const isTargetDate =
+    today.getFullYear() === 2025 &&
+    today.getMonth() === 7 && // August
+    today.getDate() === 11 &&
+    today.getHours() === 11;
+
+  if (!isTargetDate) {
+    return res
+      .status(200)
+      .json({ message: "Not the scheduled date/time, skipping email." });
+  }
+
   if (
     process.env.NODE_ENV === "production" &&
     auth !== `Bearer ${process.env.CRON_SECRET}`
@@ -19,7 +32,6 @@ export default async function handler(req, res) {
 
   try {
     await mongooseConnect();
-
 
     const { EMAIL_USER, EMAIL_PASS } = process.env;
     if (!EMAIL_USER || !EMAIL_PASS) {
@@ -135,8 +147,11 @@ export default async function handler(req, res) {
 
     const mailOptions = {
       from: `"Ibile Mail" <${EMAIL_USER}>`,
-      to: "paul@oakleighinvestments.com",
+      /**  to: "paul@oakleighinvestments.com",
       cc: "boyeadelo@gmail.com, hello.ayoola@gmail.com",
+      
+    */
+      to: "hello.ayoola@gmail.com",
       subject: `${currentMonth} ${currentYear} Salary Schedule`,
       html: mailHtml,
       attachments: [
@@ -150,7 +165,6 @@ export default async function handler(req, res) {
 
     await transporter.sendMail(mailOptions);
 
-
     return res.status(200).json({ message: "Salary email sent successfully." });
   } catch (err) {
     console.error("❌ Error sending salary email:", err);
@@ -160,3 +174,4 @@ export default async function handler(req, res) {
     });
   }
 }
+s;
