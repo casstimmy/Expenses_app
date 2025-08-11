@@ -13,10 +13,9 @@ export default async function handler(req, res) {
       }
     }
 
-   if (req.method !== "POST" && req.method !== "GET") {
-  return res.status(405).json({ error: "Method not allowed" });
-}
-
+    if (req.method !== "POST" && req.method !== "GET") {
+      return res.status(405).json({ error: "Method not allowed" });
+    }
 
     await mongooseConnect();
 
@@ -41,6 +40,11 @@ export default async function handler(req, res) {
     const overdueOrders = allOrders.filter((order) => {
       if (!order.date) return false;
 
+      const statusMatch =
+        order.status === "Not Paid" || order.status === "Partly Paid";
+
+      if (!statusMatch) return false;
+
       const createdAt = new Date(order.date);
       const dueDate = new Date(createdAt);
       dueDate.setDate(dueDate.getDate() + 14);
@@ -56,14 +60,18 @@ export default async function handler(req, res) {
     const mailHtml = `
       <div style="font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9;">
         <h2 style="color: red;">🚨 Overdue Orders</h2>
-        ${overdueOrders.map(order => `
+        ${overdueOrders
+          .map(
+            (order) => `
           <div style="background: white; padding: 15px; margin-bottom: 10px; border-left: 4px solid red;">
             <p><b>Supplier:</b> ${order.supplier}</p>
             <p><b>Date:</b> ${new Date(order.date).toLocaleDateString()}</p>
             <p><b>Main Product:</b> ${order.mainProduct}</p>
             <p><b>Total:</b> ₦${order.grandTotal?.toLocaleString()}</p>
           </div>
-        `).join("")}
+        `
+          )
+          .join("")}
       </div>
     `;
 
@@ -75,7 +83,6 @@ export default async function handler(req, res) {
     });
 
     return res.status(200).json({ message: "Email sent successfully." });
-
   } catch (err) {
     console.error("❌ Error sending reminder email:", err);
     return res.status(500).json({ error: err.message });
