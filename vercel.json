@@ -2,11 +2,19 @@
   "crons": [
     {
       "path": "/api/stock-orders/cron",
-      "schedule": "0 10 * * *"
+      "schedule": "0 10 * * *",
+      "method": "POST",
+      "headers": {
+        "Authorization": "Bearer YOUR_SECRET"
+      }
     },
-      {
-      "path": "/api/staff/salary-mail/cron",
-      "schedule": "0 12 * * *"
+    {
+      "path": "/api/staff/salary-mail/cron?force=true",
+      "schedule": "0 12 11 * *",
+      "method": "POST",
+      "headers": {
+        "Authorization": "Bearer YOUR_SECRET"
+      }
     }
   ]
 }
