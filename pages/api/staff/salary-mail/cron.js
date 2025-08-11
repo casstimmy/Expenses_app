@@ -26,7 +26,8 @@ if (!forceSend && !isTargetDate) {
       }
     }
 
-if (req.method !== "POST" && req.method !== "GET") {
+ if (req.method === "GET" && forceSend) {
+    req.method = "POST";
   return res.status(405).json({ error: "Method not allowed" });
 }
 
