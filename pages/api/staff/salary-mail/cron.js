@@ -19,15 +19,14 @@ if (!forceSend && !isTargetDate) {
 
 
     // Auth check for production
-   if (process.env.NODE_ENV === "production") {
-  const key = req.query.key || "";
-  if (key !== process.env.CRON_SECRET) {
-    return res.status(401).send("Unauthorized");
-  }
-}
+    if (process.env.NODE_ENV === "production") {
+      const auth = req.headers.authorization;
+      if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+        return res.status(401).send("Unauthorized");
+      }
+    }
 
-
-if (req.method !== "POST" && !(req.method === "GET" && forceSend)) {
+if (req.method !== "POST" && req.method !== "GET") {
   return res.status(405).json({ error: "Method not allowed" });
 }
 
