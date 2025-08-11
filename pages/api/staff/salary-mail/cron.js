@@ -8,10 +8,8 @@ export default async function handler(req, res) {
 
   const today = new Date();
   const isTargetDate =
-    today.getFullYear() === 2025 &&
-    today.getMonth() === 7 && // August
     today.getDate() === 11 &&
-    today.getHours() === 11;
+    today.getHours() === 12;
 
   if (!isTargetDate) {
     return res
