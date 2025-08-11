@@ -4,25 +4,27 @@ import path from "path";
 import { Staff } from "@/models/Staff";
 
 export default async function handler(req, res) {
-  const auth = req.headers.authorization;
+const forceSend = req.query.force === "true";
 
-  const today = new Date();
-  const isTargetDate =
-    today.getDate() === 11 &&
-    today.getHours() === 12;
+const today = new Date();
+const isTargetDate =
+  today.getDate() === 11 &&
+  today.getHours() === 12;
 
-  if (!isTargetDate) {
-    return res
-      .status(200)
-      .json({ message: "Not the scheduled date/time, skipping email." });
-  }
+if (!forceSend && !isTargetDate) {
+  return res
+    .status(200)
+    .json({ message: "Not the scheduled date/time, skipping email." });
+}
 
-  if (
-    process.env.NODE_ENV === "production" &&
-    auth !== `Bearer ${process.env.CRON_SECRET}`
-  ) {
-    return res.status(401).send("Unauthorized");
-  }
+
+    // Auth check for production
+    if (process.env.NODE_ENV === "production") {
+      const auth = req.headers.authorization;
+      if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+        return res.status(401).send("Unauthorized");
+      }
+    }
 
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -36,15 +38,15 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: "Missing email credentials" });
     }
 
+    // Gmail SMTP — use App Password if 2FA is enabled
     const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 587,
-      secure: false,
+      service: "gmail",
       auth: {
         user: EMAIL_USER,
-        pass: EMAIL_PASS,
+        pass: EMAIL_PASS, // App Password here
       },
     });
+
 
     const staffList = await Staff.find({});
     const currentMonth = new Date().toLocaleString("default", {
@@ -145,10 +147,6 @@ export default async function handler(req, res) {
 
     const mailOptions = {
       from: `"Ibile Mail" <${EMAIL_USER}>`,
-      /**  to: "paul@oakleighinvestments.com",
-      cc: "boyeadelo@gmail.com, hello.ayoola@gmail.com",
-      
-    */
       to: "hello.ayoola@gmail.com",
       subject: `${currentMonth} ${currentYear} Salary Schedule`,
       html: mailHtml,
@@ -171,5 +169,4 @@ export default async function handler(req, res) {
       details: err.message,
     });
   }
-}
-s;
+};

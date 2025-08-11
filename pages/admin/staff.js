@@ -108,8 +108,11 @@ export default function ManageStaff() {
     setIsSending(true);
     try {
       // Step 2: Send the salary mail
-      const mailRes = await fetch("/api/staff/salary-mail/cron", {
+      const mailRes =  await fetch("/api/staff/salary-mail/cron?force=true", {
         method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.CRON_SECRET}`,
+        },
       });
 
       const mailData = await mailRes.json();
@@ -310,32 +313,6 @@ export default function ManageStaff() {
       fetchStaff();
     } else {
       setMessage(data.message || "Error deleting staff.");
-    }
-  };
-
-  const sendSalaryMailToOther = async () => {
-    setIsSending(true);
-    setButtonText("Sending Mail...");
-
-    try {
-      const res = await fetch("/api/staff/salary-mail/cron", {
-        method: "POST",
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        alert("Mail sent successfully!");
-      } else {
-        console.error("Mail error:", data);
-        alert("Failed to send mail.");
-      }
-    } catch (error) {
-      console.error("Error sending mail:", error);
-      alert("An error occurred while sending the mail.");
-    } finally {
-      setIsSending(false);
-      setButtonText("Send Salary Mail");
     }
   };
 
