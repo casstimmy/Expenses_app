@@ -1,3 +1,4 @@
+import Cookies from "js-cookie";
 import { useEffect, useState, useRef, useMemo } from "react";
 import Layout from "@/components/Layout";
 import VendorForm from "@/components/VendorForm";
@@ -11,6 +12,7 @@ const getToday = () => new Date().toISOString().split("T")[0];
 export default function StockOrder() {
   const orderFormRef = useRef(null);
 
+  // ====== State ======
   const [form, setForm] = useState({
     date: getToday(),
     supplier: "",
@@ -41,44 +43,77 @@ export default function StockOrder() {
   const [productSearch, setProductSearch] = useState("");
   const [activeSection, setActiveSection] = useState("vendor");
 
-  // Fetch vendors and products on mount
-  useEffect(() => {
-    fetch("/api/vendors")
-      .then((res) => res.json())
-      .then(setVendors);
+  // ====== Constants ======
+  const CACHE_KEY = "vendors_cache";
+  const CACHE_DURATION = 10 * 60 * 1000; // 10 mins
 
-    fetch("/api/products")
-      .then((res) => res.json())
-      .then(setProducts);
-  }, []);
+  // ====== Helpers ======
+  const resetForm = () =>
+    setForm({
+      date: getToday(),
+      supplier: "",
+      contact: "",
+      mainProduct: "",
+      products: [],
+      location: staff?.location || "",
+    });
 
-  // Load staff info, vendors, and submitted orders
-  useEffect(() => {
-    const initialize = async () => {
-      const stored = localStorage.getItem("staff");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setStaff(parsed);
-        if (parsed.location) {
-          setForm((prev) => ({ ...prev, location: parsed.location }));
-        }
-      }
-      await loadVendors();
-      await loadSubmittedOrders();
-    };
-    initialize();
-  }, []);
+  const calculateTotal = (items) =>
+    items.reduce(
+      (sum, item) =>
+        sum + (Number(item.quantity) || 0) * (Number(item.costPrice) || 0),
+      0
+    );
 
+  // ====== Data Loading ======
   const loadVendors = async () => {
-    setLoadingVendors(true);
-    try {
+  setLoadingVendors(true);
+  try {
+    const cachedData = localStorage.getItem(CACHE_KEY);
+
+    let useCache = false;
+    if (cachedData) {
+      try {
+        const { timestamp, data } = JSON.parse(cachedData);
+        // Only use cache if it's fresh and not an error placeholder
+        if (Date.now() - timestamp < CACHE_DURATION && Array.isArray(data)) {
+          setVendors(data);
+          useCache = true;
+        }
+      } catch (err) {
+        // Invalid JSON, ignore cache
+        console.warn("Invalid cache, reloading vendors...");
+      }
+    }
+
+    if (!useCache) {
       const res = await fetch("/api/vendors");
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const data = await res.json();
       setVendors(data);
+      localStorage.setItem(
+        CACHE_KEY,
+        JSON.stringify({ timestamp: Date.now(), data })
+      );
+    }
+  } catch (err) {
+    console.error("Failed to load vendors:", err);
+    // Optional: clear the cache to prevent stuck bad data
+    localStorage.removeItem(CACHE_KEY);
+  } finally {
+    setLoadingVendors(false);
+  }
+};
+
+
+
+  const loadProducts = async () => {
+    try {
+      const res = await fetch("/api/products");
+      const data = await res.json();
+      setProducts(data);
     } catch (err) {
-      console.error("Failed to load vendors:", err);
-    } finally {
-      setLoadingVendors(false);
+      console.error("Failed to load products:", err);
     }
   };
 
@@ -95,6 +130,33 @@ export default function StockOrder() {
     }
   };
 
+  // ====== Initialization ======
+  useEffect(() => {
+    const initialize = async () => {
+      // Restore staff
+      const stored = localStorage.getItem("staff");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setStaff(parsed);
+        if (parsed.location) {
+          setForm((prev) => ({ ...prev, location: parsed.location }));
+        }
+      }
+
+      await Promise.all([loadVendors(), loadProducts(), loadSubmittedOrders()]);
+
+      // Restore selected vendor
+      const vendorId = Cookies.get("selected_vendor");
+      if (vendorId) {
+        const foundVendor = vendors.find((v) => v._id === vendorId);
+        if (foundVendor) setSelectedVendor(foundVendor);
+      }
+    };
+    initialize();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ====== Event Handlers ======
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
@@ -124,16 +186,7 @@ export default function StockOrder() {
     }));
 
     setOrders((prev) => [...prev, ...newOrders]);
-
-    setForm({
-      date: getToday(),
-      supplier: "",
-      contact: "",
-      mainProduct: "",
-      products: [],
-      location: staff?.location || "",
-    });
-
+    resetForm();
     setSelectedVendor(null);
   };
 
@@ -144,7 +197,6 @@ export default function StockOrder() {
     }
 
     setSubmitting(true);
-
     const payload = {
       date: orders[0].date,
       supplier: orders[0].supplier,
@@ -171,7 +223,6 @@ export default function StockOrder() {
       });
 
       const data = await res.json();
-
       if (res.ok) {
         alert("Stock order submitted successfully!");
         setOrders([]);
@@ -206,6 +257,7 @@ export default function StockOrder() {
     }
   };
 
+  // ====== Filtering ======
   const filteredVendors = useMemo(() => {
     if (!productSearch.trim()) return vendors;
     return vendors.filter((vendor) =>
@@ -215,6 +267,7 @@ export default function StockOrder() {
     );
   }, [productSearch, vendors]);
 
+  
   return (
     <Layout>
       <div className="min-h-screen bg-gray-100 p-6">
@@ -313,21 +366,24 @@ export default function StockOrder() {
                       </div>
                     )}
 
-                    <VendorList
-                      vendors={filteredVendors}
-                      setSelectedVendor={(vendor) => {
-                        setSelectedVendor(vendor);
-                        setTimeout(() => {
-                          orderFormRef.current?.scrollIntoView({
-                            behavior: "smooth",
-                          });
-                        }, 100);
-                      }}
-                      setForm={setForm}
-                      setEditingVendor={setEditingVendor}
-                      setShowVendorForm={setShowVendorForm}
-                      staff={staff}
-                    />
+                  <VendorList
+  vendors={filteredVendors}
+  setSelectedVendor={(vendor) => {
+    setSelectedVendor(vendor);
+
+    // Save vendor ID in cookie for 1 day
+    Cookies.set("selected_vendor", vendor._id, { expires: 1 });
+
+    setTimeout(() => {
+      orderFormRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 100);
+  }}
+  setForm={setForm}
+  setEditingVendor={setEditingVendor}
+  setShowVendorForm={setShowVendorForm}
+  staff={staff}
+/>
+
                   </div>
                 </section>
 

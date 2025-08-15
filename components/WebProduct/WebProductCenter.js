@@ -1,137 +1,70 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import ProductForm from "@/components/WebProduct/ProductForm";
 import ProductList from "@/components/WebProduct/ProductList";
 import ProductStats from "@/components/WebProduct/ProductStats";
 
 export default function WebProductCenter() {
   const [products, setProducts] = useState([]);
-  const [filteredProducts, setFilteredProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [query, setQuery] = useState("");
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [showForm, setShowForm] = useState(false);
-  const [csvError, setCsvError] = useState("");
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
   const [loadingProducts, setLoadingProducts] = useState(false);
 
-  // Load cached products first
-  useEffect(() => {
-    const cachedData = localStorage.getItem("webProducts");
-    if (cachedData) {
-      try {
-        const parsed = JSON.parse(cachedData);
-        setProducts(parsed);
-      } catch (err) {
-        console.error("Invalid cache format, clearing...");
-        localStorage.removeItem("webProducts");
+  const CACHE_KEY = "webProducts";
+  const CACHE_DURATION = 1000 * 60 * 5; // 5 minutes
+
+  // Load products (cache first, fetch if stale or missing)
+  const loadProducts = async () => {
+    setLoadingProducts(true);
+    try {
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (cached) {
+        const { timestamp, data } = JSON.parse(cached);
+        if (Date.now() - timestamp < CACHE_DURATION) {
+          setProducts(data);
+        }
       }
+
+      // Always try to fetch fresh data in the background
+      const res = await fetch(`/api/web-products?ts=${Date.now()}`);
+      if (!res.ok) throw new Error("Failed to fetch products");
+      const data = await res.json();
+      setProducts(data);
+      localStorage.setItem(CACHE_KEY, JSON.stringify({ timestamp: Date.now(), data }));
+    } catch (err) {
+      console.error("Failed to load products:", err);
+    } finally {
+      setLoadingProducts(false);
     }
-  }, []);
-
-  // Fetch products from API
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setLoadingProducts(true);
-
-        // Cache busting if it's a refresh after CSV upload
-        const res = await fetch(`/api/web-products/web-products?ts=${Date.now()}`);
-        const data = await res.json();
-
-        // Save to state and cache
-        setProducts(data);
-        localStorage.setItem("webProducts", JSON.stringify(data));
-      } catch (error) {
-        console.error("Failed to fetch products:", error);
-      } finally {
-        setLoadingProducts(false);
-      }
-    };
-
-    // Only fetch if refresh triggered OR no cache
-    if (refreshTrigger > 0 || !localStorage.getItem("webProducts")) {
-      fetchProducts();
-    }
-  }, [refreshTrigger]);
-
-  // Filter search
-  useEffect(() => {
-    if (!query) {
-      setFilteredProducts(products);
-    } else {
-      const lowerQuery = query.toLowerCase();
-      const result = products.filter((product) =>
-        product.name.toLowerCase().includes(lowerQuery)
-      );
-      setFilteredProducts(result);
-    }
-  }, [query, products]);
-
-  const handleSelectProduct = (product) => {
-    setSelectedProduct(product);
-    setShowForm(true);
   };
 
-  const handleClearSelection = () => {
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
+  // Filtered products (memoized)
+  const filteredProducts = useMemo(() => {
+    if (!query) return products;
+    const lowerQuery = query.toLowerCase();
+    return products.filter((p) => (p.name || "").toLowerCase().includes(lowerQuery));
+  }, [query, products]);
+
+  const handleProductSaved = (savedProduct) => {
+    setProducts((prev) => {
+      const exists = prev.some((p) => p._id === savedProduct._id);
+      const next = exists
+        ? prev.map((p) => (p._id === savedProduct._id ? savedProduct : p))
+        : [savedProduct, ...prev];
+      localStorage.setItem(CACHE_KEY, JSON.stringify({ timestamp: Date.now(), data: next }));
+      return next;
+    });
+    setShowForm(false);
     setSelectedProduct(null);
   };
 
-  const triggerRefresh = () => {
-    setRefreshTrigger((prev) => prev + 1);
-  };
-
-  // Disable scroll when modal open
-  useEffect(() => {
-    document.body.style.overflow = showForm ? "hidden" : "auto";
-    return () => {
-      document.body.style.overflow = "auto";
-    };
-  }, [showForm]);
-
-  const handleCSVUpload = (e) => {
-    setCsvError("");
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append("csvFile", file);
-
-    setIsUploading(true);
-    setUploadProgress(0);
-
-    try {
-      const xhr = new XMLHttpRequest();
-      xhr.open("POST", "/api/web-products/import", true);
-
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const percent = Math.round((event.loaded / event.total) * 100);
-          setUploadProgress(percent);
-        }
-      };
-
-      xhr.onload = () => {
-        setIsUploading(false);
-        if (xhr.status >= 200 && xhr.status < 300) {
-          // Trigger a real fetch to update both UI & cache
-          triggerRefresh();
-        } else {
-          setCsvError("CSV upload failed. Ensure the file is valid.");
-        }
-      };
-
-      xhr.onerror = () => {
-        setIsUploading(false);
-        setCsvError("An error occurred during CSV upload.");
-      };
-
-      xhr.send(formData);
-    } catch (error) {
-      console.error("Upload error:", error);
-      setCsvError("An error occurred during CSV upload.");
-      setIsUploading(false);
-    }
+  const handleAdvancedClick = (product) => {
+    setSelectedProduct(product);
+    setShowForm(true);
   };
 
   return (
@@ -139,50 +72,14 @@ export default function WebProductCenter() {
       <div className="max-w-7xl mx-auto bg-white rounded-2xl shadow-xl p-6 space-y-8 border border-blue-200">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <h1 className="text-3xl font-bold text-blue-800">
-            Web Product Center
-          </h1>
-
-          <div className="flex flex-col gap-1 w-full md:w-auto">
-            <div className="flex gap-3">
-              <button
-                className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg shadow-md font-semibold transition"
-                onClick={() => setShowForm(true)}
-              >
-                + Add Product
-              </button>
-
-              <label className="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-lg shadow-md font-semibold cursor-pointer transition">
-                <input
-                  type="file"
-                  accept=".csv"
-                  onChange={handleCSVUpload}
-                  className="hidden"
-                />
-                Upload CSV
-              </label>
-            </div>
-
-            {/* Upload Progress */}
-            {isUploading && (
-              <div className="w-full bg-gray-200 rounded-full h-2 mt-2 overflow-hidden">
-                <div
-                  className="bg-blue-600 h-2 transition-all duration-300"
-                  style={{ width: `${uploadProgress}%` }}
-                ></div>
-              </div>
-            )}
-
-            {csvError && (
-              <p className="text-sm text-red-600 mt-2 max-w-md">
-                ⚠️ {csvError}
-                <br />
-                Expected header:
-                <code className="bg-gray-100 px-2 py-1 rounded text-gray-800 inline-block mt-1">
-                  name,price,description,category,image
-                </code>
-              </p>
-            )}
+          <h1 className="text-3xl font-bold text-blue-800">Web Product Center</h1>
+          <div className="flex gap-3">
+            <button
+              className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg shadow-md font-semibold transition"
+              onClick={() => { setSelectedProduct(null); setShowForm(true); }}
+            >
+              + Add Product
+            </button>
           </div>
         </div>
 
@@ -203,52 +100,37 @@ export default function WebProductCenter() {
             <div className="relative bg-white w-full max-w-2xl p-6 rounded-xl shadow-2xl border border-gray-200">
               <button
                 className="absolute top-3 right-4 text-gray-400 hover:text-red-500 text-3xl font-bold"
-                onClick={() => {
-                  setShowForm(false);
-                  handleClearSelection();
-                }}
+                onClick={() => { setShowForm(false); setSelectedProduct(null); }}
               >
                 &times;
               </button>
-
               <ProductForm
                 selectedProduct={selectedProduct}
-                onClear={() => {
-                  setShowForm(false);
-                  handleClearSelection();
-                }}
-                onSaved={() => {
-                  triggerRefresh();
-                  setShowForm(false);
-                  handleClearSelection();
-                }}
+                onClear={() => { setSelectedProduct(null); setShowForm(false); }}
+                onSaved={handleProductSaved}
               />
             </div>
           </div>
         )}
 
         {/* Product List */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className={showForm ? "lg:col-span-2" : "lg:col-span-3"}>
-            {loadingProducts ? (
-              <div className="flex flex-col items-center justify-center py-10">
-                <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                <p className="mt-3 text-gray-500 text-sm">Loading products...</p>
-              </div>
-            ) : (
-              <ProductList
-                products={filteredProducts}
-                onEdit={handleSelectProduct}
-                onRefresh={triggerRefresh}
-              />
-            )}
-          </div>
+        <div className={showForm ? "lg:col-span-2" : "lg:col-span-3"}>
+          {loadingProducts ? (
+            <div className="flex flex-col items-center justify-center py-10">
+              <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+              <p className="mt-3 text-gray-500 text-sm">Loading products...</p>
+            </div>
+          ) : (
+            <ProductList
+              products={filteredProducts}
+              onRefresh={loadProducts}
+              onAdvancedClick={handleAdvancedClick}
+            />
+          )}
         </div>
 
         {/* Stats */}
-        <div className="pt-6 border-t border-gray-200">
-          <ProductStats products={products} />
-        </div>
+        <ProductStats products={products} />
       </div>
     </div>
   );
