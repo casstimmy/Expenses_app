@@ -53,6 +53,6 @@ html, body {
 
 .printable {
   --tw-bg-opacity: 1;
-  background-color: rgb(255, 255, 255); /* instead of oklch */
-  color: black; /* fallback safe color */
+  background-color: rgb(255, 255, 255);
+  color: black;
 }

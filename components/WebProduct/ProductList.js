@@ -162,7 +162,7 @@ export default function ProductList({ products, onRefresh, onAdvancedClick }) {
 
                <td className="px-5 py-4">
   {Array.isArray(product.images) && product.images[0] ? (
-    <img
+    <Image
       src={product.images[0]}
       alt={product.name}
       width={50}

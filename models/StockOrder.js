@@ -15,7 +15,7 @@ const stockOrderSchema = new mongoose.Schema({
   supplier: { type: String, required: true },
   contact: { type: String },
   location: { type: String },
-  mainProduct: { type: mongoose.Schema.Types.Mixed }, // array or string
+  mainProduct: { type: mongoose.Schema.Types.Mixed },
   reason: { type: String },
   grandTotal: { type: Number, required: true },
   products: [productSchema],
@@ -28,7 +28,7 @@ const stockOrderSchema = new mongoose.Schema({
   paymentMade: { type: Number, default: 0 },
   balance: { type: Number, default: 0 },
   status: { type: String, enum: ["Not Paid", "Partly Paid", "Paid"], default: "Not Paid" },
-  paymentDate: { type: String }, // You can use Date if preferred
+  paymentDate: { type: String },
 }, { timestamps: true });
 
 const StockOrder = mongoose.models.StockOrder || mongoose.model("StockOrder", stockOrderSchema);
