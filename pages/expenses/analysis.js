@@ -527,14 +527,46 @@ export default function ExpenseAnalysis() {
             </>
           )}
         </div>
-      </div>
 
-      <div className="flex justify-end mt-6">
-        <Link href="/details/Ibile1">
-          <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg shadow-md transition">
-            📊 View Ibile 1 Details
+        <div className="flex justify-end pt-6 gap-4 max-w-7xl mx-auto">
+          {/* Recalculate Button */}
+          <button
+            onClick={async () => {
+              if (
+                !confirm(
+                  "Recalculate all Cash at Hand values? This may take a while."
+                )
+              )
+                return;
+              try {
+                const res = await fetch("/api/daily-cash/recalculate", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ location: selectedLocation || "" }),
+                });
+                const data = await res.json();
+                if (res.ok) {
+                  alert("✅ Recalculation completed successfully!");
+                  window.location.reload();
+                } else {
+                  alert(`❌ ${data.error || "Failed to recalculate."}`);
+                }
+              } catch (err) {
+                console.error(err);
+                alert("Network error. Please try again.");
+              }
+            }}
+            className="flex items-center gap-2 bg-green-600 px-4 py-2 text-white rounded-xl h-10 hover:bg-green-700 transition duration-200"
+          >
+            Recalculate Cash at Hand
           </button>
-        </Link>
+
+          <Link href="/details/Ibile1">
+            <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg shadow-md transition">
+              📊 View Ibile 1 Details
+            </button>
+          </Link>
+        </div>
       </div>
     </Layout>
   );
