@@ -148,7 +148,8 @@ if (req.method !== "POST" && req.method !== "GET") {
 
     const mailOptions = {
       from: `"Ibile Mail" <${EMAIL_USER}>`,
-      to: "hello.ayoola@gmail.com",
+      to: "paul@oakleighinvestments.com",
+      cc: "boyeadelo@gmail.com, hello.ayoola@gmail.com",
       subject: `${currentMonth} ${currentYear} Salary Schedule`,
       html: mailHtml,
       attachments: [

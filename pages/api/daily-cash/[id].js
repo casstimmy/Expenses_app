@@ -8,11 +8,11 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === "PUT") {
-      const { amount } = req.body;
+      const { amount, date } = req.body;
 
       const updated = await DailyCash.findByIdAndUpdate(
         id,
-        { amount },
+        { amount, date },
         { new: true }
       );
 
