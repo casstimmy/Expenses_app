@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 
 export function VendorPaymentTracker({
   orders: initialOrders = [],
@@ -16,6 +16,11 @@ export function VendorPaymentTracker({
   const [vendors, setVendors] = useState([]);
   const [isBusy, setIsBusy] = useState(false); // disable UI during server ops
 
+  // messages (replaces alert)
+  const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState("info"); // info | success | error
+  const messageTimerRef = useRef(null);
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const entriesPerPage = 10;
@@ -25,20 +30,55 @@ export function VendorPaymentTracker({
   }, [initialOrders]);
 
   useEffect(() => {
+    // use supplier (existing data) to build vendor list
     const uniqueVendors = Array.from(
-      new Set(orders.map((order) => order.vendor?.name).filter(Boolean))
+      new Set(orders.map((order) => order.supplier).filter(Boolean))
     );
     setVendors(uniqueVendors);
   }, [orders]);
 
+  useEffect(() => {
+    // clear message after timeout
+    if (message) {
+      if (messageTimerRef.current) clearTimeout(messageTimerRef.current);
+      messageTimerRef.current = setTimeout(() => {
+        setMessage("");
+        messageTimerRef.current = null;
+      }, 4000);
+    }
+    return () => {
+      if (messageTimerRef.current) {
+        clearTimeout(messageTimerRef.current);
+        messageTimerRef.current = null;
+      }
+    };
+  }, [message]);
+
+  const formatCurrency = (v) => `₦${Number(v ?? 0).toLocaleString()}`;
+  const isNumber = (v) => typeof v === "number" && Number.isFinite(v);
+
   const filteredOrders = Array.isArray(orders)
     ? selectedVendor
-      ? orders.filter((order) => order.vendor?.name === selectedVendor)
+      ? orders.filter((order) => order.supplier === selectedVendor)
       : orders
     : [];
 
-  const totalPages = Math.ceil(filteredOrders.length / entriesPerPage);
-  const paginatedOrders = filteredOrders.slice(
+  // Sort by entry date (newest first) — use createdAt or _id timestamp
+  const sortedOrders = useMemo(() => {
+    return [...filteredOrders].sort((a, b) => {
+      const dateA = new Date(a.date || a._id?.toString().substring(0, 8) || 0);
+      const dateB = new Date(b.date || b._id?.toString().substring(0, 8) || 0);
+      return dateB - dateA; // newest first
+    });
+  }, [filteredOrders]);
+
+  const totalPages = Math.max(1, Math.ceil(sortedOrders.length / entriesPerPage));
+  // ensure currentPage is in range
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [totalPages, currentPage]);
+
+  const paginatedOrders = sortedOrders.slice(
     (currentPage - 1) * entriesPerPage,
     currentPage * entriesPerPage
   );
@@ -49,8 +89,15 @@ export function VendorPaymentTracker({
     setEditIndex(null); // cancel any ongoing edits when page changes
   };
 
+  // reset to first page when vendor filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+    setEditIndex(null);
+  }, [selectedVendor]);
+
   const handleEdit = (index, currentPayment) => {
     const order = paginatedOrders[index];
+    if (!order) return;
     setEditIndex(index);
     setEditedPayment(String(currentPayment ?? ""));
     setEditedPaymentDate(
@@ -69,6 +116,12 @@ export function VendorPaymentTracker({
     setEditedPayment("");
     setEditedTotal("");
     setEditedDate("");
+    setEditedPaymentDate("");
+  };
+
+  const showMessage = (text, type = "info") => {
+    setMessageType(type);
+    setMessage(text);
   };
 
   const handleDelete = async (orderId) => {
@@ -81,10 +134,11 @@ export function VendorPaymentTracker({
     try {
       const res = await fetch(`/api/payments/${orderId}`, { method: "DELETE" });
       if (!res.ok) throw new Error(await res.text());
+      showMessage("Order deleted", "success");
       await onOrdersChange();
     } catch (err) {
       console.error("Delete error:", err);
-      alert("Failed to delete order");
+      showMessage("Failed to delete order", "error");
     } finally {
       setIsBusy(false);
     }
@@ -99,21 +153,28 @@ export function VendorPaymentTracker({
 
     const originalOrder = orders[originalIndex];
 
-    const payment =
-      editedPayment !== ""
-        ? Number(editedPayment)
-        : Number(originalOrder.paymentMade || 0);
-    const grandTotal =
-      editedTotal !== ""
-        ? Number(editedTotal)
-        : Number(originalOrder.grandTotal || 0);
+    // validate inputs
+    const paymentNum =
+      editedPayment !== "" ? Number(editedPayment) : Number(originalOrder.paymentMade || 0);
+    const grandTotalNum =
+      editedTotal !== "" ? Number(editedTotal) : Number(originalOrder.grandTotal || 0);
+
+    if (!Number.isFinite(paymentNum) || paymentNum < 0) {
+      showMessage("Invalid payment amount", "error");
+      return;
+    }
+    if (!Number.isFinite(grandTotalNum) || grandTotalNum < 0) {
+      showMessage("Invalid total amount", "error");
+      return;
+    }
+
     const orderDate = editedDate || originalOrder.date || "";
 
-    const balance = grandTotal - payment;
+    const balance = grandTotalNum - paymentNum;
     let status;
-    if (payment === 0) status = "Not Paid";
-    else if (payment < grandTotal) status = "Partly Paid";
-    else if (payment === grandTotal) status = "Paid";
+    if (paymentNum === 0) status = "Not Paid";
+    else if (paymentNum < grandTotalNum) status = "Partly Paid";
+    else if (paymentNum === grandTotalNum) status = "Paid";
     else status = "Credit";
 
     // if user edited pay date, use it; else keep existing; else use now
@@ -123,13 +184,26 @@ export function VendorPaymentTracker({
 
     const updatedOrder = {
       ...originalOrder,
-      paymentMade: payment,
-      grandTotal,
+      paymentMade: paymentNum,
+      grandTotal: grandTotalNum,
       date: orderDate,
       paymentDate: paymentDateISO,
       balance,
       status,
     };
+
+    // check if anything changed
+    const changed =
+      paymentNum !== Number(originalOrder.paymentMade || 0) ||
+      grandTotalNum !== Number(originalOrder.grandTotal || 0) ||
+      orderDate !== (originalOrder.date || "") ||
+      paymentDateISO !== (originalOrder.paymentDate || "");
+
+    if (!changed) {
+      showMessage("No changes to save", "info");
+      handleCancel();
+      return;
+    }
 
     // Optimistic update
     const updatedOrders = [...orders];
@@ -151,21 +225,95 @@ export function VendorPaymentTracker({
         body: JSON.stringify(updatedOrder),
       });
       if (!res.ok) throw new Error(await res.text());
+      showMessage("Payment updated", "success");
       await onOrdersChange();
     } catch (err) {
       console.error("Payment update failed", err);
-      alert("Failed to save payment. Changes may not have been persisted.");
+      showMessage("Failed to save payment. Changes may not have been persisted.", "error");
       await onOrdersChange(); // refetch to resync
     } finally {
       setIsBusy(false);
     }
   };
 
-  if (!filteredOrders.length)
-    return <p className="text-gray-500">No vendor orders found.</p>;
+  if (!sortedOrders.length)
+    return (
+      <>
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <label className="text-sm font-medium mr-2">Vendor:</label>
+            <select
+              aria-label="Filter by vendor"
+              value={selectedVendor}
+              onChange={(e) => setSelectedVendor(e.target.value)}
+              className="border rounded px-2 py-1 text-sm"
+            >
+              <option value="">All vendors</option>
+              {vendors.map((v) => (
+                <option key={v} value={v}>
+                  {v}
+                </option>
+              ))}
+            </select>
+          </div>
+          {message && (
+            <div
+              role="status"
+              aria-live="polite"
+              className={`text-sm px-3 py-1 rounded ${
+                messageType === "success"
+                  ? "bg-green-50 text-green-700"
+                  : messageType === "error"
+                  ? "bg-red-50 text-red-700"
+                  : "bg-gray-50 text-gray-700"
+              }`}
+            >
+              {message}
+            </div>
+          )}
+        </div>
+        <p className="text-gray-500">No vendor orders found.</p>
+      </>
+    );
 
   return (
     <div className="space-y-4">
+      {/* Vendor filter + messages */}
+      <div className="flex items-center justify-between">
+        <div>
+          <label className="text-sm font-medium mr-2">Vendor:</label>
+          <select
+            aria-label="Filter by vendor"
+            value={selectedVendor}
+            onChange={(e) => setSelectedVendor(e.target.value)}
+            className="border rounded px-2 py-1 text-sm"
+          >
+            <option value="">All vendors</option>
+            {vendors.map((v) => (
+              <option key={v} value={v}>
+                {v}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {message && (
+          <div
+            role="status"
+            aria-live="polite"
+            className={`text-sm px-3 py-1 rounded ${
+              messageType === "success"
+                ? "bg-green-50 text-green-700"
+                : messageType === "error"
+                ? "bg-red-50 text-red-700"
+                : "bg-gray-50 text-gray-700"
+            }`}
+          >
+            {message}
+          </div>
+        )}
+      </div>
+
       {/* Desktop Table */}
       <div className="hidden md:block bg-white rounded-xl shadow overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-300 text-sm select-none">
@@ -186,7 +334,10 @@ export function VendorPaymentTracker({
           </thead>
           <tbody className="bg-white divide-y divide-gray-100">
             {paginatedOrders.map((order, idx) => (
-              <tr key={order._id} className="hover:bg-gray-50 transition">
+              <tr
+                key={order._id ?? `${order.supplier ?? "unk"}-${idx}-${order.date ?? ""}`}
+                className="hover:bg-gray-50 transition"
+              >
                 <td className="px-4 py-3">
                   {editIndex === idx ? (
                     <input
@@ -194,13 +345,10 @@ export function VendorPaymentTracker({
                       className="border border-gray-300 px-2 py-1 rounded text-sm"
                       value={editedDate}
                       onChange={(e) => setEditedDate(e.target.value)}
+                      aria-label="Edit order date"
                     />
                   ) : (
-                    <span>
-                      {order.date
-                        ? new Date(order.date).toLocaleDateString()
-                        : "—"}
-                    </span>
+                    <span>{order.date ? new Date(order.date).toLocaleDateString() : "—"}</span>
                   )}
                 </td>
                 <td className="px-4 py-3 font-medium text-gray-800">
@@ -223,9 +371,10 @@ export function VendorPaymentTracker({
                       className="w-24 border border-gray-300 px-2 py-1 rounded text-sm text-right"
                       value={editedTotal}
                       onChange={(e) => setEditedTotal(e.target.value)}
+                      aria-label="Edit total"
                     />
                   ) : (
-                    `₦${order.grandTotal?.toLocaleString() || 0}`
+                    formatCurrency(order.grandTotal)
                   )}
                 </td>
                 <td className="px-4 py-3 text-right">
@@ -237,18 +386,21 @@ export function VendorPaymentTracker({
                         className="border border-gray-300 rounded px-3 py-1 w-full sm:w-28 text-right text-sm"
                         value={editedPayment}
                         onChange={(e) => setEditedPayment(e.target.value)}
+                        aria-label="Edit payment amount"
                       />
                       <div className="flex gap-2">
                         <button
                           disabled={isBusy}
                           onClick={() => handleSave(idx)}
                           className="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-md text-sm font-medium transition"
+                          aria-label="Save payment"
                         >
                           Save
                         </button>
                         <button
                           onClick={handleCancel}
                           className="flex items-center gap-1 bg-red-500 hover:bg-red-600 text-white px-4 py-1.5 rounded-md text-sm font-medium transition"
+                          aria-label="Cancel edit"
                         >
                           Cancel
                         </button>
@@ -257,12 +409,13 @@ export function VendorPaymentTracker({
                   ) : (
                     <div className="flex items-center gap-2 justify-end">
                       <span className="text-sm font-medium">
-                        ₦{order.paymentMade?.toLocaleString() || 0}
+                        {formatCurrency(order.paymentMade)}
                       </span>
                       <button
                         disabled={isBusy}
                         onClick={() => handleEdit(idx, order.paymentMade)}
                         className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition"
+                        aria-label="Edit payment"
                       >
                         Edit
                       </button>
@@ -276,20 +429,19 @@ export function VendorPaymentTracker({
                       className="border border-gray-300 px-2 py-1 rounded text-sm"
                       value={editedPaymentDate}
                       onChange={(e) => setEditedPaymentDate(e.target.value)}
+                      aria-label="Edit payment date"
                     />
                   ) : (
                     <span>
                       {order.paymentDate
-                        ? new Date(order.paymentDate).toLocaleDateString(
-                            "en-NG"
-                          )
+                        ? new Date(order.paymentDate).toLocaleDateString("en-NG")
                         : "—"}
                     </span>
                   )}
                 </td>
 
                 <td className="px-4 py-3 text-right">
-                  ₦{order.balance?.toLocaleString() || order.grandTotal}
+                  {order.balance != null ? formatCurrency(order.balance) : formatCurrency(order.grandTotal)}
                 </td>
                 <td className="px-4 py-3">
                   <span
@@ -312,6 +464,7 @@ export function VendorPaymentTracker({
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-md shadow hover:bg-blue-700 transition"
+                    aria-label="Open memo"
                   >
                     Memo
                   </a>
@@ -321,6 +474,7 @@ export function VendorPaymentTracker({
                     disabled={isBusy}
                     onClick={() => handleDelete(order._id)}
                     className="inline-flex items-center gap-1 bg-red-100 text-red-600 text-sm font-medium px-3 py-2 rounded-md shadow hover:bg-red-200 hover:text-red-700 transition"
+                    aria-label="Delete order"
                   >
                     Delete
                   </button>
@@ -337,6 +491,7 @@ export function VendorPaymentTracker({
               onClick={() => goToPage(currentPage - 1)}
               disabled={currentPage === 1}
               className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+              aria-label="Previous page"
             >
               Prev
             </button>
@@ -344,11 +499,8 @@ export function VendorPaymentTracker({
               <button
                 key={page}
                 onClick={() => goToPage(page)}
-                className={`px-3 py-1 rounded ${
-                  page === currentPage
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-200 hover:bg-gray-300"
-                }`}
+                className={`px-3 py-1 rounded ${page === currentPage ? "bg-blue-600 text-white" : "bg-gray-200 hover:bg-gray-300"}`}
+                aria-label={`Go to page ${page}`}
               >
                 {page}
               </button>
@@ -357,6 +509,7 @@ export function VendorPaymentTracker({
               onClick={() => goToPage(currentPage + 1)}
               disabled={currentPage === totalPages}
               className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+              aria-label="Next page"
             >
               Next
             </button>
@@ -368,7 +521,7 @@ export function VendorPaymentTracker({
       <div className="md:hidden space-y-5">
         {paginatedOrders.map((order, idx) => (
           <div
-            key={order._id}
+            key={order._id ?? `${order.supplier ?? "unk"}-${idx}-${order.date ?? ""}`}
             className="bg-white p-4 rounded-2xl shadow border border-gray-200 space-y-4"
           >
             <div className="flex justify-between items-start">
@@ -385,9 +538,7 @@ export function VendorPaymentTracker({
                   />
                 ) : (
                   <p className="text-xs text-gray-500">
-                    {order.date
-                      ? new Date(order.date).toLocaleDateString()
-                      : "—"}
+                    {order.date ? new Date(order.date).toLocaleDateString() : "—"}
                   </p>
                 )}
               </div>
@@ -430,33 +581,23 @@ export function VendorPaymentTracker({
                     onChange={(e) => setEditedTotal(e.target.value)}
                   />
                 ) : (
-                  <div>₦{order.grandTotal?.toLocaleString() || 0}</div>
+                  <div>{formatCurrency(order.grandTotal)}</div>
                 )}
               </div>
               <div>
                 <strong>Balance:</strong>
-                <div>₦{order.balance?.toLocaleString() || 0}</div>
+                <div>{formatCurrency(order.balance ?? 0)}</div>
               </div>
               <div>
                 <strong>Status:</strong>
-                <div
-                  className={`inline-block mt-1 px-2 py-1 rounded-full text-xs font-medium ${
-                    order.status === "Paid"
-                      ? "bg-green-100 text-green-700"
-                      : order.status === "Partly Paid"
-                      ? "bg-yellow-100 text-yellow-800"
-                      : "bg-red-100 text-red-700"
-                  }`}
-                >
+                <div className={`inline-block mt-1 px-2 py-1 rounded-full text-xs font-medium ${order.status === "Paid" ? "bg-green-100 text-green-700" : order.status === "Partly Paid" ? "bg-yellow-100 text-yellow-800" : "bg-red-100 text-red-700"}`}>
                   {order.status || "Not Paid"}
                 </div>
               </div>
               <div>
                 <strong>Pay Date:</strong>
                 <div>
-                  {order.paymentDate
-                    ? new Date(order.paymentDate).toLocaleDateString("en-NG")
-                    : "—"}
+                  {order.paymentDate ? new Date(order.paymentDate).toLocaleDateString("en-NG") : "—"}
                 </div>
               </div>
             </div>
@@ -487,9 +628,7 @@ export function VendorPaymentTracker({
                 </div>
               ) : (
                 <div className="flex items-center justify-between mt-1">
-                  <span className="text-gray-700">
-                    ₦{order.paymentMade?.toLocaleString() || 0}
-                  </span>
+                  <span className="text-gray-700">{formatCurrency(order.paymentMade)}</span>
                   <button
                     disabled={isBusy}
                     onClick={() => handleEdit(idx, order.paymentMade)}
@@ -527,11 +666,7 @@ export function VendorPaymentTracker({
               <button
                 key={page}
                 onClick={() => goToPage(page)}
-                className={`px-3 py-1 rounded ${
-                  page === currentPage
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-200 hover:bg-gray-300"
-                }`}
+                className={`px-3 py-1 rounded ${page === currentPage ? "bg-blue-600 text-white" : "bg-gray-200 hover:bg-gray-300"}`}
               >
                 {page}
               </button>

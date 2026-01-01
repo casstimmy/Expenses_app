@@ -11,7 +11,7 @@ export default function ExpenseList({
 
   // Double-check filter inside component
   const filteredExpenses = sortedExpenses.filter((exp) => {
-    const expDate = new Date(exp.createdAt);
+    const expDate = new Date(exp.date);
     const start = startDate ? new Date(startDate) : null;
     const end = endDate ? new Date(endDate) : null;
     if (end) end.setHours(23, 59, 59, 999);
@@ -44,7 +44,7 @@ export default function ExpenseList({
                 {exp.location && `- ${exp.location}`}
               </span>
               <span className="text-xs text-gray-400">
-                {new Date(exp.createdAt).toLocaleDateString()}
+                {new Date(exp.date).toLocaleDateString()}
               </span>
             </li>
           ))}

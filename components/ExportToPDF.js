@@ -1,4 +1,3 @@
-// components/ExportToPDF.js
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -46,7 +45,7 @@ export default async function exportToPDF(filteredExpenses, report) {
       exp.title,
       exp.category?.name || "Uncategorized",
       exp.location || "",
-      new Date(exp.createdAt).toLocaleDateString(),
+      new Date(exp.date).toLocaleDateString(),
       `₦${Number(exp.amount).toLocaleString()}`,
     ]);
 

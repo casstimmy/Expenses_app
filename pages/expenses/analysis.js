@@ -1,6 +1,6 @@
 // ─── External Libraries ────────────────────────────────────────────────
 import { useEffect, useState } from "react";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import Link from "next/link";
 // ─── Components ────────────────────────────────────────────────────────
@@ -58,10 +58,7 @@ export default function ExpenseAnalysis() {
       setLoading(true);
 
       try {
-        // Try localStorage first
-        let localExpenses = JSON.parse(
-          localStorage.getItem("expenses") || "[]"
-        );
+        let localExpenses = JSON.parse(localStorage.getItem("expenses") || "[]");
         let localCash = JSON.parse(
           localStorage.getItem("dailyCashRecords") || "[]"
         );
@@ -69,7 +66,6 @@ export default function ExpenseAnalysis() {
         setExpenses(localExpenses);
         setDailyCashRecords(localCash);
 
-        // Fetch if empty
         if (!localExpenses.length || !localCash.length) {
           const [expenseRes, cashRes] = await Promise.all([
             fetch("/api/expenses"),
@@ -102,7 +98,7 @@ export default function ExpenseAnalysis() {
     loadData();
   }, []);
 
-  // Separate effect for fetching report by location
+  // Fetch daily cash by location
   useEffect(() => {
     const fetchReport = async () => {
       if (!selectedLocation) {
@@ -163,31 +159,42 @@ export default function ExpenseAnalysis() {
     return date.toISOString().split("T")[0] === selectedDate;
   };
 
-  const exportToExcel = (data) => {
-    const worksheet = XLSX.utils.json_to_sheet(data);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Expenses");
-    const excelBuffer = XLSX.write(workbook, {
-      bookType: "xlsx",
-      type: "array",
-    });
-    const blobData = new Blob([excelBuffer], {
+  // ────────────────────────────────────────────────────────────────
+  // 📌 UPDATED: Safe Excel export using ExcelJS
+  // ────────────────────────────────────────────────────────────────
+  const exportToExcel = async (data) => {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Expenses");
+
+    if (data.length > 0) {
+      worksheet.columns = Object.keys(data[0]).map((key) => ({
+        header: key,
+        key: key,
+        width: 20,
+      }));
+    }
+
+    data.forEach((row) => worksheet.addRow(row));
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
-    saveAs(blobData, `Expenses_Report_${new Date().toISOString()}.xlsx`);
+
+    saveAs(blob, `Expenses_Report_${new Date().toISOString()}.xlsx`);
   };
 
   // ─── Derived Data ───────────────────────────────────────────────────
-  // Ensure filters.selectedLocation is always in sync with selectedLocation
   useEffect(() => {
     setFilters((prev) => ({ ...prev, selectedLocation }));
   }, [selectedLocation]);
 
   const filteredExpenses = expenses.filter((exp) => {
-    const expDate = new Date(exp.createdAt);
+    const expDate = new Date(exp.date);
     const matchesStart =
       !filters.startDate || new Date(filters.startDate) <= expDate;
-    const matchesEnd = !filters.endDate || new Date(filters.endDate) >= expDate;
+    const matchesEnd =
+      !filters.endDate || new Date(filters.endDate) >= expDate;
     const matchesLocation =
       !filters.selectedLocation || exp.location === filters.selectedLocation;
     const matchesCategory =
@@ -208,7 +215,7 @@ export default function ExpenseAnalysis() {
   });
 
   const sortedExpenses = [...filteredExpenses].sort(
-    (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+    (a, b) => new Date(b.date) - new Date(a.date)
   );
 
   const filteredDailyCash = dailyCashRecords.filter(
@@ -231,7 +238,7 @@ export default function ExpenseAnalysis() {
   const totalExpenses = expenses
     .filter(
       (r) =>
-        isWithinDateRange(r.createdAt) &&
+        isWithinDateRange(r.date) &&
         (!selectedLocation ||
           (r.location &&
             r.location.toLowerCase().includes(selectedLocation.toLowerCase())))
@@ -529,7 +536,6 @@ export default function ExpenseAnalysis() {
         </div>
 
         <div className="flex justify-end pt-6 gap-4 max-w-7xl mx-auto">
-          {/* Recalculate Button */}
           <button
             onClick={async () => {
               if (
@@ -538,6 +544,7 @@ export default function ExpenseAnalysis() {
                 )
               )
                 return;
+
               try {
                 const res = await fetch("/api/daily-cash/recalculate", {
                   method: "POST",
@@ -556,7 +563,7 @@ export default function ExpenseAnalysis() {
                 alert("Network error. Please try again.");
               }
             }}
-            className="flex items-center gap-2 bg-green-600 px-4 py-2 text-white rounded-xl h-10 hover:bg-green-700 transition duration-200"
+            className="flex items-center gap-2 bg-green-600 px-4 py-8 text-white rounded-lg h-10 hover:bg-green-700 transition duration-200"
           >
             Recalculate Cash at Hand
           </button>

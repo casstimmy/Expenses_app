@@ -238,24 +238,36 @@ export default function StockOrder() {
     }
   };
 
-  const mergeOrders = async () => {
-    setMerging(true);
-    try {
-      const res = await fetch("/api/stock-orders/merge", { method: "POST" });
-      const data = await res.json();
-      if (data.success) {
-        alert(`Merged ${data.mergedCount} grouped orders!`);
-        loadSubmittedOrders();
-      } else {
-        alert("Merge failed");
-      }
-    } catch (err) {
-      console.error("Merge error:", err);
-      alert("Merge request failed.");
-    } finally {
-      setMerging(false);
+const mergeOrders = async () => {
+  if (!staff) {
+    alert("Staff information not found. Please reload the page.");
+    return;
+  }
+
+  setMerging(true);
+  try {
+    const res = await fetch("/api/stock-orders/merge", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ staff: staff._id}),
+    });
+
+    const data = await res.json();
+
+    if (res.ok && data.success) {
+      alert(`✅ Merged ${data.mergedCount} grouped orders successfully!`);
+      loadSubmittedOrders();
+    } else {
+      alert("❌ Merge failed: " + (data.error || "Unknown error"));
     }
-  };
+  } catch (err) {
+    console.error("Merge error:", err);
+    alert("Merge request failed.");
+  } finally {
+    setMerging(false);
+  }
+};
+
 
   // ====== Filtering ======
   const filteredVendors = useMemo(() => {

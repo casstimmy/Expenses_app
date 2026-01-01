@@ -31,7 +31,7 @@ export default async function handler(req, res) {
 
         const expenses = await Expense.find({
           location,
-          createdAt: { $gte: start, $lt: end },
+          date: { $gte: start, $lt: end },
         }).lean();
 
         const totalPayments = expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);

@@ -1,4 +1,3 @@
-// /pages/api/stock-orders/merge.js
 import { mongooseConnect } from "@/lib/mongoose";
 import StockOrder from "@/models/StockOrder";
 
@@ -10,38 +9,52 @@ export default async function handler(req, res) {
   }
 
   try {
-    const today = new Date().toISOString().split("T")[0];
-    const orders = await StockOrder.find({ date: today });
+    // ✅ Get staff from the frontend request
+    const { staff } = req.body;
+    if (!staff) {
+      return res.status(400).json({ error: "Staff information is required." });
+    }
+
+    // Fetch all stock orders
+    const orders = await StockOrder.find({ $or: [{ reason: { $exists: false } }, { reason: "" }] });
+
+    if (orders.length === 0) {
+      return res.status(200).json({
+        success: true,
+        mergedCount: 0,
+        message: "No orders found",
+      });
+    }
 
     const mergedMap = {};
 
     for (const order of orders) {
-      const key = `${order.date}|${order.supplier}|${order.mainProduct}`;
+      const key = `${order.vendor}|${order.supplier}`;
 
       if (!mergedMap[key]) {
         mergedMap[key] = {
-          date: order.date,
           supplier: order.supplier,
           contact: order.contact,
           mainProduct: order.mainProduct,
           vendor: order.vendor,
-          staff: order.staff, // ✅ collect staff from original order
+          staff,
           productsMap: {},
           _ids: [],
         };
       }
 
       for (const product of order.products) {
-        const name = product.name; // ✅ use `name`, not `product`
+        if (!product.name) continue; // ✅ Skip invalid products safely
 
+        const name = product.name;
         const quantity = Number(product.quantity) || 0;
         const price = Number(product.price) || 0;
 
         if (!mergedMap[key].productsMap[name]) {
           mergedMap[key].productsMap[name] = {
-            name: name, // ✅ use `name` key for new schema
+            name,
             quantity: 0,
-            price: price,
+            price,
           };
         }
 
@@ -52,38 +65,46 @@ export default async function handler(req, res) {
     }
 
     const mergedOrders = Object.values(mergedMap);
+    const mergedDocs = [];
+    const allMergedIds = [];
 
     for (const entry of mergedOrders) {
-      const mergedProducts = Object.values(entry.productsMap).map((p) => {
-        const total = Number(p.quantity) * Number(p.price);
-        return {
-          name: p.name,
-          quantity: p.quantity,
-          price: p.price,
-          total: isNaN(total) ? 0 : total,
-        };
-      });
+      const mergedProducts = Object.values(entry.productsMap).map((p) => ({
+        name: p.name,
+        quantity: p.quantity,
+        price: p.price,
+        total: Number(p.quantity) * Number(p.price),
+      }));
 
-      const grandTotal = mergedProducts.reduce((sum, p) => sum + (p.total || 0), 0);
+      const grandTotal = mergedProducts.reduce(
+        (sum, p) => sum + (p.total || 0),
+        0
+      );
 
-      await StockOrder.create({
-        date: entry.date,
+      mergedDocs.push({
+        date: new Date(),
         supplier: entry.supplier,
         contact: entry.contact,
         mainProduct: entry.mainProduct,
         vendor: entry.vendor,
-        staff: entry.staff, // ✅ required field now passed
+        staff: entry.staff,
         products: mergedProducts,
         grandTotal,
-        location: "All Locations (Merged)",
+        location: "All Locations (Merged by Vendor)",
       });
 
-      await StockOrder.deleteMany({ _id: { $in: entry._ids } });
+      allMergedIds.push(...entry._ids);
     }
 
+    await StockOrder.insertMany(mergedDocs);
+    await StockOrder.deleteMany({ _id: { $in: allMergedIds } });
+
+    console.log(`✅ Successfully merged ${mergedOrders.length} order groups`);
     res.status(200).json({ success: true, mergedCount: mergedOrders.length });
   } catch (err) {
-    console.error("Merge failed:", err);
-    res.status(500).json({ error: "Server error" });
+    console.error("❌ Merge failed:", err);
+    res.status(500).json({ error: err.message || "Server error" });
   }
 }
+
+

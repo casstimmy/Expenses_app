@@ -1,61 +1,86 @@
 import { mongooseConnect } from "@/lib/mongoose";
 import nodemailer from "nodemailer";
 import path from "path";
+import fs from "fs";
 import { Staff } from "@/models/Staff";
 
 export default async function handler(req, res) {
-const forceSend = req.query.force === "true";
+  // 1. Check method first
+  if (req.method !== "POST" && req.method !== "GET") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
 
-const today = new Date();
-const isTargetDate =
-  today.getDate() === 11 &&
-  today.getHours() === 12;
-
-if (!forceSend && !isTargetDate) {
-  return res
-    .status(200)
-    .json({ message: "Not the scheduled date/time, skipping email." });
-}
-
-
-    // Auth check for production
-    if (process.env.NODE_ENV === "production") {
-      const auth = req.headers.authorization;
-      if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
-        return res.status(401).send("Unauthorized");
-      }
+  // 2. Auth check (before DB connection)
+  if (process.env.NODE_ENV === "production") {
+    const auth = req.headers.authorization;
+    if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+      return res.status(401).json({ error: "Unauthorized" });
     }
+  }
 
-if (req.method !== "POST" && req.method !== "GET") {
-  return res.status(405).json({ error: "Method not allowed" });
-}
+  // 3. Check schedule
+  const forceSend = req.query.force === "true";
+  const today = new Date();
+  const isTargetDate = today.getDate() === 11 && today.getHours() === 12;
 
+  if (!forceSend && !isTargetDate) {
+    return res.status(200).json({
+      message: "Not the scheduled date/time, skipping email.",
+      nextRun: `11th of month at 12:00 (or use ?force=true to send now)`,
+    });
+  }
 
   try {
     await mongooseConnect();
 
-    const { EMAIL_USER, EMAIL_PASS } = process.env;
+    // 4. Validate required env vars
+    const { EMAIL_USER, EMAIL_PASS, SALARY_MAIL_TO, SALARY_MAIL_CC } =
+      process.env;
+
     if (!EMAIL_USER || !EMAIL_PASS) {
-      return res.status(500).json({ error: "Missing email credentials" });
+      return res.status(500).json({
+        error: "Missing email credentials in .env",
+        required: ["EMAIL_USER", "EMAIL_PASS"],
+        hint: "Use Gmail App Password if 2FA is enabled",
+      });
     }
 
-    // Gmail SMTP — use App Password if 2FA is enabled
+    if (!SALARY_MAIL_TO) {
+      return res.status(500).json({
+        error: "Missing SALARY_MAIL_TO in .env",
+      });
+    }
+
+    // 5. Create transporter with port 587 (TLS) — more reliable than 465
     const transporter = nodemailer.createTransport({
-      service: "gmail",
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false, // Use TLS (not SSL)
       auth: {
         user: EMAIL_USER,
-        pass: EMAIL_PASS, // App Password here
+        pass: EMAIL_PASS,
       },
+      connectionTimeout: 10000,
+      socketTimeout: 10000,
     });
 
+    // 6. Test connection before sending
+    console.log("🔗 Testing SMTP connection...");
+    await transporter.verify();
+    console.log("✅ SMTP verified");
 
+    // 7. Fetch staff
     const staffList = await Staff.find({});
+    if (!staffList || staffList.length === 0) {
+      return res.status(400).json({ error: "No staff records found" });
+    }
+
     const currentMonth = new Date().toLocaleString("default", {
       month: "long",
     });
     const currentYear = new Date().getFullYear();
 
-    // 1. Keep it as a number here
+    // 8. Calculate total net salary
     const totalNetSalary = staffList.reduce((sum, staff) => {
       const totalPenalty = (staff.penalty || []).reduce(
         (penSum, p) => penSum + (p.amount || 0),
@@ -67,9 +92,9 @@ if (req.method !== "POST" && req.method !== "GET") {
 
     const formattedTotal = Number(totalNetSalary || 0).toLocaleString();
 
+    // 9. Build table rows
     const tableRows = staffList
       .map((staff) => {
-        // Calculate total penalties directly from staff.penalty array
         const totalPenalty = (staff.penalty || []).reduce(
           (sum, p) => sum + (p.amount || 0),
           0
@@ -90,7 +115,7 @@ if (req.method !== "POST" && req.method !== "GET") {
             <td style="border:1px solid #ddd;padding:8px;">${
               staff.bank?.bankName || "N/A"
             }</td>
-            <td style="border:1px solid #ddd;padding:8px;">₦${netSalary}</td>
+            <td style="border:1px solid #ddd;padding:8px;text-align:right;">₦${netSalary}</td>
           </tr>
         `;
       })
@@ -146,29 +171,61 @@ if (req.method !== "POST" && req.method !== "GET") {
   </div>
 `;
 
+    // 10. Check if logo exists (gracefully skip if missing)
+    const logoPath = path.resolve(
+      process.cwd(),
+      "public",
+      "image",
+      "LogoName.png"
+    );
+    const attachments = [];
+
+    if (fs.existsSync(logoPath)) {
+      attachments.push({
+        filename: "logo.png",
+        path: logoPath,
+        cid: "logo_cid",
+      });
+      console.log("📎 Logo attached");
+    } else {
+      console.warn("⚠️ Logo not found at:", logoPath);
+    }
+
+    // 11. Build mail options
     const mailOptions = {
       from: `"Ibile Mail" <${EMAIL_USER}>`,
-      to: "paul@oakleighinvestments.com",
-      cc: "boyeadelo@gmail.com, hello.ayoola@gmail.com",
+      to: SALARY_MAIL_TO,
+      cc: SALARY_MAIL_CC || undefined, // Optional
       subject: `${currentMonth} ${currentYear} Salary Schedule`,
       html: mailHtml,
-      attachments: [
-        {
-          filename: "logo.png",
-          path: path.resolve(process.cwd(), "public", "image", "LogoName.png"),
-          cid: "logo_cid",
-        },
-      ],
+      attachments,
     };
 
-    await transporter.sendMail(mailOptions);
+    // 12. Send email
+    console.log("📧 Sending email to:", SALARY_MAIL_TO);
+    const info = await transporter.sendMail(mailOptions);
+    console.log("✅ Email sent:", info.messageId);
 
-    return res.status(200).json({ message: "Salary email sent successfully." });
+    return res.status(200).json({
+      message: "Salary email sent successfully.",
+      staffCount: staffList.length,
+      totalSalary: formattedTotal,
+      sentTo: SALARY_MAIL_TO,
+      messageId: info.messageId,
+      timestamp: new Date().toISOString(),
+    });
   } catch (err) {
     console.error("❌ Error sending salary email:", err);
     return res.status(500).json({
-      error: "Failed to send salary email. Please try again.",
-      details: err.message,
+      error: "Failed to send salary email.",
+      code: err.code,
+      message: err.message,
+      hint:
+        err.code === "ESOCKET"
+          ? "SMTP connection failed. Check EMAIL_USER/EMAIL_PASS. Use Gmail App Password if 2FA enabled."
+          : err.code === "EAUTH"
+          ? "Invalid email credentials. Verify EMAIL_USER and EMAIL_PASS."
+          : "Check logs for details",
     });
   }
-};
+}

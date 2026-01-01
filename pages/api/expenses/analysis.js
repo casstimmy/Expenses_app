@@ -12,7 +12,7 @@ export default async function handler(req, res) {
 
     const expenses = await Expense.find({})
       .populate("category", "name")
-      .sort({ createdAt: -1 })
+      .sort({ date: -1 })
       .lean();
 
     const totalSpent = expenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
@@ -30,7 +30,7 @@ export default async function handler(req, res) {
 
     // Title & Branding
     doc
-    .image("public/images/st-micheals-logo.png", 50, 40, { width: 60 })
+    .image("public/images/logo.png", 50, 40, { width: 60 })
       .moveDown(0.5)
       .moveTo(50, doc.y - 8);
     
@@ -100,7 +100,7 @@ export default async function handler(req, res) {
         .text(`  |  Category: ${exp.category?.name || "Uncategorized"}`);
 
       doc.text(`Location: ${exp.location || "N/A"}`);
-      doc.text(`Date: ${new Date(exp.createdAt).toLocaleDateString()}`);
+      doc.text(`Date: ${new Date(exp.date).toLocaleDateString()}`);
       doc.moveDown(1.5);
     });
 
