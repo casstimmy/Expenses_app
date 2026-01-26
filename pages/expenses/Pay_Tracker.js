@@ -186,7 +186,8 @@ export default function PayTracker() {
       if (ignore) return;
       if (dueOrders.length > 0 && !reminderSent) {
         try {
-          const res = await fetch("/api/stock-orders/cron", {
+          // Add the key query parameter for authorization
+          const res = await fetch(`/api/stock-orders/cron?key=${process.env.NEXT_PUBLIC_CRON_SECRET || ''}` , {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ dueOrders }),
