@@ -7,9 +7,15 @@ export default async function handler(req, res) {
   try {
     // Auth check for production
     if (process.env.NODE_ENV === "production") {
-      const auth = req.headers.authorization;
-      if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
-        return res.status(401).send("Unauthorized");
+      // Allow CRON_SECRET as query param for Vercel native cron
+      const key = req.query.key;
+      if (key && key === process.env.CRON_SECRET) {
+        // Allow
+      } else {
+        const auth = req.headers.authorization;
+        if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+          return res.status(401).send("Unauthorized");
+        }
       }
     }
 
