@@ -1,0 +1,38 @@
+[
+  {
+    "name": "Chioma",
+    "password": "$2b$10$ZpGdsclzs0z0I36XEV4vs.LWN/edSHVq917LyUN]6U67qCo8VPEu",
+    "location": "Ibile 1",
+    "role": "admin",
+    "active": true,
+    "bank": {},
+    "salary": 160000,
+    "penalty": [],
+    "createdAt": "2025-07-03T16:02:06.163Z",
+    "updatedAt": "2026-01-01T13:53:50.767Z"
+  },
+  {
+    "name": "Ayoola",
+    "password": "$2b$10$SIZQe1scZbdVR5GJ05u0/7uMePSpK7zd9Qa2uu0ai1K3VITj5s5azK",
+    "location": "Ibile 1",
+    "role": "admin",
+    "active": true,
+    "bank": {},
+    "salary": 0,
+    "penalty": [],
+    "createdAt": "2025-07-03T16:43:03.620Z",
+    "updatedAt": "2026-01-04T14:11:49.451Z"
+  },
+  {
+    "name": "Emma",
+    "password": "$2b$10$5rre7Gk3vdfi'm7k/jkv6HfQIAQ4z5f0f1R/TfReIoxPo109xbj8F1",
+    "location": "Ibile 2",
+    "role": "staff",
+    "active": true,
+    "bank": {},
+    "salary": 80000,
+    "penalty": [],
+    "createdAt": "2025-07-06T01:53:07.090Z",
+    "updatedAt": "2026-01-01T13:52:56.679Z"
+  }
+]

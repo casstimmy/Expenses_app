@@ -241,21 +241,33 @@ export default function Home({ staffList, locations }) {
 }
 
 export async function getServerSideProps() {
-  const { mongooseConnect } = await import("@/lib/mongoose");
-  const Staff = (await import("@/models/Staff")).Staff;
+  try {
+    const { mongooseConnect } = await import("@/lib/mongoose");
+    const { Staff } = await import("@/models/Staff");
 
-  await mongooseConnect();
-  const staffDocs = await Staff.find({}, "name role").lean();
-  const staffList = staffDocs.map((s) => ({
-    name: s.name,
-    role: s.role,
-  }));
-  const locations = ["Ibile 1", "Ibile 2"];
+    await mongooseConnect();
 
-  return {
-    props: {
-      staffList,
-      locations,
-    },
-  };
+    const staffDocs = await Staff.find({}).lean();
+
+    const staffList = staffDocs.map((s) => ({
+      name: s.name,
+      role: s.role,
+    }));
+    const locations = ["Ibile 1", "Ibile 2"];
+
+    return {
+      props: {
+        staffList,
+        locations,
+      },
+    };
+  } catch (error) {
+    console.error("❌ getServerSideProps error:", error.message);
+    return {
+      props: {
+        staffList: [],
+        locations: ["Ibili 1", "Ibili 2"],
+      },
+    };
+  }
 }

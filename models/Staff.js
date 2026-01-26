@@ -61,4 +61,4 @@ StaffSchema.methods.comparePassword = async function (inputPassword) {
   return bcrypt.compare(inputPassword, this.password);
 };
 
-export const Staff = mongoose.models.Staff || mongoose.model("Staff", StaffSchema);
+export const Staff = mongoose.models.Staff || mongoose.model("Staff", StaffSchema, "staffs");

@@ -18,6 +18,15 @@ export default function Ibile1Details() {
 
   const itemsPerPage = 4;
 
+  // ✅ FIX: Convert Date → YYYY-MM-DD (LOCAL SAFE)
+  const toLocalDateString = (date) => {
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
   // Load data
   useEffect(() => {
     const loadData = async () => {
@@ -62,100 +71,78 @@ export default function Ibile1Details() {
         expDate.getDate() === target.getDate()
       );
     });
-    
 
   // Expense CRUD
-const handleCreateExpense = async (date) => {
+  const handleCreateExpense = async (cashEntry) => {
     if (!newExpense.title || !newExpense.amount || !newExpense.category) {
       alert("Please fill in all fields.");
       return;
     }
 
     try {
-      const normalizedDate = new Date(date);
-      normalizedDate.setHours(0, 0, 0, 0);
-
-      // Find the category object
-      const selectedCategory = categories.find((cat) => cat._id === newExpense.category);
-
-      if (!selectedCategory) {
-        alert("Selected category not found.");
-        return;
-      }
-
       const res = await fetch("/api/expenses", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: newExpense.title,
           amount: Number(newExpense.amount),
-          category: selectedCategory._id,
-          location: "Ibile 1",
-          date: normalizedDate.toISOString(),
+          category: newExpense.category,
+
+          // 🔐 CONTEXT — THIS IS THE KEY
+          date: toLocalDateString(cashEntry.date),
+
+          location: cashEntry.location || "Ibile 1",
+          staff: cashEntry.staff || null,
         }),
       });
 
       if (!res.ok) throw new Error("Failed to create expense");
 
-      let created = await res.json();
-      
-      // Ensure category object is populated for display
-      if (!created.category || typeof created.category === "string") {
-        created.category = selectedCategory;
-      }
+      const created = await res.json();
 
-      setExpenses([created, ...expenses]);
-      setNewExpense({ title: "", amount: "", category: "", date: "" });
+      // Immediately reflect under the correct day
+      setExpenses((prev) => [created, ...prev]);
+
+      setNewExpense({ title: "", amount: "", category: "" });
     } catch (err) {
       console.error("❌ Expense create failed:", err);
       alert("Failed to add expense");
     }
   };
 
-const handleEditExpense = async () => {
-    if (!editingExpense.title || !editingExpense.amount || !editingExpense.category) {
+  const handleEditExpense = async () => {
+    if (
+      !editingExpense.title ||
+      !editingExpense.amount ||
+      !editingExpense.category
+    ) {
       alert("Please fill in all fields.");
       return;
     }
 
     try {
-      const normalizedDate = editingExpense.date
-        ? new Date(editingExpense.date)
-        : new Date();
-      normalizedDate.setHours(0, 0, 0, 0);
-
-      // Find the category object if editing category
-      const categoryId = typeof editingExpense.category === "string" 
-        ? editingExpense.category 
-        : editingExpense.category._id;
-
-      // Find the full category object for display
-      const categoryObj = categories.find((cat) => cat._id === categoryId);
-
       const res = await fetch(`/api/expenses/${editingExpense._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: editingExpense.title,
           amount: Number(editingExpense.amount),
-          category: categoryId,
-          date: normalizedDate.toISOString(),
+          category: editingExpense.category,
+          location: "Ibile 1",
+
+          // ✅ FIX — USE EXPENSE DATE, NOT CASH ENTRY
+          date: toLocalDateString(editingExpense.date),
         }),
       });
 
       if (!res.ok) throw new Error("Failed to update expense");
 
-      setExpenses(
-        expenses.map((e) =>
-          e._id === editingExpense._id
-            ? { 
-                ...editingExpense, 
-                category: categoryObj,
-                date: normalizedDate.toISOString() 
-              }
-            : e
-        )
+      const updated = await res.json();
+
+      setExpenses((prev) =>
+        prev.map((e) => (e._id === updated._id ? updated : e))
       );
+
       setEditingExpense(null);
     } catch (err) {
       console.error("❌ Expense update failed:", err);
@@ -195,8 +182,12 @@ const handleEditExpense = async () => {
     <Layout>
       <div className="min-h-screen bg-gray-50 p-6 space-y-10">
         <div>
-          <h1 className="text-3xl font-bold text-blue-800 mb-2">Ibile 1 Details</h1>
-          <p className="text-gray-600">Manage daily cash and expenses for Ibile 1</p>
+          <h1 className="text-3xl font-bold text-blue-800 mb-2">
+            Ibile 1 Details
+          </h1>
+          <p className="text-gray-600">
+            Manage daily cash and expenses for Ibile 1
+          </p>
         </div>
 
         {/* Reports Grid */}
@@ -221,7 +212,8 @@ const handleEditExpense = async () => {
                       📊 End of Day Report
                     </h2>
                     <p className="text-sm text-gray-500">
-                      Date: {currentDate.toLocaleDateString("en-NG")} | Location: Ibile 1
+                      Date: {currentDate.toLocaleDateString("en-NG")} |
+                      Location: Ibile 1
                     </p>
                   </div>
 
@@ -258,7 +250,10 @@ const handleEditExpense = async () => {
                       {dailyExpenses.length ? (
                         dailyExpenses.map((exp) =>
                           editingExpense?._id === exp._id ? (
-                            <li key={exp._id} className="p-3 bg-blue-50 space-y-2">
+                            <li
+                              key={exp._id}
+                              className="p-3 bg-blue-50 space-y-2"
+                            >
                               <input
                                 type="text"
                                 value={editingExpense.title}
@@ -333,7 +328,12 @@ const handleEditExpense = async () => {
                               </span>
                               <div className="flex gap-1">
                                 <button
-                                  onClick={() => setEditingExpense(exp)}
+                                  onClick={() =>
+                                    setEditingExpense({
+                                      ...exp,
+                                      category: exp.category?._id || "",
+                                    })
+                                  }
                                   className="px-2 py-1 bg-yellow-500 hover:bg-yellow-600 text-white rounded text-xs"
                                 >
                                   ✏️
@@ -404,7 +404,7 @@ const handleEditExpense = async () => {
                         </select>
                       </div>
                       <button
-                        onClick={() => handleCreateExpense(c.date)}
+                        onClick={() => handleCreateExpense(c)}
                         className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium text-sm"
                       >
                         Add Expense

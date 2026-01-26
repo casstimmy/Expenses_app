@@ -15,7 +15,7 @@ export default function OrderMemoPage() {
 
 
  useEffect(() => {
-  if (!id || typeof id !== "string") return;
+  if (!router.isReady || !id || typeof id !== "string") return;
 
   console.log("Order ID:", id);
 
@@ -26,7 +26,7 @@ export default function OrderMemoPage() {
     })
     .then((data) => setOrder(data.order))
     .catch((err) => console.error("Failed to load order:", err));
-}, [id]);
+}, [id, router.isReady]);
 
 if (!id) {
   return <div className="p-6 text-center text-gray-600">Preparing order...</div>;

@@ -1,5 +1,5 @@
 import { mongooseConnect } from "@/lib/mongoose";
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 import path from "path";
 import fs from "fs";
 import { Staff } from "@/models/Staff";
@@ -34,14 +34,19 @@ export default async function handler(req, res) {
     await mongooseConnect();
 
     // 4. Validate required env vars
-    const { EMAIL_USER, EMAIL_PASS, SALARY_MAIL_TO, SALARY_MAIL_CC } =
+    const { RESEND_API_KEY, FROM_EMAIL, SALARY_MAIL_TO, SALARY_MAIL_CC } =
       process.env;
 
-    if (!EMAIL_USER || !EMAIL_PASS) {
+    if (!RESEND_API_KEY) {
       return res.status(500).json({
-        error: "Missing email credentials in .env",
-        required: ["EMAIL_USER", "EMAIL_PASS"],
-        hint: "Use Gmail App Password if 2FA is enabled",
+        error: "Missing RESEND_API_KEY in .env",
+        hint: "Get your API key from https://resend.com/api-keys",
+      });
+    }
+
+    if (!FROM_EMAIL) {
+      return res.status(500).json({
+        error: "Missing FROM_EMAIL in .env",
       });
     }
 
@@ -51,23 +56,8 @@ export default async function handler(req, res) {
       });
     }
 
-    // 5. Create transporter with port 587 (TLS) — more reliable than 465
-    const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 587,
-      secure: false, // Use TLS (not SSL)
-      auth: {
-        user: EMAIL_USER,
-        pass: EMAIL_PASS,
-      },
-      connectionTimeout: 10000,
-      socketTimeout: 10000,
-    });
-
-    // 6. Test connection before sending
-    console.log("🔗 Testing SMTP connection...");
-    await transporter.verify();
-    console.log("✅ SMTP verified");
+    // 5. Initialize Resend
+    const resend = new Resend(RESEND_API_KEY);
 
     // 7. Fetch staff
     const staffList = await Staff.find({});
@@ -121,15 +111,12 @@ export default async function handler(req, res) {
       })
       .join("");
 
+    const currentYear = new Date().getFullYear();
+
     const mailHtml = `
   <div style="font-family:'Segoe UI',Roboto,sans-serif;background:#f0f4f8;padding:30px;">
     <div style="max-width:700px;margin:auto;background:#ffffff;padding:40px 30px;border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,0.1);border:1px solid #e1e1e1;">
       
-      <!-- Logo -->
-      <div style="text-align:center;margin-bottom:30px;">
-        <img src="cid:logo_cid" alt="Company Logo" style="max-width:120px;height:auto;" />
-      </div>
-
       <!-- Title -->
       <h2 style="text-align:center;color:#003366;font-size:22px;margin-bottom:10px;">Salary Payment Schedule</h2>
       <p style="text-align:center;color:#555;font-size:15px;margin-bottom:30px;">
@@ -171,61 +158,43 @@ export default async function handler(req, res) {
   </div>
 `;
 
-    // 10. Check if logo exists (gracefully skip if missing)
-    const logoPath = path.resolve(
-      process.cwd(),
-      "public",
-      "image",
-      "LogoName.png"
-    );
-    const attachments = [];
-
-    if (fs.existsSync(logoPath)) {
-      attachments.push({
-        filename: "logo.png",
-        path: logoPath,
-        cid: "logo_cid",
-      });
-      console.log("📎 Logo attached");
-    } else {
-      console.warn("⚠️ Logo not found at:", logoPath);
-    }
-
-    // 11. Build mail options
+    // 10. Build mail options
     const mailOptions = {
-      from: `"Ibile Mail" <${EMAIL_USER}>`,
+      from: FROM_EMAIL,
       to: SALARY_MAIL_TO,
-      cc: SALARY_MAIL_CC || undefined, // Optional
+      ...(SALARY_MAIL_CC && { cc: SALARY_MAIL_CC }),
       subject: `${currentMonth} ${currentYear} Salary Schedule`,
       html: mailHtml,
-      attachments,
     };
 
-    // 12. Send email
-    console.log("📧 Sending email to:", SALARY_MAIL_TO);
-    const info = await transporter.sendMail(mailOptions);
-    console.log("✅ Email sent:", info.messageId);
+    // 11. Send email via Resend
+    console.log("📧 Sending salary email via Resend to:", SALARY_MAIL_TO);
+    const emailResponse = await resend.emails.send(mailOptions);
+
+    if (emailResponse.error) {
+      console.error("❌ Resend error:", emailResponse.error);
+      return res.status(500).json({
+        error: "Failed to send salary email",
+        details: emailResponse.error,
+      });
+    }
+
+    console.log("✅ Email sent successfully:", emailResponse.data?.id);
 
     return res.status(200).json({
-      message: "Salary email sent successfully.",
+      message: "Salary email sent successfully via Resend.",
       staffCount: staffList.length,
       totalSalary: formattedTotal,
       sentTo: SALARY_MAIL_TO,
-      messageId: info.messageId,
+      messageId: emailResponse.data?.id,
       timestamp: new Date().toISOString(),
     });
   } catch (err) {
     console.error("❌ Error sending salary email:", err);
     return res.status(500).json({
-      error: "Failed to send salary email.",
-      code: err.code,
+      error: "Failed to send salary email",
       message: err.message,
-      hint:
-        err.code === "ESOCKET"
-          ? "SMTP connection failed. Check EMAIL_USER/EMAIL_PASS. Use Gmail App Password if 2FA enabled."
-          : err.code === "EAUTH"
-          ? "Invalid email credentials. Verify EMAIL_USER and EMAIL_PASS."
-          : "Check logs for details",
+      hint: "Check RESEND_API_KEY configuration and ensure you have an active Resend account",
     });
   }
 }
