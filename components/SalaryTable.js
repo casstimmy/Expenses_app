@@ -8,17 +8,23 @@ const SalaryTable = forwardRef(({ staffList = [], currentStaff }, ref) => {
   const totalPenalties = (staff) =>
     staff.penalty?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
 
-  // Calculate total for the full list
-  const totalAmount = staffList.reduce(
+
+  // Filter out staff with net salary 0
+  const filteredStaffList = staffList.filter(
+    (staff) => (Number(staff.salary) || 0) - totalPenalties(staff) > 0
+  );
+
+  // Calculate total for the filtered list
+  const totalAmount = filteredStaffList.reduce(
     (total, staff) =>
       total + ((Number(staff.salary) || 0) - totalPenalties(staff)),
     0
   );
 
-  // Chunk staff list into groups of 5
+  // Chunk filtered staff list into groups of 5
   const chunkedStaff = [];
-  for (let i = 0; i < staffList.length; i += 5) {
-    chunkedStaff.push(staffList.slice(i, i + 5));
+  for (let i = 0; i < filteredStaffList.length; i += 5) {
+    chunkedStaff.push(filteredStaffList.slice(i, i + 5));
   }
 
   // Subtotal per chunk
