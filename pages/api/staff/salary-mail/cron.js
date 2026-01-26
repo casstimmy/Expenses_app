@@ -111,7 +111,7 @@ export default async function handler(req, res) {
       })
       .join("");
 
-    const currentYear = new Date().getFullYear();
+
 
     const mailHtml = `
   <div style="font-family:'Segoe UI',Roboto,sans-serif;background:#f0f4f8;padding:30px;">
