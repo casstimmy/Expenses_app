@@ -272,9 +272,12 @@ const mergeOrders = async () => {
   // ====== Filtering ======
   const filteredVendors = useMemo(() => {
     if (!productSearch.trim()) return vendors;
+    const search = productSearch.toLowerCase();
     return vendors.filter((vendor) =>
+      // Match by vendor name or any product name
+      vendor.companyName?.toLowerCase().includes(search) ||
       vendor.products?.some((p) =>
-        p?.product?.name?.toLowerCase().includes(productSearch.toLowerCase())
+        p?.product?.name?.toLowerCase().includes(search)
       )
     );
   }, [productSearch, vendors]);
