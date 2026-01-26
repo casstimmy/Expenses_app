@@ -7,13 +7,17 @@ export default async function handler(req, res) {
   try {
     // Auth check for production
     if (process.env.NODE_ENV === "production") {
-      // Allow CRON_SECRET as query param for Vercel native cron
+      // Debug logging for troubleshooting
       const key = req.query.key;
+      console.log("[CRON DEBUG] Received key:", key);
+      console.log("[CRON DEBUG] Server CRON_SECRET:", process.env.CRON_SECRET);
       if (key && key === process.env.CRON_SECRET) {
         // Allow
       } else {
         const auth = req.headers.authorization;
+        console.log("[CRON DEBUG] Received Authorization header:", auth);
         if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+          console.log("[CRON DEBUG] 401 Unauthorized triggered");
           return res.status(401).send("Unauthorized");
         }
       }
