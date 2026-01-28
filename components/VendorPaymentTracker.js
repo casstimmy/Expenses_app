@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import "@/styles/keypad-effect.css";
+import { useState, useEffect, useRef, useMemo } from "react";
 
 export function VendorPaymentTracker({
   orders: initialOrders = [],
@@ -392,7 +394,7 @@ export function VendorPaymentTracker({
                         <button
                           disabled={isBusy}
                           onClick={() => handleSave(idx)}
-                          className="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-md text-sm font-medium transition"
+                          className="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-md text-sm font-medium transition keypad-btn"
                           aria-label="Save payment"
                         >
                           Save
@@ -400,6 +402,7 @@ export function VendorPaymentTracker({
                         <button
                           onClick={handleCancel}
                           className="flex items-center gap-1 bg-red-500 hover:bg-red-600 text-white px-4 py-1.5 rounded-md text-sm font-medium transition"
+                                                   className="flex items-center gap-1 bg-red-500 hover:bg-red-600 text-white px-4 py-1.5 rounded-md text-sm font-medium transition keypad-btn"
                           aria-label="Cancel edit"
                         >
                           Cancel
@@ -415,6 +418,7 @@ export function VendorPaymentTracker({
                         disabled={isBusy}
                         onClick={() => handleEdit(idx, order.paymentMade)}
                         className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition"
+                                                 className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition keypad-btn"
                         aria-label="Edit payment"
                       >
                         Edit
@@ -474,6 +478,8 @@ export function VendorPaymentTracker({
                     disabled={isBusy}
                     onClick={() => handleDelete(order._id)}
                     className="inline-flex items-center gap-1 bg-red-100 text-red-600 text-sm font-medium px-3 py-2 rounded-md shadow hover:bg-red-200 hover:text-red-700 transition"
+                                         className="inline-flex items-center gap-1 bg-red-100 text-red-600 text-sm font-medium px-3 py-2 rounded-md shadow hover:bg-red-200 hover:text-red-700 transition keypad-btn"
+                                     className="inline-flex items-center gap-2 bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-md shadow hover:bg-blue-700 transition keypad-btn"
                     aria-label="Delete order"
                   >
                     Delete
@@ -616,12 +622,14 @@ export function VendorPaymentTracker({
                     disabled={isBusy}
                     onClick={() => handleSave(idx)}
                     className="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs"
+                                       className="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs keypad-btn"
                   >
                     Save
                   </button>
                   <button
                     onClick={handleCancel}
                     className="flex items-center gap-1 bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs"
+                                       className="flex items-center gap-1 bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs keypad-btn"
                   >
                     Cancel
                   </button>
@@ -633,6 +641,7 @@ export function VendorPaymentTracker({
                     disabled={isBusy}
                     onClick={() => handleEdit(idx, order.paymentMade)}
                     className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs"
+                                     className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs keypad-btn"
                   >
                     Edit
                   </button>
@@ -645,6 +654,7 @@ export function VendorPaymentTracker({
                 disabled={isBusy}
                 onClick={() => handleDelete(order._id)}
                 className="flex items-center gap-1 bg-red-600 text-white px-4 py-1.5 rounded text-sm hover:bg-red-700 transition"
+                             className="flex items-center gap-1 bg-red-600 text-white px-4 py-1.5 rounded text-sm hover:bg-red-700 transition keypad-btn"
               >
                 Delete
               </button>
