@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import "@/styles/keypad-effect.css";
-import { useState, useEffect, useRef, useMemo } from "react";
 
 export function VendorPaymentTracker({
   orders: initialOrders = [],
