@@ -14,12 +14,15 @@ export default async function handler(req, res) {
   if (process.env.NODE_ENV === "production") {
     const key = req.query.key;
     const auth = req.headers.authorization;
+    console.log("[CRON DEBUG] Received key:", key);
+    console.log("[CRON DEBUG] Server CRON_SECRET:", process.env.CRON_SECRET);
+    console.log("[CRON DEBUG] Received Authorization header:", auth);
     if (key && key === process.env.CRON_SECRET) {
       // Allow
     } else if (auth === `Bearer ${process.env.CRON_SECRET}`) {
       // Allow
     } else {
-      console.log('[MAIL DEBUG] Unauthorized: bad CRON_SECRET');
+      console.log("[CRON DEBUG] 401 Unauthorized triggered");
       return res.status(401).json({ error: "Unauthorized" });
     }
   }
