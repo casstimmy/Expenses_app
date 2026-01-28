@@ -179,7 +179,7 @@ export default async function handler(req, res) {
 
     // 10. Build mail options
     const mailOptions = {
-      from: EMAIL_USER,
+      from: FROM_EMAIL,
       to: SALARY_MAIL_TO,
       ...(SALARY_MAIL_CC && { cc: SALARY_MAIL_CC }),
       subject: `${currentMonth} ${currentYear} Salary Schedule`,
