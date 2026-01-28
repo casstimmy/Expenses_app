@@ -5,26 +5,30 @@ import fs from "fs";
 import { Staff } from "@/models/Staff";
 
 export default async function handler(req, res) {
-  // 1. Check method first
-  if (req.method !== "POST" && req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
 
-  // 2. Auth check (before DB connection)
-  if (process.env.NODE_ENV === "production") {
-    const key = req.query.key;
-    const auth = req.headers.authorization;
-    console.log("[CRON DEBUG] Received key:", key);
-    console.log("[CRON DEBUG] Server CRON_SECRET:", process.env.CRON_SECRET);
-    console.log("[CRON DEBUG] Received Authorization header:", auth);
-    if (key && key === process.env.CRON_SECRET) {
-      // Allow
-    } else if (auth === `Bearer ${process.env.CRON_SECRET}`) {
-      // Allow
-    } else {
-      console.log("[CRON DEBUG] 401 Unauthorized triggered");
-      return res.status(401).json({ error: "Unauthorized" });
+
+
+  // 1. Auth check (before DB connection)
+    if (process.env.NODE_ENV === "production") {
+      // Debug logging for troubleshooting
+      const key = req.query.key;
+      console.log("[CRON DEBUG] Received key:", key);
+      console.log("[CRON DEBUG] Server CRON_SECRET:", process.env.CRON_SECRET);
+      if (key && key === process.env.CRON_SECRET) {
+        // Allow
+      } else {
+        const auth = req.headers.authorization;
+        console.log("[CRON DEBUG] Received Authorization header:", auth);
+        if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+          console.log("[CRON DEBUG] 401 Unauthorized triggered");
+          return res.status(401).send("Unauthorized");
+        }
+      }
     }
+
+    // 2. Check method first
+    if (req.method !== "POST" && req.method !== "GET") {
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
   // 3. Check schedule
