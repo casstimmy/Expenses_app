@@ -14,6 +14,7 @@ export default async function handler(req, res) {
   if (process.env.NODE_ENV === "production") {
     const auth = req.headers.authorization;
     if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+      console.log('[MAIL DEBUG] Unauthorized: bad CRON_SECRET');
       return res.status(401).json({ error: "Unauthorized" });
     }
   }
@@ -31,13 +32,16 @@ export default async function handler(req, res) {
   }
 
   try {
+    console.log('[MAIL DEBUG] Connecting to MongoDB...');
     await mongooseConnect();
+    console.log('[MAIL DEBUG] Connected to MongoDB.');
 
     // 4. Validate required env vars
-    const { RESEND_API_KEY, FROM_EMAIL, SALARY_MAIL_TO, SALARY_MAIL_CC } =
-      process.env;
+    const { RESEND_API_KEY, FROM_EMAIL, SALARY_MAIL_TO, SALARY_MAIL_CC } = process.env;
+    console.log('[MAIL DEBUG] ENV:', { RESEND_API_KEY: !!RESEND_API_KEY, FROM_EMAIL, SALARY_MAIL_TO, SALARY_MAIL_CC });
 
     if (!RESEND_API_KEY) {
+      console.log('[MAIL DEBUG] Missing RESEND_API_KEY');
       return res.status(500).json({
         error: "Missing RESEND_API_KEY in .env",
         hint: "Get your API key from https://resend.com/api-keys",
@@ -45,12 +49,14 @@ export default async function handler(req, res) {
     }
 
     if (!FROM_EMAIL) {
+      console.log('[MAIL DEBUG] Missing FROM_EMAIL');
       return res.status(500).json({
         error: "Missing FROM_EMAIL in .env",
       });
     }
 
     if (!SALARY_MAIL_TO) {
+      console.log('[MAIL DEBUG] Missing SALARY_MAIL_TO');
       return res.status(500).json({
         error: "Missing SALARY_MAIL_TO in .env",
       });
@@ -58,10 +64,13 @@ export default async function handler(req, res) {
 
     // 5. Initialize Resend
     const resend = new Resend(RESEND_API_KEY);
+    console.log('[MAIL DEBUG] Resend client initialized.');
 
     // 7. Fetch staff
     const staffList = await Staff.find({});
+    console.log('[MAIL DEBUG] Staff count:', staffList.length);
     if (!staffList || staffList.length === 0) {
+      console.log('[MAIL DEBUG] No staff records found');
       return res.status(400).json({ error: "No staff records found" });
     }
 
@@ -168,8 +177,9 @@ export default async function handler(req, res) {
     };
 
     // 11. Send email via Resend
-    console.log("📧 Sending salary email via Resend to:", SALARY_MAIL_TO);
+    console.log("[MAIL DEBUG] Sending salary email via Resend to:", SALARY_MAIL_TO);
     const emailResponse = await resend.emails.send(mailOptions);
+    console.log('[MAIL DEBUG] Resend response:', emailResponse);
 
     if (emailResponse.error) {
       console.error("❌ Resend error:", emailResponse.error);

@@ -27,11 +27,15 @@ export default async function handler(req, res) {
       return res.status(405).json({ error: "Method not allowed" });
     }
 
+    console.log('[MAIL DEBUG] Connecting to MongoDB...');
     await mongooseConnect();
+    console.log('[MAIL DEBUG] Connected to MongoDB.');
 
     const { RESEND_API_KEY, FROM_EMAIL, REMINDER_EMAIL } = process.env;
+    console.log('[MAIL DEBUG] ENV:', { RESEND_API_KEY: !!RESEND_API_KEY, FROM_EMAIL, REMINDER_EMAIL });
     
     if (!RESEND_API_KEY) {
+      console.log('[MAIL DEBUG] Missing RESEND_API_KEY');
       return res.status(500).json({
         error: "Missing RESEND_API_KEY in .env",
         hint: "Get your API key from https://resend.com/api-keys",
@@ -39,14 +43,17 @@ export default async function handler(req, res) {
     }
 
     if (!FROM_EMAIL) {
+      console.log('[MAIL DEBUG] Missing FROM_EMAIL');
       return res.status(500).json({
         error: "Missing FROM_EMAIL in .env",
       });
     }
 
     const resend = new Resend(RESEND_API_KEY);
+    console.log('[MAIL DEBUG] Resend client initialized.');
 
     const allOrders = await StockOrder.find();
+    console.log('[MAIL DEBUG] StockOrder count:', allOrders.length);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -66,6 +73,7 @@ export default async function handler(req, res) {
       return dueDate < today;
     });
 
+    console.log('[MAIL DEBUG] Overdue orders count:', overdueOrders.length);
     if (overdueOrders.length === 0) {
       return res.status(200).json({ message: "No overdue orders to email." });
     }
@@ -92,6 +100,7 @@ export default async function handler(req, res) {
 
     console.log("📧 Sending overdue orders reminder via Resend to:", reminderEmailTo);
     
+    console.log('[MAIL DEBUG] Sending email via Resend...');
     const emailResponse = await resend.emails.send({
       from: FROM_EMAIL,
       to: reminderEmailTo,
@@ -99,6 +108,7 @@ export default async function handler(req, res) {
       html: mailHtml,
     });
 
+    console.log('[MAIL DEBUG] Resend response:', emailResponse);
     if (emailResponse.error) {
       console.error("❌ Resend error:", emailResponse.error);
       return res.status(500).json({
