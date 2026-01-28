@@ -72,10 +72,21 @@ export default async function handler(req, res) {
     await transporter.verify();
     console.log("✅ SMTP verified");
 
-    // 7. Fetch staff
-    const staffList = await Staff.find({});
-    if (!staffList || staffList.length === 0) {
+    // 7. Fetch staff and filter out those with net salary <= 0
+    const staffListRaw = await Staff.find({});
+    if (!staffListRaw || staffListRaw.length === 0) {
       return res.status(400).json({ error: "No staff records found" });
+    }
+
+    // Filter staff with net salary > 0
+    const staffList = staffListRaw.filter(staff => {
+      const totalPenalty = (staff.penalty || []).reduce((sum, p) => sum + (p.amount || 0), 0);
+      const net = (staff.salary || 0) - totalPenalty;
+      return net > 0;
+    });
+
+    if (staffList.length === 0) {
+      return res.status(400).json({ error: "No staff with positive net salary found" });
     }
 
     const currentMonth = new Date().toLocaleString("default", {
