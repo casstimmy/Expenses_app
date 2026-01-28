@@ -107,11 +107,11 @@ export default function ManageStaff() {
   const handleSendingMail = async () => {
     setIsSending(true);
     try {
-      // Step 2: Send the salary mail
-      const mailRes =  await fetch("/api/staff/salary-mail/cron?force=true", {
+      // Step 2: Send the salary mail using Authorization header (secure, not in URL)
+      const mailRes = await fetch("/api/staff/salary-mail/cron", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${process.env.CRON_SECRET}`,
+          Authorization: "Bearer 009CJuqL8lhX/j0M9sd6s/NHeA1bTwHMoAmUxB83X5k=",
         },
       });
 
