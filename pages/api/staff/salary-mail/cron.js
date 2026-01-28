@@ -13,7 +13,7 @@ export default async function handler(req, res) {
   // 2. Auth check (before DB connection)
   if (process.env.NODE_ENV === "production") {
     const auth = req.headers.authorization;
-    if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+     if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
       console.log('[MAIL DEBUG] Unauthorized: bad CRON_SECRET');
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -167,7 +167,7 @@ export default async function handler(req, res) {
 
     // 10. Build mail options
     const mailOptions = {
-      from: FROM_EMAIL,
+      from: EMAIL_USER,
       to: SALARY_MAIL_TO,
       ...(SALARY_MAIL_CC && { cc: SALARY_MAIL_CC }),
       subject: `${currentMonth} ${currentYear} Salary Schedule`,
