@@ -1,7 +1,7 @@
 // pages/api/stock-orders/cron.js
 import { mongooseConnect } from "@/lib/mongoose";
 import StockOrder from "@/models/StockOrder";
-import { Resend } from "resend";
+import { sendMail } from "@/lib/mailer";
 
 export default async function handler(req, res) {
   try {
@@ -31,26 +31,14 @@ export default async function handler(req, res) {
     await mongooseConnect();
     console.log('[MAIL DEBUG] Connected to MongoDB.');
 
-    const { RESEND_API_KEY, FROM_EMAIL, REMINDER_EMAIL } = process.env;
-    console.log('[MAIL DEBUG] ENV:', { RESEND_API_KEY: !!RESEND_API_KEY, FROM_EMAIL, REMINDER_EMAIL });
-    
-    if (!RESEND_API_KEY) {
-      console.log('[MAIL DEBUG] Missing RESEND_API_KEY');
-      return res.status(500).json({
-        error: "Missing RESEND_API_KEY in .env",
-        hint: "Get your API key from https://resend.com/api-keys",
-      });
-    }
-
+    const { FROM_EMAIL, REMINDER_EMAIL } = process.env;
+    console.log('[MAIL DEBUG] ENV:', { FROM_EMAIL, REMINDER_EMAIL });
     if (!FROM_EMAIL) {
       console.log('[MAIL DEBUG] Missing FROM_EMAIL');
       return res.status(500).json({
         error: "Missing FROM_EMAIL in .env",
       });
     }
-
-    const resend = new Resend(RESEND_API_KEY);
-    console.log('[MAIL DEBUG] Resend client initialized.');
 
     const allOrders = await StockOrder.find();
     console.log('[MAIL DEBUG] StockOrder count:', allOrders.length);
@@ -98,38 +86,34 @@ export default async function handler(req, res) {
 
     const reminderEmailTo = REMINDER_EMAIL || "cass2artclassic@gmail.com";
 
-    console.log("📧 Sending overdue orders reminder via Resend to:", reminderEmailTo);
-    
-    console.log('[MAIL DEBUG] Sending email via Resend...');
-    const emailResponse = await resend.emails.send({
-      from: FROM_EMAIL,
-      to: reminderEmailTo,
-      subject: "⚠️ Overdue Vendor Orders",
-      html: mailHtml,
-    });
-
-    console.log('[MAIL DEBUG] Resend response:', emailResponse);
-    if (emailResponse.error) {
-      console.error("❌ Resend error:", emailResponse.error);
+    console.log("📧 Sending overdue orders reminder via Nodemailer to:", reminderEmailTo);
+    try {
+      const emailResponse = await sendMail({
+        from: FROM_EMAIL,
+        to: reminderEmailTo,
+        subject: "⚠️ Overdue Vendor Orders",
+        html: mailHtml,
+      });
+      console.log("✅ Email sent successfully:", emailResponse.messageId);
+      return res.status(200).json({
+        message: "Overdue orders reminder sent successfully via Nodemailer.",
+        orderCount: overdueOrders.length,
+        sentTo: reminderEmailTo,
+        messageId: emailResponse.messageId,
+      });
+    } catch (error) {
+      console.error("❌ Nodemailer error:", error);
       return res.status(500).json({
         error: "Failed to send reminder email",
-        details: emailResponse.error,
+        details: error.message,
       });
     }
-
-    console.log("✅ Email sent successfully:", emailResponse.data?.id);
-    return res.status(200).json({
-      message: "Overdue orders reminder sent successfully via Resend.",
-      orderCount: overdueOrders.length,
-      sentTo: reminderEmailTo,
-      messageId: emailResponse.data?.id,
-    });
   } catch (err) {
     console.error("❌ Error sending reminder email:", err);
     return res.status(500).json({
       error: "Failed to send reminder email",
       message: err.message,
-      hint: "Check RESEND_API_KEY configuration and ensure you have an active Resend account",
+      hint: "Check EMAIL_USER/EMAIL_PASS configuration and ensure you have enabled Gmail app password",
     });
   }
 }

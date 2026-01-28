@@ -1,5 +1,5 @@
 import { mongooseConnect } from "@/lib/mongoose";
-import { Resend } from "resend";
+import { sendMail } from "@/lib/mailer";
 import path from "path";
 import fs from "fs";
 import { Staff } from "@/models/Staff";
@@ -62,9 +62,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // 5. Initialize Resend
-    const resend = new Resend(RESEND_API_KEY);
-    console.log('[MAIL DEBUG] Resend client initialized.');
+
 
     // 7. Fetch staff
     const staffList = await Staff.find({});
@@ -176,35 +174,32 @@ export default async function handler(req, res) {
       html: mailHtml,
     };
 
-    // 11. Send email via Resend
-    console.log("[MAIL DEBUG] Sending salary email via Resend to:", SALARY_MAIL_TO);
-    const emailResponse = await resend.emails.send(mailOptions);
-    console.log('[MAIL DEBUG] Resend response:', emailResponse);
-
-    if (emailResponse.error) {
-      console.error("❌ Resend error:", emailResponse.error);
+    // 11. Send email via Nodemailer
+    console.log("[MAIL DEBUG] Sending salary email via Nodemailer to:", SALARY_MAIL_TO);
+    try {
+      const emailResponse = await sendMail(mailOptions);
+      console.log("✅ Email sent successfully:", emailResponse.messageId);
+      return res.status(200).json({
+        message: "Salary email sent successfully via Nodemailer.",
+        staffCount: staffList.length,
+        totalSalary: formattedTotal,
+        sentTo: SALARY_MAIL_TO,
+        messageId: emailResponse.messageId,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("❌ Nodemailer error:", error);
       return res.status(500).json({
         error: "Failed to send salary email",
-        details: emailResponse.error,
+        details: error.message,
       });
     }
-
-    console.log("✅ Email sent successfully:", emailResponse.data?.id);
-
-    return res.status(200).json({
-      message: "Salary email sent successfully via Resend.",
-      staffCount: staffList.length,
-      totalSalary: formattedTotal,
-      sentTo: SALARY_MAIL_TO,
-      messageId: emailResponse.data?.id,
-      timestamp: new Date().toISOString(),
-    });
   } catch (err) {
     console.error("❌ Error sending salary email:", err);
     return res.status(500).json({
       error: "Failed to send salary email",
       message: err.message,
-      hint: "Check RESEND_API_KEY configuration and ensure you have an active Resend account",
+      hint: "Check EMAIL_USER/EMAIL_PASS configuration and ensure you have enabled Gmail app password",
     });
   }
 }
