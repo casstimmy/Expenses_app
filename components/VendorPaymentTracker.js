@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import "@/styles/keypad-effect.css";
 
 export function VendorPaymentTracker({
   orders: initialOrders = [],
@@ -58,20 +57,20 @@ export function VendorPaymentTracker({
   const formatCurrency = (v) => `₦${Number(v ?? 0).toLocaleString()}`;
   const isNumber = (v) => typeof v === "number" && Number.isFinite(v);
 
-  const filteredOrders = Array.isArray(orders)
-    ? selectedVendor
-      ? orders.filter((order) => order.supplier === selectedVendor)
-      : orders
-    : [];
 
-  // Sort by entry date (newest first) — use createdAt or _id timestamp
+  // Memoize filtered and sorted orders
   const sortedOrders = useMemo(() => {
-    return [...filteredOrders].sort((a, b) => {
+    const filtered = Array.isArray(orders)
+      ? selectedVendor
+        ? orders.filter((order) => order.supplier === selectedVendor)
+        : orders
+      : [];
+    return [...filtered].sort((a, b) => {
       const dateA = new Date(a.date || a._id?.toString().substring(0, 8) || 0);
       const dateB = new Date(b.date || b._id?.toString().substring(0, 8) || 0);
       return dateB - dateA; // newest first
     });
-  }, [filteredOrders]);
+  }, [orders, selectedVendor]);
 
   const totalPages = Math.max(1, Math.ceil(sortedOrders.length / entriesPerPage));
   // ensure currentPage is in range
