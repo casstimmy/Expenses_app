@@ -191,7 +191,7 @@ export default function Home({ staffList, locations }) {
                         key={key}
                         type="button"
                         onClick={() => handleKeypad(key)}
-                        className="bg-blue-100 hover:bg-blue-300 text-blue-800 font-bold py-2 sm:py-3 rounded-lg text-base sm:text-lg"
+                        className="bg-blue-100 hover:bg-blue-300 text-blue-800 font-bold py-2 sm:py-3 rounded-lg text-base sm:text-lg keypad-btn"
                       >
                         {key === "clear" ? "C" : key === "back" ? "←" : key}
                       </button>
