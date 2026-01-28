@@ -12,8 +12,13 @@ export default async function handler(req, res) {
 
   // 2. Auth check (before DB connection)
   if (process.env.NODE_ENV === "production") {
+    const key = req.query.key;
     const auth = req.headers.authorization;
-     if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+    if (key && key === process.env.CRON_SECRET) {
+      // Allow
+    } else if (auth === `Bearer ${process.env.CRON_SECRET}`) {
+      // Allow
+    } else {
       console.log('[MAIL DEBUG] Unauthorized: bad CRON_SECRET');
       return res.status(401).json({ error: "Unauthorized" });
     }
