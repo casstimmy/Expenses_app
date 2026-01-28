@@ -1,61 +1,80 @@
 import { mongooseConnect } from "@/lib/mongoose";
-import { sendMail } from "@/lib/mailer";
+import nodemailer from "nodemailer";
+import path from "path";
+import fs from "fs";
 import { Staff } from "@/models/Staff";
 
 export default async function handler(req, res) {
-  // 1. Auth check
+
+
+
+  // 1. Auth check (before DB connection)
   if (process.env.NODE_ENV === "production") {
-    const key = req.query.key;
-    console.log("[CRON DEBUG] Received key:", key);
-    console.log("[CRON DEBUG] Server CRON_SECRET:", process.env.CRON_SECRET);
-
-    if (key && key === process.env.CRON_SECRET) {
-      // allow
-    } else {
-      const auth = req.headers.authorization;
-      console.log("[CRON DEBUG] Received Authorization header:", auth);
-
-      if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
-        console.log("[CRON DEBUG] 401 Unauthorized triggered");
-        return res.status(401).send("Unauthorized");
-      }
+    const auth = req.headers.authorization;
+     if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+      return res.status(401).json({ error: "Unauthorized" });
     }
   }
 
-  // 2. Method check
-  if (req.method !== "POST" && req.method !== "GET") {
+    // 2. Check method first
+    if (req.method !== "POST" && req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  // 3. Schedule check
+  // 3. Check schedule
   const forceSend = req.query.force === "true";
   const today = new Date();
-  const isTargetDate =
-    today.getDate() === 11 && today.getHours() === 12;
+  const isTargetDate = today.getDate() === 11 && today.getHours() === 12;
 
   if (!forceSend && !isTargetDate) {
     return res.status(200).json({
       message: "Not the scheduled date/time, skipping email.",
+      nextRun: `11th of month at 12:00 (or use ?force=true to send now)`,
     });
   }
 
   try {
-    console.log("[MAIL DEBUG] Connecting to MongoDB...");
     await mongooseConnect();
-    console.log("[MAIL DEBUG] Connected to MongoDB.");
 
-    const { FROM_EMAIL, SALARY_MAIL_TO, SALARY_MAIL_CC } =
+    // 4. Validate required env vars
+    const { EMAIL_USER, EMAIL_PASS, SALARY_MAIL_TO, SALARY_MAIL_CC } =
       process.env;
 
-    if (!FROM_EMAIL || !SALARY_MAIL_TO) {
+    if (!EMAIL_USER || !EMAIL_PASS) {
       return res.status(500).json({
-        error: "Missing FROM_EMAIL or SALARY_MAIL_TO",
+        error: "Missing email credentials in .env",
+        required: ["EMAIL_USER", "EMAIL_PASS"],
+        hint: "Use Gmail App Password if 2FA is enabled",
       });
     }
 
-    // Fetch staff
+    if (!SALARY_MAIL_TO) {
+      return res.status(500).json({
+        error: "Missing SALARY_MAIL_TO in .env",
+      });
+    }
+
+    // 5. Create transporter with port 587 (TLS) — more reliable than 465
+    const transporter = nodemailer.createTransport({
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false, // Use TLS (not SSL)
+      auth: {
+        user: EMAIL_USER,
+        pass: EMAIL_PASS,
+      },
+      connectionTimeout: 10000,
+      socketTimeout: 10000,
+    });
+
+    // 6. Test connection before sending
+    console.log("🔗 Testing SMTP connection...");
+    await transporter.verify();
+    console.log("✅ SMTP verified");
+
+    // 7. Fetch staff
     const staffList = await Staff.find({});
-    if (!staffList.length) {
+    if (!staffList || staffList.length === 0) {
       return res.status(400).json({ error: "No staff records found" });
     }
 
@@ -64,77 +83,152 @@ export default async function handler(req, res) {
     });
     const currentYear = new Date().getFullYear();
 
-    // Calculate totals
+    // 8. Calculate total net salary
     const totalNetSalary = staffList.reduce((sum, staff) => {
       const totalPenalty = (staff.penalty || []).reduce(
-        (p, x) => p + (x.amount || 0),
+        (penSum, p) => penSum + (p.amount || 0),
         0
       );
-      return sum + ((staff.salary || 0) - totalPenalty);
+      const net = (staff.salary || 0) - totalPenalty;
+      return sum + net;
     }, 0);
 
-    const formattedTotal = totalNetSalary.toLocaleString();
+    const formattedTotal = Number(totalNetSalary || 0).toLocaleString();
 
+    // 9. Build table rows
     const tableRows = staffList
       .map((staff) => {
-        const penalty = (staff.penalty || []).reduce(
-          (s, p) => s + (p.amount || 0),
+        const totalPenalty = (staff.penalty || []).reduce(
+          (sum, p) => sum + (p.amount || 0),
           0
         );
-        const net = (staff.salary || 0) - penalty;
+        const netSalary = Number(
+          (staff.salary || 0) - totalPenalty
+        ).toLocaleString();
 
         return `
           <tr>
-            <td>${staff.name}</td>
-            <td>${staff.bank?.accountName || "N/A"}</td>
-            <td>${staff.bank?.accountNumber || "N/A"}</td>
-            <td>${staff.bank?.bankName || "N/A"}</td>
-            <td style="text-align:right;">₦${net.toLocaleString()}</td>
+            <td style="border:1px solid #ddd;padding:8px;">${staff.name}</td>
+            <td style="border:1px solid #ddd;padding:8px;">${
+              staff.bank?.accountName || "N/A"
+            }</td>
+            <td style="border:1px solid #ddd;padding:8px;">${
+              staff.bank?.accountNumber || "N/A"
+            }</td>
+            <td style="border:1px solid #ddd;padding:8px;">${
+              staff.bank?.bankName || "N/A"
+            }</td>
+            <td style="border:1px solid #ddd;padding:8px;text-align:right;">₦${netSalary}</td>
           </tr>
         `;
       })
       .join("");
 
     const mailHtml = `
-      <h2>${currentMonth} ${currentYear} Salary Schedule</h2>
-      <table border="1" cellpadding="8" cellspacing="0" width="100%">
-        <tr>
-          <th>Name</th>
-          <th>Account Name</th>
-          <th>Account Number</th>
-          <th>Bank</th>
-          <th>Amount</th>
-        </tr>
-        ${tableRows}
-        <tr>
-          <td colspan="4"><strong>Total</strong></td>
-          <td><strong>₦${formattedTotal}</strong></td>
-        </tr>
-      </table>
-    `;
+  <div style="font-family:'Segoe UI',Roboto,sans-serif;background:#f0f4f8;padding:30px;">
+    <div style="max-width:700px;margin:auto;background:#ffffff;padding:40px 30px;border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,0.1);border:1px solid #e1e1e1;">
+      
+      <!-- Logo -->
+      <div style="text-align:center;margin-bottom:30px;">
+        <img src="cid:logo_cid" alt="Company Logo" style="max-width:120px;height:auto;" />
+      </div>
 
+      <!-- Title -->
+      <h2 style="text-align:center;color:#003366;font-size:22px;margin-bottom:10px;">Salary Payment Schedule</h2>
+      <p style="text-align:center;color:#555;font-size:15px;margin-bottom:30px;">
+        <strong>${currentMonth} ${currentYear}</strong>
+      </p>
+
+      <!-- Intro -->
+      <p style="font-size:14px;color:#444;line-height:1.6;margin-bottom:30px;">
+        Dear Sir,<br><br>
+        Please find below the salary schedule for the month of <strong>${currentMonth} ${currentYear}</strong>. Kindly review and proceed accordingly.
+      </p>
+
+      <!-- Table -->
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead style="background:#25476a;color:#fff;">
+          <tr>
+            <th style="border:1px solid #ccc;padding:10px;text-align:left;">Staff Name</th>
+            <th style="border:1px solid #ccc;padding:10px;text-align:left;">Account Name</th>
+            <th style="border:1px solid #ccc;padding:10px;text-align:left;">Bank Account</th>
+            <th style="border:1px solid #ccc;padding:10px;text-align:left;">Bank Name</th>
+            <th style="border:1px solid #ccc;padding:10px;text-align:right;">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tableRows}
+          <tr style="background:#f1f1f1;font-weight:bold;">
+            <td colspan="4" style="border:1px solid #ccc;padding:10px;text-align:right;">Total</td>
+            <td style="border:1px solid #ccc;padding:10px;text-align:right;">₦${formattedTotal}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Footer -->
+      <p style="font-size:12px;color:#999;text-align:center;margin-top:40px;">
+        Powered by Hetch Tech (Ayoola).<br/>
+        &copy; ${new Date().getFullYear()} Ibile Trading Resources Limited. All rights reserved.
+      </p>
+    </div>
+  </div>
+`;
+
+    // 10. Check if logo exists (gracefully skip if missing)
+    const logoPath = path.resolve(
+      process.cwd(),
+      "public",
+      "image",
+      "LogoName.png"
+    );
+    const attachments = [];
+
+    if (fs.existsSync(logoPath)) {
+      attachments.push({
+        filename: "logo.png",
+        path: logoPath,
+        cid: "logo_cid",
+      });
+      console.log("📎 Logo attached");
+    } else {
+      console.warn("⚠️ Logo not found at:", logoPath);
+    }
+
+    // 11. Build mail options
     const mailOptions = {
-      from: FROM_EMAIL, // ✅ FIXED
+      from: `"Ibile Mail" <${EMAIL_USER}>`,
       to: SALARY_MAIL_TO,
-      ...(SALARY_MAIL_CC && { cc: SALARY_MAIL_CC }),
+      cc: SALARY_MAIL_CC || undefined, // Optional
       subject: `${currentMonth} ${currentYear} Salary Schedule`,
       html: mailHtml,
+      attachments,
     };
 
-    const result = await sendMail(mailOptions);
-
-    console.log("✅ Email sent:", result.messageId);
+    // 12. Send email
+    console.log("📧 Sending email to:", SALARY_MAIL_TO);
+    const info = await transporter.sendMail(mailOptions);
+    console.log("✅ Email sent:", info.messageId);
 
     return res.status(200).json({
-      message: "Salary email sent successfully",
+      message: "Salary email sent successfully.",
       staffCount: staffList.length,
       totalSalary: formattedTotal,
+      sentTo: SALARY_MAIL_TO,
+      messageId: info.messageId,
+      timestamp: new Date().toISOString(),
     });
   } catch (err) {
-    console.error("❌ Salary mail error:", err);
+    console.error("❌ Error sending salary email:", err);
     return res.status(500).json({
-      error: "Failed to send salary email",
-      details: err.message,
+      error: "Failed to send salary email.",
+      code: err.code,
+      message: err.message,
+      hint:
+        err.code === "ESOCKET"
+          ? "SMTP connection failed. Check EMAIL_USER/EMAIL_PASS. Use Gmail App Password if 2FA enabled."
+          : err.code === "EAUTH"
+          ? "Invalid email credentials. Verify EMAIL_USER and EMAIL_PASS."
+          : "Check logs for details",
     });
   }
 }
