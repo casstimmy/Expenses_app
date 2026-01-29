@@ -209,7 +209,7 @@ export default function StockOrder() {
         name: o.product,
         quantity: o.quantity,
         costPrice: o.costPrice,
-        total: o.total * o.quantity,
+        total: o.total, // FIX: do not multiply by quantity again
       })),
       grandTotal: orders.reduce((sum, o) => sum + parseFloat(o.total), 0),
       staff: staff._id,

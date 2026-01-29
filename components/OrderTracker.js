@@ -16,6 +16,7 @@ export default function OrderTracker({
   const [saving, setSaving] = useState(false);
   const [fullStaff, setFullStaff] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [showReceiveModal, setShowReceiveModal] = useState(false);
 
   console.log("Order in Order Tracker: ", order);
   useEffect(() => {
@@ -449,8 +450,9 @@ export default function OrderTracker({
         {/* Save + Total */}
         <div className="mt-8 flex flex-col sm:flex-row justify-between items-center gap-4 border-t pt-6">
           <button
-            onClick={handleSaveOrder}
+            onClick={() => setShowReceiveModal(true)}
             className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-sm"
+            disabled={saving}
           >
             {saving ? "Saving..." : "Received Order"}
           </button>
@@ -458,6 +460,39 @@ export default function OrderTracker({
             T-Total: ₦{parseFloat(order.grandTotal).toLocaleString()}
           </div>
         </div>
+
+        {/* Receive Order Confirmation Modal */}
+        {showReceiveModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+            <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full">
+              <h3 className="text-lg font-bold mb-2 text-gray-800">Confirm Stock Receipt</h3>
+              <p className="mb-4 text-gray-700">
+                You are about to receive this stock into the store. This will remove the order entry and redirect you to the Pay Tracker page.
+                <br />
+                Are you sure you want to continue?
+              </p>
+              <div className="flex justify-end gap-3">
+                <button
+                  className="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  onClick={() => setShowReceiveModal(false)}
+                  disabled={saving}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700"
+                  onClick={async () => {
+                    setShowReceiveModal(false);
+                    await handleSaveOrder();
+                  }}
+                  disabled={saving}
+                >
+                  Yes, Receive & Remove
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Action Buttons */}
