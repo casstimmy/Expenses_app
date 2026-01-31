@@ -1,49 +1,67 @@
+// ...existing code...
 import { useEffect, useState } from "react";
 import { Loader2, PlusCircle } from "lucide-react";
 
-export default function ExpenseForm({location, onSaved, categoryApi = "/api/expenses/expense-category" }) {
- const [formData, setFormData] = useState({
-  title: "",
-  amount: "",
-  category: "",
-  description: "",
-  location: location || "",
-  staff: {
-    _id: "",
-    name: "",
-    role: "",
-    email: "",
-  },
-});
-
-
-
+export default function ExpenseForm({
+  location,
+  onSaved,
+  categoryApi = "/api/expense-category/expense-category",
+  staffId,
+  staffName,
+}) {
+  const [formData, setFormData] = useState({
+    title: "",
+    amount: "",
+    category: "",
+    description: "",
+    date: new Date().toISOString().split("T")[0],
+    location: location || "",
+    staff: {
+      _id: "",
+      name: "",
+      role: "",
+      email: "",
+    },
+  });
 
   const [customCategory, setCustomCategory] = useState("");
   const [categories, setCategories] = useState([]);
   const [isOtherCategory, setIsOtherCategory] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Load staff location from localStorage
- useEffect(() => {
-  const stored = localStorage.getItem("staff");
-  if (stored) {
-    const staff = JSON.parse(stored);
+  // Load staff/location from localStorage or fallback to props
+  useEffect(() => {
+    const stored = localStorage.getItem("staff");
+    if (stored) {
+      try {
+        const staff = JSON.parse(stored);
+        setFormData((prev) => ({
+          ...prev,
+          location: staff.location || prev.location || location || "",
+          staff: {
+            _id: staff._id || staffId || "",
+            name: staff.name || staffName || "",
+            role: staff.role || "",
+            email: staff.email || "",
+          },
+        }));
+        return;
+      } catch (err) {
+        // fall through to use props
+      }
+    }
+
     setFormData((prev) => ({
       ...prev,
-      location: staff.location || "",
+      location: prev.location || location || "",
       staff: {
-        _id: staff._id,
-        name: staff.name,
-        role: staff.role,
-        email: staff.email,
+        _id: prev.staff._id || staffId || "",
+        name: prev.staff.name || staffName || "",
+        role: prev.staff.role || "",
+        email: prev.staff.email || "",
       },
     }));
-  }
-}, []);
-
-
-
+  }, [location, staffId, staffName]);
 
   // Fetch categories
   useEffect(() => {
@@ -51,7 +69,7 @@ export default function ExpenseForm({location, onSaved, categoryApi = "/api/expe
       try {
         const res = await fetch(categoryApi);
         const data = await res.json();
-        setCategories(data);
+        setCategories(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error("Failed to fetch categories", err);
       }
@@ -80,59 +98,116 @@ export default function ExpenseForm({location, onSaved, categoryApi = "/api/expe
 
     let categoryToSave = formData.category;
 
-    // Handle custom category creation
-    if (isOtherCategory && customCategory) {
-      const res = await fetch(categoryApi, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: customCategory }),
-      });
-
-      if (res.ok) {
-        const updatedCats = await res.json();
-        setCategories(updatedCats);
-
-        const newCat = updatedCats.find((cat) => cat.name === customCategory)?._id;
-        if (newCat) {
-          categoryToSave = newCat;
-        } else {
-          alert("Failed to find new category after creation");
-          setLoading(false);
-          return;
-        }
-      } else {
-        alert("Failed to create custom category");
+    try {
+      // Basic validations
+      if (!formData.title || !formData.title.trim()) {
+        alert("Please enter a title");
         setLoading(false);
         return;
       }
-    }
+      if (isNaN(Number(formData.amount)) || Number(formData.amount) <= 0) {
+        alert("Please enter a valid amount");
+        setLoading(false);
+        return;
+      }
 
-    const res = await fetch("/api/expenses", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-  title: formData.title,
-  amount: formData.amount,
-  category: categoryToSave,
-  description: formData.description,
-  location: formData.location,
-  staff: formData.staff,
-  date: todayIso,
-}),
+      // Handle custom category creation
+      if (isOtherCategory && customCategory) {
+        const resCat = await fetch(categoryApi, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: customCategory }),
+        });
 
+        if (resCat.ok) {
+          const updatedCats = await resCat.json();
+          setCategories(Array.isArray(updatedCats) ? updatedCats : []);
+          const newCat =
+            (Array.isArray(updatedCats)
+              ? updatedCats.find((cat) => cat.name === customCategory)?._id
+              : updatedCats?._id) || null;
+          if (newCat) categoryToSave = newCat;
+          else {
+            alert("Failed to find new category after creation");
+            setLoading(false);
+            return;
+          }
+        } else {
+          const txt = await resCat.text();
+          alert("Failed to create custom category: " + txt);
+          setLoading(false);
+          return;
+        }
+      }
 
-    });
+      if (!categoryToSave) {
+        alert("Please select or create a category");
+        setLoading(false);
+        return;
+      }
 
-    if (res.ok) {
-      setFormData({ title: "", amount: "", category: "", description: "", location: formData.location });
-      setCustomCategory("");
-      setIsOtherCategory(false);
-      onSaved && onSaved();
-    } else {
+      if (!formData.location) {
+        alert("Location is required");
+        setLoading(false);
+        return;
+      }
+
+      if (!formData.date) {
+        alert("Date is required");
+        setLoading(false);
+        return;
+      }
+
+      const payload = {
+        title: formData.title.trim(),
+        amount: Number(formData.amount),
+        category: categoryToSave,
+        description: formData.description || "",
+        location: formData.location,
+        staff:
+          formData.staff && (formData.staff._id || formData.staff.name)
+            ? formData.staff
+            : null,
+        date: formData.date, // send YYYY-MM-DD (backend normalizes)
+      };
+
+      const res = await fetch("/api/expenses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const text = await res.text();
+      let parsed;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        parsed = text;
+      }
+
+      if (res.ok) {
+        setFormData((prev) => ({
+          title: "",
+          amount: "",
+          category: "",
+          description: "",
+          date: new Date().toISOString().split("T")[0],
+          location: prev.location || location || "",
+          staff: prev.staff,
+        }));
+        setCustomCategory("");
+        setIsOtherCategory(false);
+        onSaved && onSaved();
+      } else {
+        console.error("Failed to save expense:", res.status, parsed);
+        alert("Failed to save expense: " + (parsed?.error || parsed || res.status));
+      }
+    } catch (err) {
+      console.error("Failed to save expense:", err);
       alert("Failed to save expense");
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
@@ -209,6 +284,19 @@ export default function ExpenseForm({location, onSaved, categoryApi = "/api/expe
           />
         </div>
       )}
+
+      {/* Date */}
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-gray-700">Date</label>
+        <input
+          type="date"
+          name="date"
+          value={formData.date}
+          onChange={handleChange}
+          required
+          className="w-full p-3 border border-gray-300 rounded-lg"
+        />
+      </div>
 
       {/* Location (Read-only) */}
       <div className="space-y-2">
