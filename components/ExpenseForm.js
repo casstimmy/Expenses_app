@@ -117,6 +117,7 @@ export default function ExpenseForm({location, onSaved, categoryApi = "/api/expe
   description: formData.description,
   location: formData.location,
   staff: formData.staff,
+  date: todayIso,
 }),
 
 
