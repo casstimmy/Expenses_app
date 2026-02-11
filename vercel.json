@@ -6,7 +6,7 @@
     },
     {
       "path": "/api/staff/salary-mail/cron?force=true&key=009CJuqL8lhX/j0M9sd6s/NHeA1bTwHMoAmUxB83X5k=",
-      "schedule": "0 12 11 * *"
+      "schedule": "0 12 28 * *"
     }
   ]
 }
