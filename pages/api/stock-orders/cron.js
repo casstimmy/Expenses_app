@@ -7,19 +7,16 @@ export default async function handler(req, res) {
   try {
     // Auth check for production
     if (process.env.NODE_ENV === "production") {
-      // Debug logging for troubleshooting
       const key = req.query.key;
-      console.log("[CRON DEBUG] Received key:", key);
-      console.log("[CRON DEBUG] Server CRON_SECRET:", process.env.CRON_SECRET);
-      if (key && key === process.env.CRON_SECRET) {
-        // Allow
-      } else {
-        const auth = req.headers.authorization;
-        console.log("[CRON DEBUG] Received Authorization header:", auth);
-        if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
-          console.log("[CRON DEBUG] 401 Unauthorized triggered");
-          return res.status(401).send("Unauthorized");
-        }
+      const auth = req.headers.authorization;
+      const isVercelCron = req.headers["x-vercel-cron"] === "1";
+
+      const keyMatch = key && key === process.env.CRON_SECRET;
+      const bearerMatch = auth === `Bearer ${process.env.CRON_SECRET}`;
+
+      if (!keyMatch && !bearerMatch && !isVercelCron) {
+        console.log("[CRON DEBUG] 401 — no valid auth found");
+        return res.status(401).send("Unauthorized");
       }
     }
 

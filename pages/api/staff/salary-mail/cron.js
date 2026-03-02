@@ -10,8 +10,14 @@ export default async function handler(req, res) {
 
   // 1. Auth check (before DB connection)
   if (process.env.NODE_ENV === "production") {
+    const key = req.query.key;
     const auth = req.headers.authorization;
-     if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+    const isVercelCron = req.headers["x-vercel-cron"] === "1";
+
+    const keyMatch = key && key === process.env.CRON_SECRET;
+    const bearerMatch = auth === `Bearer ${process.env.CRON_SECRET}`;
+
+    if (!keyMatch && !bearerMatch && !isVercelCron) {
       return res.status(401).json({ error: "Unauthorized" });
     }
   }
