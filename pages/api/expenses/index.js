@@ -1,8 +1,12 @@
 import { mongooseConnect } from "@/lib/mongoose";
 import Expense from "@/models/Expense";
 import ExpenseCategory from "@/models/ExpenseCategory";
+import { requireAuth } from "@/lib/auth";
 
 export default async function handler(req, res) {
+  const staff = await requireAuth(req, res);
+  if (!staff) return;
+
   await mongooseConnect();
 
   if (req.method === "GET") {

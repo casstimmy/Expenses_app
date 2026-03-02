@@ -1,7 +1,12 @@
 import { mongooseConnect } from "@/lib/mongoose";
 import { Staff } from "@/models/Staff";
+import { requireAuth } from "@/lib/auth";
 
 export default async function handler(req, res) {
+  // Admin + Senior staff only
+  const authStaff = await requireAuth(req, res, ["admin", "Senior staff", "account"]);
+  if (!authStaff) return;
+
   await mongooseConnect();
 
   if (req.method === "GET") {

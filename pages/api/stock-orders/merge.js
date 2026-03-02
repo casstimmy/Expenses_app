@@ -1,7 +1,12 @@
 import { mongooseConnect } from "@/lib/mongoose";
 import StockOrder from "@/models/StockOrder";
+import { requireAuth } from "@/lib/auth";
 
 export default async function handler(req, res) {
+  // Admin-only: merge orders
+  const staff = await requireAuth(req, res, ["admin"]);
+  if (!staff) return;
+
   await mongooseConnect();
 
   if (req.method !== "POST") {

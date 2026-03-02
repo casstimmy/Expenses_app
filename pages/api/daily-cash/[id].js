@@ -1,8 +1,12 @@
 // pages/api/daily-cash/[id].js
 import { mongooseConnect } from "@/lib/mongoose";
 import { DailyCash } from "@/models/DailyCash";
+import { requireAuth } from "@/lib/auth";
 
 export default async function handler(req, res) {
+  const staff = await requireAuth(req, res);
+  if (!staff) return;
+
   await mongooseConnect();
   const { id } = req.query;
 

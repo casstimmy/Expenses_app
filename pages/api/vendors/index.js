@@ -2,8 +2,12 @@ import { mongooseConnect } from "@/lib/mongoose";
 import Vendor from "@/models/Vendor";
 import Product from "@/models/Product";
 import mongoose from "mongoose";
+import { requireAuth } from "@/lib/auth";
 
 export default async function handler(req, res) {
+  const staff = await requireAuth(req, res);
+  if (!staff) return;
+
   await mongooseConnect();
 
   if (req.method === "GET") {

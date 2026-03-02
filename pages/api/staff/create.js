@@ -1,10 +1,15 @@
 import { mongooseConnect } from "@/lib/mongoose";
 import { Staff } from "@/models/Staff";
+import { requireAuth } from "@/lib/auth";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ message: "Method not allowed" });
   }
+
+  // Admin only: create staff
+  const authStaff = await requireAuth(req, res, ["admin"]);
+  if (!authStaff) return;
 
   const { name, password, location, role = "staff", bank, salary } = req.body;
 

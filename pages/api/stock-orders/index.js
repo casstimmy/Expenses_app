@@ -3,8 +3,12 @@ import StockOrder from "@/models/StockOrder";
 import Product from "@/models/Product";
 import Vendor from "@/models/Vendor";
 import { Staff } from "@/models/Staff";
+import { requireAuth } from "@/lib/auth";
 
 export default async function handler(req, res) {
+  const staff = await requireAuth(req, res);
+  if (!staff) return;
+
   await mongooseConnect();
 
   const { method } = req;

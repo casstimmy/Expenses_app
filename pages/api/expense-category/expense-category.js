@@ -1,5 +1,6 @@
 import { mongooseConnect } from "@/lib/mongoose";
 import ExpenseCategory from "@/models/ExpenseCategory";
+import { requireAuth } from "@/lib/auth";
 
 const defaultCategories = [
   "Power/Utilities",
@@ -10,6 +11,9 @@ const defaultCategories = [
 ];
 
 export default async function handler(req, res) {
+  const staff = await requireAuth(req, res);
+  if (!staff) return;
+
   await mongooseConnect();
 
   // 👇 Seed default categories once if collection is empty

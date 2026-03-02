@@ -1,11 +1,15 @@
 // pages/api/expenses/analysis.js
 import { mongooseConnect } from "@/lib/mongoose";
 import Expense from "@/models/Expense";
+import { requireAuth } from "@/lib/auth";
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {
     return res.status(405).json({ message: "Method not allowed" });
   }
+
+  const staff = await requireAuth(req, res, ["admin", "Senior staff"]);
+  if (!staff) return;
 
   try {
     await mongooseConnect();

@@ -45,6 +45,21 @@ html, body {
   .animate-slide-down {
     animation: slide-down 0.3s ease-out forwards;
   }
+
+  @keyframes toast-in {
+    0% {
+      opacity: 0;
+      transform: translateX(100%) scale(0.95);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(0) scale(1);
+    }
+  }
+
+  .animate-toast-in {
+    animation: toast-in 0.35s cubic-bezier(0.21, 1.02, 0.73, 1) forwards;
+  }
 }
 
 @media print {

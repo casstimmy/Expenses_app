@@ -5,12 +5,16 @@ import fs from "fs";
 import mime from "mime-types";
 import { mongooseConnect } from "@/lib/mongoose";
 import WebProduct from "@/models/WebProduct";
+import { requireAuth } from "@/lib/auth";
 
 const S3BucketName = "image-bucket-admin";
 
 export const config = { api: { bodyParser: false } };
 
 export default async function handler(req, res) {
+  const staff = await requireAuth(req, res);
+  if (!staff) return;
+
   await mongooseConnect();
 
   if (req.method !== "POST") {

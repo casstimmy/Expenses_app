@@ -1,9 +1,15 @@
 import { mongooseConnect } from "@/lib/mongoose";
 import { Staff } from "@/models/Staff";
+import { requireAuth } from "@/lib/auth";
 import bcrypt from "bcrypt";
 
 export default async function handler(req, res) {
   const { id } = req.query;
+
+  // Admin only for PUT/DELETE, any auth for GET
+  const roles = req.method === "GET" ? null : ["admin"];
+  const authStaff = await requireAuth(req, res, roles);
+  if (!authStaff) return;
 
   await mongooseConnect();
 

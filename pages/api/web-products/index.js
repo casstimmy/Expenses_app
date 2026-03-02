@@ -1,8 +1,12 @@
 // pages/api/web-products/index.js
 import { mongooseConnect } from "@/lib/mongoose";
 import WebProduct from "@/models/WebProduct";
+import { requireAuth } from "@/lib/auth";
 
 export default async function handler(req, res) {
+  const staff = await requireAuth(req, res);
+  if (!staff) return;
+
   await mongooseConnect();
 
   const { method } = req;

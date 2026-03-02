@@ -1,10 +1,14 @@
-// pages/api/stock-orders/[id]/products/[index].js
+// pages/api/products/[id].js
 
 import StockOrder from '@/models/StockOrder';
 import Product from '@/models/Product';
 import { mongooseConnect } from '@/lib/mongoose';
+import { requireAuth } from "@/lib/auth";
 
 export default async function handler(req, res) {
+  const staff = await requireAuth(req, res);
+  if (!staff) return;
+
   const { id, index } = req.query;
 
   await mongooseConnect();

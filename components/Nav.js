@@ -1,14 +1,17 @@
 import { useRouter } from "next/router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Menu, X } from "lucide-react";
+import { Menu, X, LogOut } from "lucide-react";
 import Image from "next/image";
+import { useToast } from "@/context/ToastContext";
 
 export default function Nav() {
   const [loading, setLoading] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [role, setRole] = useState(null);
+  const [staffName, setStaffName] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { addToast } = useToast();
 
   const router = useRouter();
   const { pathname } = router;
@@ -16,11 +19,16 @@ export default function Nav() {
   useEffect(() => {
     const stored = localStorage.getItem("staff");
     if (stored) {
-      const parsed = JSON.parse(stored);
-      setRole(parsed.role);
-      setIsLoggedIn(true); // ✅ mark as logged in
+      try {
+        const parsed = JSON.parse(stored);
+        setRole(parsed.role);
+        setStaffName(parsed.name || "");
+        setIsLoggedIn(true);
+      } catch {
+        setIsLoggedIn(false);
+      }
     } else {
-      setIsLoggedIn(false); // ❌ no login
+      setIsLoggedIn(false);
     }
 
     const handleStart = () => setLoading(true);
@@ -37,23 +45,41 @@ export default function Nav() {
     };
   }, [router]);
 
+  // Close mobile menu on route change
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
+
+  const handleLogout = useCallback(async () => {
+    try {
+      await fetch("/api/staff/logout", { method: "POST" });
+    } catch {
+      // Cookie clear failed — still log out locally
+    }
+    localStorage.removeItem("staff");
+    setIsLoggedIn(false);
+    setRole(null);
+    setStaffName("");
+    addToast("Logged out successfully", "info");
+    router.push("/");
+  }, [router, addToast]);
+
   let navLinks = [
-    { href: "/expenses/expenses", label: "Expenses" },
-    { href: "/expenses/Stock_Order", label: "Inventory" },
+    { href: "/expenses/expenses", label: "Expenses", icon: "📊" },
+    { href: "/expenses/Stock_Order", label: "Inventory", icon: "📦" },
   ];
 
   if (role === "admin" || role === "Senior staff") {
     navLinks.push(
-      { href: "/expenses/analysis", label: "Reports" },
-      { href: "/categories", label: "Categories" },
-      { href: "/expenses/Pay_Tracker", label: "Pay Tracker" },
-      { href: "/admin/staff", label: "Staff" }
+      { href: "/expenses/analysis", label: "Reports", icon: "📈" },
+      { href: "/categories", label: "Categories", icon: "🏷️" },
+      { href: "/expenses/Pay_Tracker", label: "Pay Tracker", icon: "💳" },
+      { href: "/admin/staff", label: "Staff", icon: "👥" }
     );
   } else if (role === "account") {
     navLinks.push(
-      { href: "/expenses/Pay_Tracker", label: "Pay Tracker" },
-      { href: "/admin/staff", label: "Staff" },
-
+      { href: "/expenses/Pay_Tracker", label: "Pay Tracker", icon: "💳" },
+      { href: "/admin/staff", label: "Staff", icon: "👥" }
     );
   }
 
@@ -61,7 +87,7 @@ export default function Nav() {
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-gradient-to-r from-white/90 to-blue-50/90 shadow-md border-b border-gray-200 transition-all">
+      <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-gradient-to-r from-white/90 to-blue-50/90 shadow-md border-b border-gray-200/80 transition-all">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
@@ -80,95 +106,109 @@ export default function Nav() {
             </Link>
 
             {/* Desktop Nav */}
-            <nav className="hidden md:flex items-center space-x-6">
+            <nav className="hidden md:flex items-center space-x-1">
               {isLoggedIn &&
                 navLinks.map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}
-                    className={`relative text-sm font-medium transition-all duration-200 ease-in-out px-2 py-1 ${
+                    className={`relative text-sm font-medium transition-all duration-200 ease-in-out px-3 py-2 rounded-lg ${
                       isActive(link.href)
-                        ? "text-blue-600"
-                        : "text-gray-700 hover:text-blue-600"
+                        ? "text-blue-700 bg-blue-50"
+                        : "text-gray-600 hover:text-blue-600 hover:bg-blue-50/60"
                     }`}
                   >
                     <span className="relative z-10">{link.label}</span>
                     {isActive(link.href) && (
-                      <span className="absolute left-0 bottom-0 w-full h-[2px] bg-blue-600 rounded-full transition-all" />
+                      <span className="absolute left-1/2 -translate-x-1/2 -bottom-[9px] w-6 h-[3px] bg-blue-600 rounded-full" />
                     )}
                   </Link>
                 ))}
+
               {isLoggedIn && (
-                <button
-                  onClick={() => {
-                    localStorage.removeItem("staff");
-                    router.push("/"); // log out and redirect
-                  }}
-                  className="text-sm text-red-500 hover:underline ml-4"
-                >
-                  Logout
-                </button>
+                <div className="flex items-center ml-4 pl-4 border-l border-gray-200 gap-3">
+                  <span className="text-xs text-gray-500 font-medium hidden lg:block">
+                    {staffName}
+                  </span>
+                  <button
+                    onClick={handleLogout}
+                    title="Logout"
+                    className="flex items-center gap-1.5 text-sm text-red-500 hover:text-red-600 hover:bg-red-50 px-2.5 py-1.5 rounded-lg transition-all duration-200"
+                  >
+                    <LogOut size={16} />
+                    <span className="hidden lg:inline">Logout</span>
+                  </button>
+                </div>
               )}
             </nav>
 
             {/* Mobile Button */}
-            <div className="md:hidden">
+            <div className="md:hidden flex items-center gap-2">
+              {isLoggedIn && staffName && (
+                <span className="text-xs text-gray-500 font-medium max-w-[80px] truncate">
+                  {staffName}
+                </span>
+              )}
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="text-gray-700 hover:text-blue-700 transition"
+                className="text-gray-700 hover:text-blue-700 transition p-1 rounded-lg hover:bg-gray-100"
               >
-                {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
+                {isMobileMenuOpen ? <X size={26} /> : <Menu size={26} />}
               </button>
             </div>
           </div>
         </div>
 
         {/* Mobile Menu */}
-        {/* Mobile Menu */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden bg-white/95 shadow border-t border-gray-200">
-            <div className="px-4 py-4 space-y-2">
-              {isLoggedIn &&
-                navLinks.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={`block text-base font-medium px-3 py-2 rounded-lg transition-all duration-200 ${
-                      isActive(link.href)
-                        ? "bg-blue-50 text-blue-600"
-                        : "text-gray-700 hover:bg-blue-100 hover:text-blue-600"
-                    }`}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    {link.label}
-                  </Link>
-                ))}
-
-              {/* 🔴 Logout button for mobile */}
-              {isLoggedIn && (
-                <button
-                  onClick={() => {
-                    localStorage.removeItem("staff");
-                    setIsMobileMenuOpen(false);
-                    router.push("/");
-                  }}
-                  className="block w-full text-left text-base font-medium text-red-600 px-3 py-2 rounded-lg hover:bg-red-50 transition-all duration-200"
+        <div
+          className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${
+            isMobileMenuOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+          }`}
+        >
+          <div className="bg-white/95 shadow-inner border-t border-gray-200 px-4 py-3 space-y-1">
+            {isLoggedIn &&
+              navLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`flex items-center gap-2 text-base font-medium px-3 py-2.5 rounded-xl transition-all duration-200 ${
+                    isActive(link.href)
+                      ? "bg-blue-50 text-blue-700 shadow-sm"
+                      : "text-gray-700 hover:bg-gray-50 hover:text-blue-600"
+                  }`}
+                  onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  Logout
-                </button>
-              )}
-            </div>
+                  <span className="text-base">{link.icon}</span>
+                  {link.label}
+                </Link>
+              ))}
+
+            {isLoggedIn && (
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  handleLogout();
+                }}
+                className="flex items-center gap-2 w-full text-left text-base font-medium text-red-600 px-3 py-2.5 rounded-xl hover:bg-red-50 transition-all duration-200 mt-1"
+              >
+                <LogOut size={18} />
+                Logout
+              </button>
+            )}
           </div>
-        )}
+        </div>
       </header>
 
       {/* Spacer */}
       <div className="h-16" />
 
-      {/* Optional Loading Spinner */}
+      {/* Route-change loading overlay */}
       {loading && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="w-12 h-12 border-4 border-white border-t-blue-600 rounded-full animate-spin"></div>
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-[60]">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-10 h-10 border-[3px] border-white border-t-blue-600 rounded-full animate-spin" />
+            <span className="text-white text-sm font-medium drop-shadow">Loading...</span>
+          </div>
         </div>
       )}
     </>

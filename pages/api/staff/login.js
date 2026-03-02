@@ -1,6 +1,7 @@
 // /pages/api/staff/login.js
 import { mongooseConnect } from "@/lib/mongoose";
 import { Staff } from "@/models/Staff";
+import { setAuthCookie } from "@/lib/auth";
 import bcrypt from "bcrypt";
 
 export default async function handler(req, res) {
@@ -35,6 +36,9 @@ if (!staff) {
 
   const staffObj = staff.toObject();
   delete staffObj.password;
+
+  // Set httpOnly auth cookie
+  setAuthCookie(res, staff._id, staffObj.location);
 
   res.status(200).json(staffObj);
 }

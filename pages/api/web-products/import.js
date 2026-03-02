@@ -4,6 +4,7 @@ import { Readable } from "stream";
 import csvParser from "csv-parser";
 import { mongooseConnect } from "@/lib/mongoose";
 import WebProduct from "@/models/WebProduct";
+import { requireAuth } from "@/lib/auth";
 
 export const config = {
   api: {
@@ -15,6 +16,9 @@ export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ message: "Method not allowed" });
   }
+
+  const staff = await requireAuth(req, res);
+  if (!staff) return;
 
   await mongooseConnect();
 
