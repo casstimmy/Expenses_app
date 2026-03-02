@@ -169,7 +169,7 @@ export default function PayTracker() {
     );
   }, [paidFilter, customRange]);
 
-  // reset reminder state when dueOrders updates so auto-send can run again
+  // reset reminder state when dueOrders updates so manual send button can be used again
   useEffect(() => {
     if (reminderIntervalRef.current) {
       clearInterval(reminderIntervalRef.current);
@@ -178,31 +178,6 @@ export default function PayTracker() {
     setCountdown(0);
     setReminderSent(false);
   }, [dueOrders]);
-
-  // Auto reminder when dueOrders appear (server-side cron endpoint)
-  useEffect(() => {
-    let ignore = false;
-    const sendReminder = async () => {
-      if (ignore) return;
-      if (dueOrders.length > 0 && !reminderSent) {
-        try {
-          // Always use the server-side secret for server fetches
-          const res = await fetch("/api/stock-orders/cron?key=009CJuqL8lhX/j0M9sd6s/NHeA1bTwHMoAmUxB83X5k=", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ dueOrders }),
-          });
-          if (res.ok && !ignore) setReminderSent(true);
-        } catch (err) {
-          console.error("Auto reminder failed:", err);
-        }
-      }
-    };
-    sendReminder();
-    return () => {
-      ignore = true;
-    };
-  }, [dueOrders, reminderSent]);
 
   // ---------- Actions ----------
   const clearCountdown = () => {
