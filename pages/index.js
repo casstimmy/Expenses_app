@@ -95,7 +95,7 @@ export default function Home({ staffList, locations }) {
 
   return (
     <Layout>
-      <div className="flex flex-col min-h-screen relative">
+      <div className="flex flex-col relative lg:h-[calc(100vh-4rem)]">
         {/* Particle Background */}
         <div className="absolute inset-0 z-0">
           <Particles
@@ -106,8 +106,8 @@ export default function Home({ staffList, locations }) {
         </div>
 
         {/* Main Content */}
-        <div className="relative z-10 flex-grow flex items-center justify-center px-4 sm:px-6 py-6 sm:py-12">
-          <div className="w-full flex flex-col lg:flex-row items-center justify-between max-w-7xl gap-8">
+        <div className="relative z-10 flex-grow flex items-center justify-center px-4 sm:px-6 py-6 sm:py-8 lg:py-0">
+          <div className="w-full flex flex-col lg:flex-row items-center justify-between max-w-7xl gap-6 lg:gap-8">
             {/* Hero Section */}
             <div className="w-full lg:w-1/2 text-center lg:text-left animate-fade-in">
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-blue-800 mb-4 drop-shadow">
@@ -126,7 +126,7 @@ export default function Home({ staffList, locations }) {
             </div>
 
             {/* Login Box */}
-            <div className="w-full max-w-sm bg-white rounded-xl shadow-md px-4 py-6 sm:px-6 sm:py-8 animate-fade-in overflow-y-auto max-h-[80vh]">
+            <div className="w-full max-w-sm bg-white rounded-xl shadow-md px-4 py-6 sm:px-6 sm:py-8 animate-fade-in overflow-y-auto max-h-[80vh] lg:max-h-none lg:overflow-visible">
               <h2 className="text-xl sm:text-2xl font-bold text-center text-blue-700 mb-6">
                 Staff Login
               </h2>
