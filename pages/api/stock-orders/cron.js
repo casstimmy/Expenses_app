@@ -2,6 +2,7 @@
 import { mongooseConnect } from "@/lib/mongoose";
 import StockOrder from "@/models/StockOrder";
 import { sendMail } from "@/lib/mailer";
+import { getAuthStaff } from "@/lib/auth";
 
 export default async function handler(req, res) {
   try {
@@ -14,8 +15,14 @@ export default async function handler(req, res) {
       const keyMatch = key && key === process.env.CRON_SECRET;
       const bearerMatch = auth === `Bearer ${process.env.CRON_SECRET}`;
 
+      // Also allow logged-in staff (manual "Send Vendor Reminder" button)
+      let sessionAuth = false;
       if (!keyMatch && !bearerMatch && !isVercelCron) {
-        console.log("[CRON DEBUG] 401 — no valid auth found");
+        const staff = await getAuthStaff(req);
+        if (staff) sessionAuth = true;
+      }
+
+      if (!keyMatch && !bearerMatch && !isVercelCron && !sessionAuth) {
         return res.status(401).send("Unauthorized");
       }
     }
