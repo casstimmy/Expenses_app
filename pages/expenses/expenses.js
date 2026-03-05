@@ -395,6 +395,7 @@ export default function ManageExpenses() {
       setTimeout(() => setCashSavedMessage(""), 3000);
       setSavingCash(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cashAmount, cashDate, cashEntries, staffData]);
 
   const handleEditCashInline = useCallback((entry) => {
@@ -422,6 +423,7 @@ export default function ManageExpenses() {
     } catch (err) {
       console.error(err);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editedCashAmount, editedCashDate]);
 
   const handleCancelCashEdit = useCallback(() => {
@@ -535,6 +537,7 @@ export default function ManageExpenses() {
       setDeleting(false);
       closeDeleteModal();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toDeleteExpense]);
 
   // -------------------------

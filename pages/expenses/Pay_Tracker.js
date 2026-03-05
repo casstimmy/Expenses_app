@@ -323,6 +323,7 @@ export default function PayTracker() {
         })
         .reduce((sum, o) => sum + toNumber(o.paymentMade), 0);
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [orders]
   );
 
@@ -351,6 +352,7 @@ export default function PayTracker() {
     }
 
     return orders;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     tableFilter,
     orders,
