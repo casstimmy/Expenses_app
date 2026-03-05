@@ -5,7 +5,6 @@ import VendorForm from "@/components/VendorForm";
 import OrderForm from "@/components/OrderForm";
 import VendorList from "@/components/VendorList";
 import OrderList from "@/components/OrderList";
-import WebProductCenter from "@/components/WebProduct/WebProductCenter";
 
 const getToday = () => new Date().toISOString().split("T")[0];
 
@@ -41,7 +40,6 @@ export default function StockOrder() {
   const [merging, setMerging] = useState(false);
 
   const [productSearch, setProductSearch] = useState("");
-  const [activeSection, setActiveSection] = useState("vendor");
 
   // ====== Constants ======
   const CACHE_KEY = "vendors_cache";
@@ -285,15 +283,15 @@ const mergeOrders = async () => {
   
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-100 p-6">
-        <div className="max-w-6xl mx-auto space-y-6">
-          <h1 className="text-3xl font-bold text-blue-800 mb-6">
-            {activeSection === "web" ? "Web Center" : "Stock Ordering"}
+      <div className="min-h-screen bg-gray-100 p-3 sm:p-6">
+        <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-blue-800 mb-4 sm:mb-6">
+            Stock Ordering
           </h1>
 
           {staff && (
-            <div className="mb-6 p-4 rounded-xl bg-blue-50 border border-blue-200 shadow-sm">
-              <p className="text-sm text-blue-900 font-medium mb-3">
+            <div className="mb-4 sm:mb-6 p-3 sm:p-4 rounded-xl bg-blue-50 border border-blue-200 shadow-sm">
+              <p className="text-sm text-blue-900 font-medium">
                 Logged in as{" "}
                 <span className="text-blue-800 font-semibold">
                   {staff?.name}
@@ -303,47 +301,13 @@ const mergeOrders = async () => {
                   {staff?.location}
                 </span>
               </p>
-
-              <div className="flex flex-wrap gap-3">
-                <button
-                  onClick={() => setActiveSection("web")}
-                  className={`px-5 py-2.5 rounded-sm font-medium transition-all duration-200 ${
-                    activeSection === "web"
-                      ? "bg-blue-600 text-white shadow"
-                      : "bg-white border border-blue-300 text-blue-700 hover:bg-blue-100"
-                  }`}
-                >
-                  Web Place
-                </button>
-
-                <button
-                  onClick={() => setActiveSection("vendor")}
-                  className={`px-5 py-2.5 rounded-sm font-medium transition-all duration-200 ${
-                    activeSection === "vendor"
-                      ? "bg-blue-600 text-white shadow"
-                      : "bg-white border border-blue-300 text-blue-700 hover:bg-blue-100"
-                  }`}
-                >
-                  Vendor Place
-                </button>
-              </div>
             </div>
           )}
 
-          {activeSection === "web" && (
-            <>
-              {/* Web Product Center Start Here */}
-              <WebProductCenter />
-              {/* Web Product Center End Here */}
-            </>
-          )}
-
-          {activeSection === "vendor" && (
-            <>
-              {/**Vendor Order List Start Here */}
+          {/* Vendor Section */}
               <>
                 {/* Vendor Section */}
-                <section className="bg-white p-6 rounded shadow relative">
+                <section className="bg-white p-3 sm:p-6 rounded shadow relative">
                   <div className="flex flex-col mb-4 sm:flex-row sm:items-center gap-4 sm:gap-6 w-full">
                     <label
                       htmlFor="searchProduct"
@@ -405,7 +369,7 @@ const mergeOrders = async () => {
                 {/* Vendor Modal */}
                 {showVendorForm && (
                   <div className="fixed inset-0 backdrop-blur-md bg-white/30 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg shadow-lg w-full max-w-xl p-6 relative">
+                    <div className="bg-white rounded-lg shadow-lg w-full max-w-xl p-4 sm:p-6 mx-3 sm:mx-0 relative">
                       <div className="flex justify-between items-center border-b pb-2 mb-4">
                         <h2 className="text-lg font-semibold text-gray-800">
                           {editingVendor ? "Edit Vendor" : "Add Vendor"}
@@ -437,12 +401,12 @@ const mergeOrders = async () => {
                   <form
                     ref={orderFormRef}
                     onSubmit={handleSubmit}
-                    className="bg-white p-6 rounded shadow space-y-6"
+                    className="bg-white p-3 sm:p-6 rounded shadow space-y-4 sm:space-y-6"
                   >
-                    <div className="mb-6 p-5 rounded-xl shadow-md border border-gray-200 bg-gradient-to-r from-blue-50 to-white">
-                      <div className="flex items-center justify-between px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl shadow-sm mb-4">
-                        <h2 className="text-lg sm:text-xl font-bold text-blue-900 flex items-center gap-2">
-                          <span className="text-2xl">📦</span>
+                    <div className="mb-4 sm:mb-6 p-3 sm:p-5 rounded-xl shadow-md border border-gray-200 bg-gradient-to-r from-blue-50 to-white">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between px-3 sm:px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl shadow-sm mb-4 gap-2">
+                        <h2 className="text-base sm:text-xl font-bold text-blue-900 flex items-center gap-2">
+                          <span className="text-xl sm:text-2xl">📦</span>
                           Vendor Order:{" "}
                           <span className="text-blue-700 font-semibold">
                             {selectedVendor?.mainProduct || "N/A"}
@@ -467,7 +431,7 @@ const mergeOrders = async () => {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                       <input
                         type="date"
                         name="date"
@@ -560,8 +524,8 @@ const mergeOrders = async () => {
 
                 {/* Order Review */}
                 {orders.length > 0 && (
-                  <section className="bg-white p-6 rounded-xl shadow-lg space-y-6">
-                    <h2 className="text-xl font-bold text-gray-800 border-b pb-2">
+                  <section className="bg-white p-3 sm:p-6 rounded-xl shadow-lg space-y-4 sm:space-y-6">
+                    <h2 className="text-lg sm:text-xl font-bold text-gray-800 border-b pb-2">
                       Stock Order Summary
                     </h2>
 
@@ -743,8 +707,6 @@ const mergeOrders = async () => {
                 </div>
               </>
               {/**Vendor Order List Ends Here */}
-            </>
-          )}
         </div>
       </div>
     </Layout>

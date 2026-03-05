@@ -11,6 +11,15 @@ const WebProductSchema = new Schema(
     images: { type: [String], default: [] },
     // Legacy field (kept for migration/back-compat)
     image: { type: String, default: undefined },
+    // Stock management - pack/unit tier system
+    stock: { type: Number, default: 0 }, // total individual units available
+    packSize: { type: Number, default: 1 }, // how many units in one pack/carton (1 = no packs)
+    packStock: { type: Number, default: 0 }, // number of full packs/cartons
+    unitStock: { type: Number, default: 0 }, // loose individual units
+    unitPrice: { type: Number, default: 0 }, // price per single unit
+    packPrice: { type: Number, default: 0 }, // price per pack/carton
+    // Link to vendor product
+    vendorProduct: { type: mongoose.Schema.Types.ObjectId, ref: "Product", default: null },
   },
   { timestamps: true }
 );

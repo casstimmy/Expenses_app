@@ -133,7 +133,7 @@ function PeriodFilter({
       )}
 
       {selectedPeriod === "custom" && (
-        <div className="flex gap-4 mt-2">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mt-2">
           <div>
             <label className="block text-sm text-gray-600">Start Date</label>
             <input
@@ -206,6 +206,7 @@ export default function ManageExpenses() {
   const [selectedDate, setSelectedDate] = useState("");
   const [filters, setFilters] = useState({ startDate: "", endDate: "", selectedDate: "" });
   const [filtersApplied, setFiltersApplied] = useState(false);
+  const [expenseSearch, setExpenseSearch] = useState("");
 
   const router = useRouter();
   const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -566,6 +567,17 @@ export default function ManageExpenses() {
     return list.sort((a, b) => new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt));
   }, [expenses, staffData, selectedLocation, filterDate, filters.startDate, filters.endDate, filters.selectedDate]);
 
+  const searchedExpenses = useMemo(() => {
+    const q = (expenseSearch || "").trim().toLowerCase();
+    if (!q) return filteredExpenses;
+    return filteredExpenses.filter((exp) =>
+      (exp.title || "").toLowerCase().includes(q) ||
+      (exp?.category?.name || "").toLowerCase().includes(q) ||
+      (typeof exp.staff === "string" ? exp.staff : exp.staff?.name || "").toLowerCase().includes(q) ||
+      String(exp.amount || "").includes(q)
+    );
+  }, [filteredExpenses, expenseSearch]);
+
   const filteredCashEntries = useMemo(() => {
     const list = (cashEntries || []).filter((entry) => {
       if (staffData?.role !== "admin") {
@@ -599,17 +611,17 @@ export default function ManageExpenses() {
   // -------------------------
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 px-4 py-8 sm:px-6 lg:px-10 transition-all">
-        <div className="max-w-7xl mx-auto space-y-8">
+      <div className="min-h-screen bg-gray-50 px-3 py-4 sm:px-6 sm:py-8 lg:px-10 transition-all">
+        <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
           {/* Header */}
-          <header className="flex flex-col lg:flex-row justify-between lg:items-center gap-4 border-b border-blue-100 pb-4">
+          <header className="flex flex-col gap-4 border-b border-blue-100 pb-4">
             <div>
-              <h1 className="text-3xl font-bold text-blue-800 tracking-tight">Expense Management</h1>
-              <p className="text-sm text-gray-500 mt-1">Manage expenses and daily cash. Edit items inline by admins.</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-blue-800 tracking-tight">Expense Management</h1>
+              <p className="text-xs sm:text-sm text-gray-500 mt-1">Manage expenses and daily cash. Edit items inline by admins.</p>
             </div>
 
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3 bg-blue-50 px-4 py-2 rounded-lg border border-blue-100 text-sm text-blue-900 shadow-sm">
-              <p className="whitespace-nowrap">
+            <div className="flex flex-col gap-3 bg-blue-50 px-3 sm:px-4 py-2 rounded-lg border border-blue-100 text-sm text-blue-900 shadow-sm">
+              <p className="text-xs sm:text-sm">
                 <span className="font-semibold">Logged in:</span> {staffData?.name || "—"} &nbsp;|&nbsp;
                 <span className="font-semibold">Location:</span> {staffData?.location || "—"}
               </p>
@@ -633,8 +645,8 @@ export default function ManageExpenses() {
           </header>
 
           {/* Cash Input */}
-          <section className="bg-white rounded-xl border border-blue-100 shadow-md p-6 hover:shadow-lg transition-all">
-            <h2 className="text-lg font-semibold text-blue-700 mb-4">Add Cash for the Day</h2>
+          <section className="bg-white rounded-xl border border-blue-100 shadow-md p-4 sm:p-6 hover:shadow-lg transition-all">
+            <h2 className="text-base sm:text-lg font-semibold text-blue-700 mb-3 sm:mb-4">Add Cash for the Day</h2>
             <div className="flex flex-col sm:flex-row items-center gap-4">
               <input type="date" value={cashDate} onChange={(e) => setCashDate(e.target.value)} className="px-4 py-2 border border-gray-300 rounded-lg w-full sm:w-1/3 focus:ring-2 focus:ring-blue-400" />
               <input type="number" placeholder="Enter cash amount" value={cashAmount} onChange={(e) => setCashAmount(e.target.value)} className="px-4 py-2 border border-gray-300 rounded-lg w-full sm:w-1/3 focus:ring-2 focus:ring-blue-400" />
@@ -649,10 +661,10 @@ export default function ManageExpenses() {
           </section>
 
           {/* Lists */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8">
             {/* Add Expense Form */}
-            <div className="bg-white p-6 rounded-xl border border-blue-100 shadow-md hover:shadow-lg transition-all">
-              <h2 className="text-xl font-semibold text-blue-700 mb-4">Add New Expense</h2>
+            <div className="bg-white p-4 sm:p-6 rounded-xl border border-blue-100 shadow-md hover:shadow-lg transition-all">
+              <h2 className="text-lg sm:text-xl font-semibold text-blue-700 mb-4">Add New Expense</h2>
               <ExpenseForm
                 onSaved={async () => {
                   await fetchExpenses();
@@ -666,18 +678,26 @@ export default function ManageExpenses() {
               />
             </div>
 
-            <div className="col-span-2 grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="col-span-2 grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="col-span-1 lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-8">
+              <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-8">
                 {/* Expenses */}
-                <div className="bg-white p-6 rounded-2xl border border-blue-100 shadow-lg flex flex-col overflow-hidden">
-                  <div className="flex justify-between items-center mb-4 sticky top-0 bg-white z-10 pb-2 border-b border-blue-50">
-                    <h2 className="text-xl font-bold text-blue-700 flex items-center gap-2"><CircleDollarSign className="w-5 h-5 text-green-600" /> Recent Expenses</h2>
-                    <span className="text-sm text-gray-500">{expenses.length} total</span>
+                <div className="bg-white p-4 sm:p-6 rounded-2xl border border-blue-100 shadow-lg flex flex-col overflow-hidden">
+                  <div className="sticky top-0 bg-white z-10 pb-2 border-b border-blue-50 space-y-2">
+                    <div className="flex justify-between items-center">
+                      <h2 className="text-base sm:text-xl font-bold text-blue-700 flex items-center gap-2"><CircleDollarSign className="w-4 sm:w-5 h-4 sm:h-5 text-green-600" /> Recent Expenses</h2>
+                    </div>
+                    <input
+                      type="text"
+                      value={expenseSearch}
+                      onChange={(e) => setExpenseSearch(e.target.value)}
+                      placeholder="Search expenses..."
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                    />
                   </div>
 
-                  {/* Scrollable list (scrollbars hidden via CSS class 'scrollbar-hide' you already use) */}
+                  {/* Scrollable list */}
                   <div className="overflow-y-auto scrollbar-hide flex-grow min-h-[400px] max-h-[75vh] pr-2 space-y-4">
-                    {filteredExpenses.map((exp) => (
+                    {searchedExpenses.map((exp) => (
                         <div key={exp._id} className="bg-gray-50 hover:bg-gray-100 transition-all border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md">
                           <div className="flex justify-between items-start gap-4">
                             <div className="flex-1">
@@ -713,7 +733,7 @@ export default function ManageExpenses() {
                             {editingExpenseId === exp._id ? (
                               <select value={editedCategory} onChange={(e) => setEditedCategory(e.target.value)} className="px-2 py-1 border rounded-md text-sm bg-white focus:ring-2 focus:ring-blue-400">
                                 <option value="">Select category</option>
-                                {categories.map((c) => <option key={c._1} value={c._id}>{c.name}</option>)}
+                                {categories.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
                               </select>
                             ) : (
                               <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-medium uppercase">{exp?.category?.name || "Uncategorized"}</span>
@@ -734,10 +754,9 @@ export default function ManageExpenses() {
                 </div>
 
                 {/* Cash Entries (inline editing enabled) */}
-                <div className="bg-white p-6 rounded-2xl border border-blue-100 shadow-lg flex flex-col overflow-hidden">
+                <div className="bg-white p-4 sm:p-6 rounded-2xl border border-blue-100 shadow-lg flex flex-col overflow-hidden">
                   <div className="flex justify-between items-center mb-4 sticky top-0 bg-white z-10 pb-2 border-b border-blue-50">
-                    <h2 className="text-xl font-bold text-blue-700 flex items-center gap-2"><CircleDollarSign className="w-5 h-5 text-green-600" /> Daily Cash Entries</h2>
-                    <span className="text-sm text-gray-500">{cashEntries.length} total</span>
+                    <h2 className="text-base sm:text-xl font-bold text-blue-700 flex items-center gap-2"><CircleDollarSign className="w-4 sm:w-5 h-4 sm:h-5 text-green-600" /> Daily Cash Entries</h2>
                   </div>
 
                   <div className="overflow-y-auto scrollbar-hide flex-grow max-h-[75vh] pr-2 space-y-4">

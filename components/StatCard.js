@@ -43,7 +43,7 @@ const StatCard = ({
 
       {/* Card */}
       <div
-        className={`relative bg-gradient-to-br ${colorFrom} ${colorTo} text-white p-6 pt-8 rounded-2xl shadow-xl transform hover:scale-[1.03] transition-all duration-300`}
+        className={`relative bg-gradient-to-br ${colorFrom} ${colorTo} text-white p-4 sm:p-6 pt-6 sm:pt-8 rounded-2xl shadow-xl transform hover:scale-[1.03] transition-all duration-300`}
       >
         {/* Header */}
         <div className="text-center">
@@ -53,8 +53,8 @@ const StatCard = ({
         </div>
 
         {/* Value */}
-        <div className="mt-3 text-center">
-          <span className="text-3xl font-bold drop-shadow-sm">
+        <div className="mt-2 sm:mt-3 text-center">
+          <span className="text-xl sm:text-3xl font-bold drop-shadow-sm">
             ₦{value.toLocaleString()}
           </span>
         </div>

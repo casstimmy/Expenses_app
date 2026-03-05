@@ -66,7 +66,8 @@ export default function Nav() {
 
   let navLinks = [
     { href: "/expenses/expenses", label: "Expenses", icon: "📊" },
-    { href: "/expenses/Stock_Order", label: "Inventory", icon: "📦" },
+    { href: "/expenses/Stock_Order", label: "Vendors", icon: "📦" },
+    { href: "/expenses/Web_Products", label: "Web Products", icon: "🌐" },
   ];
 
   if (role === "admin" || role === "Senior staff") {

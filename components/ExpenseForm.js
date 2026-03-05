@@ -1,6 +1,22 @@
 // ...existing code...
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { Loader2, PlusCircle } from "lucide-react";
+
+const EXPENSE_TITLE_SUGGESTIONS = [
+  "Oven Fresh Bread","St Michael's Bread","Phirstz Bread","Wonda Bread","Adnah Bread",
+  "Cway Table Water","Cway Refill","Cway Bottle Water","Aquadana Table Water","Nirvana Table Water","Purewater",
+  "Pearlite Parfait","Lasgidi Parfait","Lasgidi Chips","Lasgidi Chin Chin","Crunch by Graccy Chips","Peerless Chips","Peerless Peanut",
+  "Raw Squeeze Juice","Raw Squeeze Pineapple & Ginger","Everything by Ria Zobo","Eatnsmile Cake","Delish Cake","Delish Chin Chin",
+  "Cedar Divine Yoghurt","Wilfred Yoghurt",
+  "Egg Purchase","Black Bullet","Biscuits Purchase","Detergent Purchase","Detergent (Cleaning)","Cleaning Materials",
+  "Nylon Purchase","POS / Printer Paper Purchase","Kilishi Payment","Dailyfoods Garri","Rexona Groundnut",
+  "Generator Repair","Generator Fix","Generator Parts Purchase","Generator Rental","Generator Transport",
+  "Fridge Maintenance","Glass Repair (Deep Freezer)","AC Maintenance","Electrician","Electrical Fix","Fan Purchase","Battery Charger Purchase","Bulb Purchase","Wire / Clip / Nail Purchase","Suckaway Fix","Waste Disposal",
+  "Data Purchase","Data Purchase (Ibile 1)","Data Purchase (Ibile 2)","Data Purchase (Mr. Ay)",
+  "Metre Credit","Diesel Purchase","Fuel Purchase",
+  "Stock Movement","Stock Movement Balance","Transport Fare","Transport to Ibile 2","Transport to Market","Mr. Ay Transport Fare","Customer Delivery",
+  "Customer Refund",
+];
 
 export default function ExpenseForm({
   location,
@@ -28,6 +44,33 @@ export default function ExpenseForm({
   const [categories, setCategories] = useState([]);
   const [isOtherCategory, setIsOtherCategory] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const suggestionsRef = useRef(null);
+  const titleInputRef = useRef(null);
+
+  const filteredSuggestions = useMemo(() => {
+    const query = (formData.title || "").trim().toLowerCase();
+    if (!query) return EXPENSE_TITLE_SUGGESTIONS;
+    return EXPENSE_TITLE_SUGGESTIONS.filter((s) =>
+      s.toLowerCase().includes(query)
+    );
+  }, [formData.title]);
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(e.target) &&
+        titleInputRef.current &&
+        !titleInputRef.current.contains(e.target)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Load staff/location from localStorage or fallback to props
   useEffect(() => {
@@ -221,17 +264,42 @@ export default function ExpenseForm({
       </h2>
 
       {/* Title */}
-      <div className="space-y-2">
+      <div className="space-y-2 relative">
         <label className="block text-sm font-medium text-gray-700">Title</label>
         <input
+          ref={titleInputRef}
           type="text"
           name="title"
           value={formData.title}
-          onChange={handleChange}
+          onChange={(e) => {
+            handleChange(e);
+            setShowSuggestions(true);
+          }}
+          onFocus={() => setShowSuggestions(true)}
           required
+          autoComplete="off"
           className="w-full p-3 border border-gray-300 rounded-lg"
           placeholder="e.g., Diesel Purchase"
         />
+        {showSuggestions && filteredSuggestions.length > 0 && (
+          <ul
+            ref={suggestionsRef}
+            className="absolute z-20 left-0 right-0 top-full mt-1 max-h-48 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg scrollbar-hide"
+          >
+            {filteredSuggestions.map((suggestion, i) => (
+              <li
+                key={i}
+                onClick={() => {
+                  setFormData((prev) => ({ ...prev, title: suggestion }));
+                  setShowSuggestions(false);
+                }}
+                className="px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors"
+              >
+                {suggestion}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       {/* Amount */}

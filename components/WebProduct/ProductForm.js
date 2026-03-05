@@ -12,6 +12,11 @@ export default function ProductForm({ selectedProduct, onClear, onSaved }) {
     category: "",
     images: [],
     description: "",
+    packSize: "",
+    packStock: "",
+    unitStock: "",
+    unitPrice: "",
+    packPrice: "",
   });
   const [loading, setLoading] = useState(false);
 
@@ -25,6 +30,11 @@ export default function ProductForm({ selectedProduct, onClear, onSaved }) {
         category: selectedProduct.category || "",
         images: selectedProduct.images || (selectedProduct.image ? [selectedProduct.image] : []),
         description: selectedProduct.description || "",
+        packSize: selectedProduct.packSize || "",
+        packStock: selectedProduct.packStock || "",
+        unitStock: selectedProduct.unitStock || "",
+        unitPrice: selectedProduct.unitPrice || "",
+        packPrice: selectedProduct.packPrice || "",
       });
     } else {
       setFormData({
@@ -34,6 +44,11 @@ export default function ProductForm({ selectedProduct, onClear, onSaved }) {
         category: "",
         images: [],
         description: "",
+        packSize: "",
+        packStock: "",
+        unitStock: "",
+        unitPrice: "",
+        packPrice: "",
       });
     }
   }, [selectedProduct]);
@@ -145,7 +160,7 @@ export default function ProductForm({ selectedProduct, onClear, onSaved }) {
       type="number"
       value={formData.stock}
       onChange={handleChange}
-      placeholder="Stock Quantity"
+      placeholder="Total Stock (units)"
       className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
     />
     <input
@@ -155,6 +170,59 @@ export default function ProductForm({ selectedProduct, onClear, onSaved }) {
       placeholder="Category"
       className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
     />
+  </div>
+
+  {/* Pack/Unit Tier System */}
+  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-3">
+    <h4 className="text-sm font-semibold text-gray-700">Pack / Unit Pricing (Optional)</h4>
+    <p className="text-xs text-gray-500">Set pack size to enable pack selling. Leave empty if product is sold only as individual units.</p>
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      <input
+        name="packSize"
+        type="number"
+        min="1"
+        value={formData.packSize}
+        onChange={handleChange}
+        placeholder="Units per pack"
+        className="w-full p-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+      />
+      <input
+        name="packStock"
+        type="number"
+        min="0"
+        value={formData.packStock}
+        onChange={handleChange}
+        placeholder="Packs in stock"
+        className="w-full p-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+      />
+      <input
+        name="unitStock"
+        type="number"
+        min="0"
+        value={formData.unitStock}
+        onChange={handleChange}
+        placeholder="Loose units"
+        className="w-full p-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+      />
+      <input
+        name="packPrice"
+        type="number"
+        min="0"
+        value={formData.packPrice}
+        onChange={handleChange}
+        placeholder="Pack price (₦)"
+        className="w-full p-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+      />
+      <input
+        name="unitPrice"
+        type="number"
+        min="0"
+        value={formData.unitPrice}
+        onChange={handleChange}
+        placeholder="Unit price (₦)"
+        className="w-full p-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+      />
+    </div>
   </div>
 
   {/* Description */}

@@ -27,7 +27,7 @@ const stockOrderSchema = new mongoose.Schema({
   // ✅ Payment tracking
   paymentMade: { type: Number, default: 0 },
   balance: { type: Number, default: 0 },
-  status: { type: String, enum: ["Not Paid", "Partly Paid", "Paid"], default: "Not Paid" },
+  status: { type: String, enum: ["Not Paid", "Partly Paid", "Paid", "Credit"], default: "Not Paid" },
   paymentDate: { type: String },
 }, { timestamps: true });
 

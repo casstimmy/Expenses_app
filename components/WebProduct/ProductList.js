@@ -101,7 +101,56 @@ export default function ProductList({ products, onRefresh, onAdvancedClick }) {
   })();
 
   return (
-    <div className="overflow-x-auto bg-white rounded-xl shadow-lg border border-gray-200">
+    <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+      {/* Mobile Card View */}
+      <div className="block md:hidden divide-y divide-gray-200">
+        {paginatedProducts.map((product) => {
+          const isEditing = editingId === product._id;
+          return (
+            <div key={product._id} className="p-3 space-y-2">
+              <div className="flex items-center gap-3">
+                {Array.isArray(product.images) && product.images[0] ? (
+                  <Image src={product.images[0]} alt={product.name} width={40} height={40} className="rounded-md object-cover" />
+                ) : (
+                  <div className="w-10 h-10 bg-gray-200 rounded-md flex items-center justify-center text-gray-500 text-xs shrink-0">N/A</div>
+                )}
+                <div className="flex-1 min-w-0">
+                  {isEditing ? (
+                    <input value={editValues.name ?? ""} onChange={(e) => handleInputChange(e, "name")} className="border px-2 py-1 rounded text-sm w-full" />
+                  ) : (
+                    <p className="font-medium text-sm truncate">{product.name}</p>
+                  )}
+                  <p className="text-xs text-gray-500">{product.category || "N/A"}</p>
+                </div>
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold shrink-0 ${(product.stock ?? 0) > 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"}`}>
+                  {(product.stock ?? 0) > 0 ? <><CheckCircle size={10} /> In Stock</> : <><XCircle size={10} /> Out</>}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-600">Price: <span className="font-semibold text-gray-800">₦{(product.price ?? 0).toLocaleString()}</span></span>
+                <span className="text-gray-600">Stock: <span className="font-semibold text-gray-800">{product.stock ?? 0}</span></span>
+              </div>
+              <div className="flex gap-2 pt-1">
+                {isEditing ? (
+                  <>
+                    <button onClick={() => handleSave(product._id)} className="flex-1 px-2 py-1 rounded-md border border-green-600 text-green-600 text-xs hover:bg-green-100">Save</button>
+                    <button onClick={handleCancel} className="flex-1 px-2 py-1 rounded-md border border-gray-600 text-gray-600 text-xs hover:bg-gray-200">Cancel</button>
+                  </>
+                ) : (
+                  <>
+                    <button onClick={() => handleEditClick(product)} className="flex-1 px-2 py-1 rounded-md border border-blue-600 text-blue-600 text-xs hover:bg-blue-100">Edit</button>
+                    <button onClick={() => onAdvancedClick?.(product)} className="flex-1 px-2 py-1 rounded-md border border-purple-600 text-purple-600 text-xs hover:bg-purple-100">Advanced</button>
+                    <button onClick={() => handleDelete(product._id)} className="flex-1 px-2 py-1 rounded-md border border-red-600 text-red-600 text-xs hover:bg-red-100">Delete</button>
+                  </>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden md:block overflow-x-auto">
       <table className="min-w-full text-sm text-gray-800">
         <thead className="bg-gray-100 text-xs text-gray-600 uppercase tracking-wider">
           <tr>
@@ -261,9 +310,10 @@ export default function ProductList({ products, onRefresh, onAdvancedClick }) {
           })}
         </tbody>
       </table>
+      </div>
 
       {/* Pagination */}
-      <div className="flex justify-center items-center gap-2 mt-6 mb-4 flex-wrap px-4">
+      <div className="flex justify-center items-center gap-1 sm:gap-2 mt-4 sm:mt-6 mb-4 flex-wrap px-2 sm:px-4">
         {pageNumbers.map((num, index) =>
           num === "..." ? (
             <span

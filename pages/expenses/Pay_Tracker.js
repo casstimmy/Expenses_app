@@ -253,6 +253,16 @@ export default function PayTracker() {
     [orders]
   );
 
+  const creditOrders = useMemo(
+    () => orders.filter((o) => o?.status?.toLowerCase() === "credit"),
+    [orders]
+  );
+
+  const totalCreditValue = useMemo(
+    () => creditOrders.reduce((sum, o) => sum + toNumber(Math.abs(o.balance ?? 0)), 0),
+    [creditOrders]
+  );
+
   const totalOverdueValue = useMemo(
     () =>
       overduePayments.reduce(
@@ -351,17 +361,17 @@ export default function PayTracker() {
   // ---------- Render ----------
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-100 p-4 md:p-6">
+      <div className="min-h-screen bg-gray-100 p-3 sm:p-4 md:p-6">
         <div className="max-w-7xl mx-auto">
-          <h1 className="text-2xl md:text-3xl font-bold text-blue-800 mb-4">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-blue-800 mb-3 sm:mb-4">
             Vendor Payment Tracker
           </h1>
 
-          <div className="flex flex-col lg:flex-row gap-6 w-full">
+          <div className="flex flex-col gap-4 sm:gap-6 w-full">
             {/* Overdue Orders */}
-            <div className="flex-1">
+            <div className="w-full">
               {unpaidDueOrders.length > 0 ? (
-                <div className="bg-red-50 border border-red-200 text-red-800 p-5 rounded-xl shadow-md">
+                <div className="bg-red-50 border border-red-200 text-red-800 p-3 sm:p-5 rounded-xl shadow-md">
                   <div className="font-semibold mb-3 text-sm md:text-base">
                     ⚠️ {unpaidDueOrders.length} Overdue Order
                     {unpaidDueOrders.length > 1 ? "s" : ""}
@@ -432,11 +442,40 @@ export default function PayTracker() {
                   ✅ No OverDue outstanding vendor payments.
                 </div>
               )}
+
+              {/* Credit List */}
+              {creditOrders.length > 0 && (
+                <div className="bg-blue-50 border border-blue-200 text-blue-800 p-4 sm:p-5 rounded-xl shadow-md mt-4">
+                  <div className="font-semibold mb-3 text-sm md:text-base flex items-center justify-between">
+                    <span>💳 {creditOrders.length} Credit Order{creditOrders.length > 1 ? "s" : ""}</span>
+                    <span className="text-xs sm:text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-bold">
+                      ₦{totalCreditValue.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {creditOrders.map((order, i) => (
+                      <div key={order._id ?? i} className="flex flex-wrap items-center justify-between gap-2 text-xs sm:text-sm bg-white px-3 py-2 rounded-lg border border-blue-100">
+                        <div>
+                          <span className="font-medium">{order.supplier || "Unknown"}</span>
+                          <span className="text-gray-400 ml-2">
+                            {order.date ? new Date(order.date).toLocaleDateString() : ""}
+                          </span>
+                        </div>
+                        <div className="flex gap-3">
+                          <span className="text-gray-600">Total: ₦{toNumber(order.grandTotal).toLocaleString()}</span>
+                          <span className="text-green-700 font-medium">Paid: ₦{toNumber(order.paymentMade).toLocaleString()}</span>
+                          <span className="text-blue-700 font-bold">Credit: ₦{Math.abs(toNumber(order.balance)).toLocaleString()}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Right Side */}
-            <div className="flex flex-col lg:flex-row lg:w-[50%] gap-8">
-              <div className="flex flex-col h-full gap-3 flex-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 w-full">
+              <div className="flex flex-col gap-3">
                 <div>
                   <StatCard
                     title="Total Paid"
@@ -496,21 +535,21 @@ export default function PayTracker() {
                 </button>
               </div>
 
-              <div className="flex flex-col gap-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 mb-6 lg:grid-cols-1 gap-6">
+              <div className="flex flex-col gap-3 sm:gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-1 gap-3 sm:gap-6">
                   <div
                     onClick={() => setTableFilter("overdue")}
                     role="button"
                     tabIndex={0}
-                    className="cursor-pointer bg-gradient-to-br from-red-400 to-red-600 text-white p-6 rounded-2xl shadow-lg flex flex-col justify-center items-center transform hover:scale-[1.03] transition-all duration-300"
+                    className="cursor-pointer bg-gradient-to-br from-red-400 to-red-600 text-white p-3 sm:p-6 rounded-2xl shadow-lg flex flex-col justify-center items-center transform hover:scale-[1.03] transition-all duration-300"
                   >
-                    <span className="text-sm uppercase tracking-wide text-center pb-1 font-medium opacity-90 w-full border-b-2 border-gray-300">
-                      Total Overdue Payments
+                    <span className="text-xs sm:text-sm uppercase tracking-wide text-center pb-1 font-medium opacity-90 w-full border-b-2 border-gray-300">
+                      Total Overdue
                     </span>
-                    <span className="text-lg text-gray-700 font-medium bg-gray-300 py-1 px-2 rounded-b-lg opacity-80">
+                    <span className="text-xs sm:text-lg text-gray-700 font-medium bg-gray-300 py-1 px-2 rounded-b-lg opacity-80">
                       {overduePayments.length} payments
                     </span>
-                    <span className="mt-2 text-3xl font-bold drop-shadow-sm">
+                    <span className="mt-1 sm:mt-2 text-xl sm:text-3xl font-bold drop-shadow-sm">
                       ₦{totalOverdueValue.toLocaleString()}
                     </span>
                   </div>
@@ -519,15 +558,15 @@ export default function PayTracker() {
                     onClick={() => setTableFilter("outstanding")}
                     role="button"
                     tabIndex={0}
-                    className="cursor-pointer bg-gradient-to-br from-yellow-300 to-yellow-500 text-gray-900 p-6 rounded-2xl shadow-lg flex flex-col justify-center items-center transform hover:scale-[1.03] transition-all duration-300"
+                    className="cursor-pointer bg-gradient-to-br from-yellow-300 to-yellow-500 text-gray-900 p-3 sm:p-6 rounded-2xl shadow-lg flex flex-col justify-center items-center transform hover:scale-[1.03] transition-all duration-300"
                   >
-                    <span className="text-sm uppercase tracking-wide text-center pb-1 font-medium opacity-90 w-full border-b-2 border-gray-400">
+                    <span className="text-xs sm:text-sm uppercase tracking-wide text-center pb-1 font-medium opacity-90 w-full border-b-2 border-gray-400">
                       Total Outstanding
                     </span>
-                    <span className="text-lg text-gray-100 font-medium bg-gray-400 py-1 px-2 rounded-b-lg opacity-80">
+                    <span className="text-xs sm:text-lg text-gray-100 font-medium bg-gray-400 py-1 px-2 rounded-b-lg opacity-80">
                       {outstandingPayments.length} payments
                     </span>
-                    <span className="mt-2 text-3xl font-bold drop-shadow-sm">
+                    <span className="mt-1 sm:mt-2 text-xl sm:text-3xl font-bold drop-shadow-sm">
                       ₦{totalOutstanding.toLocaleString()}
                     </span>
                   </div>

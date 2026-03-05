@@ -25,6 +25,39 @@ export function VendorPaymentTracker({
   const [currentPage, setCurrentPage] = useState(1);
   const entriesPerPage = 10;
 
+  // Quick check state
+  const [checkedIds, setCheckedIds] = useState(new Set());
+
+  const toggleCheck = (id) => {
+    setCheckedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const quickCheckTotal = useMemo(() => {
+    if (checkedIds.size === 0) return 0;
+    return orders
+      .filter((o) => checkedIds.has(o._id))
+      .reduce((sum, o) => sum + Number(o.grandTotal || 0), 0);
+  }, [checkedIds, orders]);
+
+  const quickCheckBalance = useMemo(() => {
+    if (checkedIds.size === 0) return 0;
+    return orders
+      .filter((o) => checkedIds.has(o._id))
+      .reduce((sum, o) => sum + Number(o.balance ?? o.grandTotal ?? 0), 0);
+  }, [checkedIds, orders]);
+
+  const quickCheckPaid = useMemo(() => {
+    if (checkedIds.size === 0) return 0;
+    return orders
+      .filter((o) => checkedIds.has(o._id))
+      .reduce((sum, o) => sum + Number(o.paymentMade || 0), 0);
+  }, [checkedIds, orders]);
+
   useEffect(() => {
     setOrders(Array.isArray(initialOrders) ? initialOrders : []);
   }, [initialOrders]);
@@ -319,6 +352,24 @@ export function VendorPaymentTracker({
         <table className="min-w-full divide-y divide-gray-300 text-sm select-none">
           <thead className="bg-blue-50 text-gray-700 font-semibold uppercase tracking-wide">
             <tr>
+              <th className="px-3 py-3 text-center w-10">
+                <input
+                  type="checkbox"
+                  checked={paginatedOrders.length > 0 && paginatedOrders.every((o) => checkedIds.has(o._id))}
+                  onChange={(e) => {
+                    setCheckedIds((prev) => {
+                      const next = new Set(prev);
+                      paginatedOrders.forEach((o) => {
+                        if (e.target.checked) next.add(o._id);
+                        else next.delete(o._id);
+                      });
+                      return next;
+                    });
+                  }}
+                  className="w-4 h-4 accent-blue-600"
+                  aria-label="Select all on page"
+                />
+              </th>
               <th className="px-4 py-3 text-left">Date</th>
               <th className="px-4 py-3 text-left">Vendor</th>
               <th className="px-4 py-3 text-left">Contact</th>
@@ -338,6 +389,15 @@ export function VendorPaymentTracker({
                 key={order._id ?? `${order.supplier ?? "unk"}-${idx}-${order.date ?? ""}`}
                 className="hover:bg-gray-50 transition"
               >
+                <td className="px-3 py-3 text-center">
+                  <input
+                    type="checkbox"
+                    checked={checkedIds.has(order._id)}
+                    onChange={() => toggleCheck(order._id)}
+                    className="w-4 h-4 accent-blue-600"
+                    aria-label={`Select ${order.supplier || "order"}`}
+                  />
+                </td>
                 <td className="px-4 py-3">
                   {editIndex === idx ? (
                     <input
@@ -525,7 +585,15 @@ export function VendorPaymentTracker({
             className="bg-white p-4 rounded-2xl shadow border border-gray-200 space-y-4"
           >
             <div className="flex justify-between items-start">
-              <div>
+              <div className="flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  checked={checkedIds.has(order._id)}
+                  onChange={() => toggleCheck(order._id)}
+                  className="w-4 h-4 mt-1 accent-blue-600"
+                  aria-label={`Select ${order.supplier || "order"}`}
+                />
+                <div>
                 <h2 className="text-base font-semibold text-gray-800">
                   {order.supplier || "Unknown Vendor"}
                 </h2>
@@ -541,6 +609,7 @@ export function VendorPaymentTracker({
                     {order.date ? new Date(order.date).toLocaleDateString() : "—"}
                   </p>
                 )}
+                </div>
               </div>
               <a
                 href={`/memo/${order._id}`}
@@ -681,6 +750,36 @@ export function VendorPaymentTracker({
           </div>
         )}
       </div>
+
+      {/* Quick Check Summary Card */}
+      {checkedIds.size > 0 && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-white border border-blue-200 rounded-2xl shadow-2xl px-5 py-4 flex flex-wrap items-center gap-4 sm:gap-6 animate-slide-up max-w-[95vw]">
+          <div className="text-sm font-medium text-gray-600">
+            <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-semibold mr-1">{checkedIds.size}</span>
+            selected
+          </div>
+          <div className="flex flex-wrap gap-3 text-sm">
+            <div className="text-center">
+              <div className="text-xs text-gray-400 uppercase">Total</div>
+              <div className="font-bold text-blue-700">{formatCurrency(quickCheckTotal)}</div>
+            </div>
+            <div className="text-center">
+              <div className="text-xs text-gray-400 uppercase">Paid</div>
+              <div className="font-bold text-green-700">{formatCurrency(quickCheckPaid)}</div>
+            </div>
+            <div className="text-center">
+              <div className="text-xs text-gray-400 uppercase">Balance</div>
+              <div className="font-bold text-red-600">{formatCurrency(quickCheckBalance)}</div>
+            </div>
+          </div>
+          <button
+            onClick={() => setCheckedIds(new Set())}
+            className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-lg transition"
+          >
+            Clear
+          </button>
+        </div>
+      )}
     </div>
   );
 }

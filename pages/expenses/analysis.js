@@ -58,37 +58,38 @@ export default function ExpenseAnalysis() {
       setLoading(true);
 
       try {
-        let localExpenses = JSON.parse(localStorage.getItem("expenses") || "[]");
-        let localCash = JSON.parse(
-          localStorage.getItem("dailyCashRecords") || "[]"
-        );
+        // Always fetch fresh data, use localStorage as fallback
+        const [expenseRes, cashRes] = await Promise.all([
+          fetch("/api/expenses"),
+          fetch("/api/daily-cash"),
+        ]);
 
-        setExpenses(localExpenses);
-        setDailyCashRecords(localCash);
+        const [expenseData, cashData] = await Promise.all([
+          expenseRes.json(),
+          cashRes.json(),
+        ]);
 
-        if (!localExpenses.length || !localCash.length) {
-          const [expenseRes, cashRes] = await Promise.all([
-            fetch("/api/expenses"),
-            fetch("/api/daily-cash"),
-          ]);
+        if (expenseRes.ok) {
+          setExpenses(expenseData);
+          localStorage.setItem("expenses", JSON.stringify(expenseData));
+        } else {
+          // fallback to localStorage
+          const local = JSON.parse(localStorage.getItem("expenses") || "[]");
+          setExpenses(local);
+        }
 
-          const [expenseData, cashData] = await Promise.all([
-            expenseRes.json(),
-            cashRes.json(),
-          ]);
-
-          if (expenseRes.ok) {
-            setExpenses(expenseData);
-            localStorage.setItem("expenses", JSON.stringify(expenseData));
-          }
-
-          if (cashRes.ok) {
-            setDailyCashRecords(cashData);
-            localStorage.setItem("dailyCashRecords", JSON.stringify(cashData));
-          }
+        if (cashRes.ok) {
+          setDailyCashRecords(cashData);
+          localStorage.setItem("dailyCashRecords", JSON.stringify(cashData));
+        } else {
+          const local = JSON.parse(localStorage.getItem("dailyCashRecords") || "[]");
+          setDailyCashRecords(local);
         }
       } catch (err) {
         console.error("Error loading data:", err);
+        // fallback to localStorage on network error
+        setExpenses(JSON.parse(localStorage.getItem("expenses") || "[]"));
+        setDailyCashRecords(JSON.parse(localStorage.getItem("dailyCashRecords") || "[]"));
         setReportError("Network or data error");
       } finally {
         setLoading(false);
@@ -98,37 +99,44 @@ export default function ExpenseAnalysis() {
     loadData();
   }, []);
 
-  // Fetch daily cash by location
+  // Fetch daily cash reports for all locations
   useEffect(() => {
-    const fetchReport = async () => {
-      if (!selectedLocation) {
-        setReport(null);
-        return;
+    const fetchReports = async () => {
+      const locationsToFetch = selectedLocation ? [selectedLocation] : LOCATIONS;
+      
+      for (const loc of locationsToFetch) {
+        try {
+          const res = await fetch(
+            `/api/daily-cash/report?date=${selectedDate}&location=${encodeURIComponent(loc)}`
+          );
+          const data = await res.json();
+
+          if (res.ok && !data?.error) {
+            setReportsByStore((prev) => ({ ...prev, [loc]: data }));
+            if (loc === selectedLocation) {
+              setReport(data);
+              setReportError("");
+            }
+          } else {
+            if (loc === selectedLocation) {
+              setReport(null);
+              setReportError(data?.error || "Error fetching report");
+            }
+          }
+        } catch (err) {
+          console.error(`Report fetch error for ${loc}:`, err);
+          if (loc === selectedLocation) {
+            setReportError("Network error while fetching report");
+          }
+        }
       }
 
-      try {
-        const res = await fetch(
-          `/api/daily-cash/report?date=${selectedDate}&location=${encodeURIComponent(
-            selectedLocation
-          )}`
-        );
-        const data = await res.json();
-
-        if (res.ok && !data?.error) {
-          setReportsByStore((prev) => ({ ...prev, [selectedLocation]: data }));
-          setReport(data);
-          setReportError("");
-        } else {
-          setReport(null);
-          setReportError(data?.error || "Error fetching report");
-        }
-      } catch (err) {
-        console.error("Report fetch error:", err);
-        setReportError("Network error while fetching report");
+      if (!selectedLocation) {
+        setReport(null);
       }
     };
 
-    fetchReport();
+    fetchReports();
   }, [selectedDate, selectedLocation]);
 
   // ─── Helper Functions ───────────────────────────────────────────────
@@ -225,24 +233,12 @@ export default function ExpenseAnalysis() {
         record.location.toLowerCase().includes(selectedLocation.toLowerCase()))
   );
 
-  const totalCashReceived = dailyCashRecords
-    .filter(
-      (r) =>
-        isWithinDateRange(r.date) &&
-        (!selectedLocation ||
-          (r.location &&
-            r.location.toLowerCase().includes(selectedLocation.toLowerCase())))
-    )
+  const totalCashReceived = filteredDailyCash
+    .filter((r) => isWithinDateRange(r.date))
     .reduce((sum, r) => sum + Number(r.amount || 0), 0);
 
-  const totalExpenses = expenses
-    .filter(
-      (r) =>
-        isWithinDateRange(r.date) &&
-        (!selectedLocation ||
-          (r.location &&
-            r.location.toLowerCase().includes(selectedLocation.toLowerCase())))
-    )
+  const totalExpenses = filteredExpenses
+    .filter((r) => isWithinDateRange(r.date))
     .reduce((sum, r) => sum + Number(r.amount || 0), 0);
 
   const expensesByCategory = filteredExpenses.reduce((acc, curr) => {
@@ -268,15 +264,15 @@ export default function ExpenseAnalysis() {
   // ─── Render ─────────────────────────────────────────────────────────
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-100 p-6">
-        <div className="max-w-7xl mx-auto space-y-8">
+      <div className="min-h-screen bg-gray-100 p-3 sm:p-6">
+        <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
           {/* Header + Refresh */}
-          <div className="flex flex-row justify-between items-start">
+          <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
             <div>
-              <h1 className="text-3xl font-bold text-blue-800 mb-6">
+              <h1 className="text-2xl sm:text-3xl font-bold text-blue-800 mb-2 sm:mb-6">
                 Dashboard
               </h1>
-              <p className="text-gray-600 text-lg mt-1">
+              <p className="text-gray-600 text-sm sm:text-lg mt-1">
                 Visualize and monitor your business expenditures in one place.
               </p>
             </div>
@@ -287,7 +283,7 @@ export default function ExpenseAnalysis() {
                 localStorage.removeItem("dailyCashRecords");
                 window.location.reload();
               }}
-              className="flex items-center gap-1 bg-blue-500 px-4 py-2 text-white rounded-xl h-10 hover:bg-white hover:text-blue-500 hover:border-2 hover:border-blue-200 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-1 bg-blue-500 px-3 sm:px-4 py-2 text-white rounded-xl h-10 text-sm hover:bg-white hover:text-blue-500 hover:border-2 hover:border-blue-200 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={isRefreshing}
             >
               {isRefreshing ? (
@@ -302,8 +298,8 @@ export default function ExpenseAnalysis() {
           </div>
 
           {/* Filters */}
-          <div className="flex items-center justify-between mt-4 mb-2">
-            <div className="text-sm text-gray-600">
+          <div className="flex flex-wrap items-center justify-between gap-2 mt-4 mb-2">
+            <div className="text-xs sm:text-sm text-gray-600 flex flex-wrap gap-1 items-center">
               {(selectedDate || selectedLocation || filtersApplied) && (
                 <>
                   <span>Active Filters:</span>
@@ -350,7 +346,7 @@ export default function ExpenseAnalysis() {
           </div>
 
           {/* Filter Inputs */}
-          <div className="flex flex-wrap gap-4 bg-white p-6 rounded-xl border shadow">
+          <div className="flex flex-wrap gap-3 sm:gap-4 bg-white p-3 sm:p-6 rounded-xl border shadow">
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">
                 Period
@@ -420,26 +416,26 @@ export default function ExpenseAnalysis() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-blue-50 border border-blue-200 p-6 rounded-xl shadow">
+              <div className="grid grid-cols-3 gap-2 sm:gap-4 bg-blue-50 border border-blue-200 p-3 sm:p-6 rounded-xl shadow">
                 <div className="text-center">
-                  <h3 className="text-sm text-gray-600 mb-1">
-                    Total Cash Received
+                  <h3 className="text-xs sm:text-sm text-gray-600 mb-1">
+                    Cash Received
                   </h3>
-                  <p className="text-2xl font-bold text-blue-800">
+                  <p className="text-lg sm:text-2xl font-bold text-blue-800">
                     ₦{totalCashReceived.toLocaleString()}
                   </p>
                 </div>
                 <div className="text-center">
-                  <h3 className="text-sm text-gray-600 mb-1">Total Expenses</h3>
-                  <p className="text-2xl font-bold text-red-600">
+                  <h3 className="text-xs sm:text-sm text-gray-600 mb-1">Expenses</h3>
+                  <p className="text-lg sm:text-2xl font-bold text-red-600">
                     ₦{totalExpenses.toLocaleString()}
                   </p>
                 </div>
                 <div className="text-center">
-                  <h3 className="text-sm text-gray-600 mb-1">
-                    Total Cash at Hand
+                  <h3 className="text-xs sm:text-sm text-gray-600 mb-1">
+                    Cash at Hand
                   </h3>
-                  <p className="text-2xl font-bold text-green-700">
+                  <p className="text-lg sm:text-2xl font-bold text-green-700">
                     ₦{Number(totalCashAtHand).toLocaleString()}
                   </p>
                 </div>
@@ -468,8 +464,8 @@ export default function ExpenseAnalysis() {
               )}
 
               {/* Daily Cash Report */}
-              <div className="bg-gradient-to-br from-white to-blue-50 p-6 rounded-xl shadow border border-blue-100 mt-10">
-                <h2 className="text-2xl font-bold text-blue-900 mb-6 flex items-center gap-2">
+              <div className="bg-gradient-to-br from-white to-blue-50 p-3 sm:p-6 rounded-xl shadow border border-blue-100 mt-6 sm:mt-10">
+                <h2 className="text-lg sm:text-2xl font-bold text-blue-900 mb-4 sm:mb-6 flex items-center gap-2">
                   💰 Daily Cash Report
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -535,7 +531,7 @@ export default function ExpenseAnalysis() {
           )}
         </div>
 
-        <div className="flex justify-end pt-6 gap-4 max-w-7xl mx-auto">
+        <div className="flex flex-col sm:flex-row flex-wrap justify-end pt-4 sm:pt-6 gap-2 sm:gap-3 max-w-7xl mx-auto">
           <button
             onClick={async () => {
               if (
@@ -563,13 +559,13 @@ export default function ExpenseAnalysis() {
                 alert("Network error. Please try again.");
               }
             }}
-            className="flex items-center gap-2 bg-green-600 px-4 py-8 text-white rounded-lg h-10 hover:bg-green-700 transition duration-200"
+            className="flex items-center justify-center gap-2 bg-green-600 px-4 py-2 text-white rounded-lg hover:bg-green-700 transition duration-200 text-sm w-full sm:w-auto"
           >
             Recalculate Cash at Hand
           </button>
 
           <Link href="/details/Ibile1">
-            <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg shadow-md transition">
+            <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg shadow-md transition text-sm w-full sm:w-auto">
               📊 View Ibile 1 Details
             </button>
           </Link>

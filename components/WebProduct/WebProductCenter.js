@@ -9,6 +9,7 @@ export default function WebProductCenter() {
   const [query, setQuery] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [loadingProducts, setLoadingProducts] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   const CACHE_KEY = "webProducts";
   const CACHE_DURATION = 1000 * 60 * 5; // 5 minutes
@@ -73,12 +74,35 @@ export default function WebProductCenter() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <h1 className="text-3xl font-bold text-blue-800">Web Product Center</h1>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             <button
-              className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg shadow-md font-semibold transition"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg shadow-md font-semibold transition text-sm"
               onClick={() => { setSelectedProduct(null); setShowForm(true); }}
             >
               + Add Product
+            </button>
+            <button
+              className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-lg shadow-md font-semibold transition text-sm disabled:opacity-50"
+              onClick={async () => {
+                setImporting(true);
+                try {
+                  const res = await fetch("/api/web-products/import-vendors", { method: "POST" });
+                  const data = await res.json();
+                  if (res.ok) {
+                    alert(data.message || "Import complete.");
+                    loadProducts();
+                  } else {
+                    alert(data.error || "Import failed.");
+                  }
+                } catch (err) {
+                  alert("Import failed.");
+                } finally {
+                  setImporting(false);
+                }
+              }}
+              disabled={importing}
+            >
+              {importing ? "Importing..." : "Import from Vendors"}
             </button>
           </div>
         </div>

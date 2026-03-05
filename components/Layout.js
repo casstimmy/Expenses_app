@@ -60,7 +60,7 @@ export default function Layout({ children }) {
   return (
     <div className={`${inter.variable} font-sans`}>
       <Nav />
-      <main className="px-4 sm:px-8 lg:px-16 bg-gray-50 min-h-screen">
+      <main className="px-2 sm:px-4 md:px-8 lg:px-16 bg-gray-50 min-h-screen">
         {children}
       </main>
     </div>

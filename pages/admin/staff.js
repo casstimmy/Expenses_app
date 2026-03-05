@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Layout from "@/components/Layout";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import SalaryTable from "@/components/SalaryTable";
 
 const LOCATIONS = ["Ibile 1", "Ibile 2"];
@@ -26,8 +27,14 @@ export default function ManageStaff() {
   const [downloading, setDownloading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const salaryMemoRef = useRef();
+  const router = useRouter();
 
   const [currentStaff, setCurrentStaff] = useState(null);
+
+  // Penalty edit state
+  const [editingPenalty, setEditingPenalty] = useState(null); // { staffId, index }
+  const [editPenaltyForm, setEditPenaltyForm] = useState({ amount: "", reason: "", date: "" });
+  const [clearingPenalties, setClearingPenalties] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
@@ -322,23 +329,96 @@ export default function ManageStaff() {
     router.push("/memo/salary");
   };
 
+  const handleEditPenalty = (staffId, index, penalty) => {
+    setEditingPenalty({ staffId, index });
+    setEditPenaltyForm({
+      amount: penalty.amount || "",
+      reason: penalty.reason || "",
+      date: penalty.date ? new Date(penalty.date).toISOString().split("T")[0] : "",
+    });
+  };
+
+  const handleSavePenaltyEdit = async () => {
+    if (!editingPenalty) return;
+    try {
+      const res = await fetch(
+        `/api/staff/penalties/${editingPenalty.staffId}/${editingPenalty.index}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(editPenaltyForm),
+        }
+      );
+      if (res.ok) {
+        setMessage("Penalty updated.");
+        setEditingPenalty(null);
+        await fetchStaff();
+      } else {
+        const data = await res.json();
+        setMessage(data.message || "Error updating penalty.");
+      }
+    } catch (err) {
+      console.error(err);
+      setMessage("Error updating penalty.");
+    }
+  };
+
+  const handleDeletePenalty = async (staffId, index) => {
+    if (!confirm("Are you sure you want to delete this penalty?")) return;
+    try {
+      const res = await fetch(`/api/staff/penalties/${staffId}/${index}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setMessage("Penalty deleted.");
+        await fetchStaff();
+      } else {
+        const data = await res.json();
+        setMessage(data.message || "Error deleting penalty.");
+      }
+    } catch (err) {
+      console.error(err);
+      setMessage("Error deleting penalty.");
+    }
+  };
+
+  const handleClearAllPenalties = async () => {
+    if (!confirm("Clear ALL penalties for ALL staff? This usually happens after salary memo is generated.")) return;
+    setClearingPenalties(true);
+    try {
+      const res = await fetch("/api/staff/penalties/clear", { method: "POST" });
+      if (res.ok) {
+        setMessage("All penalties cleared.");
+        await fetchStaff();
+      } else {
+        const data = await res.json();
+        setMessage(data.message || "Error clearing penalties.");
+      }
+    } catch (err) {
+      console.error(err);
+      setMessage("Error clearing penalties.");
+    } finally {
+      setClearingPenalties(false);
+    }
+  };
+
   return (
     <Layout>
-      <div className="max-w-7xl mx-auto bg-gray-100 py-8 px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold text-blue-800 mb-6">
-          Manage Staff Logins
+      <div className="max-w-7xl mx-auto bg-gray-100 py-4 sm:py-8 px-3 sm:px-6 lg:px-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-blue-800 mb-4 sm:mb-6">
+          Manage Staff
         </h1>
         {/* Add New Staff Form */}
         <div>
           <form
             onSubmit={handleSubmit}
-            className="bg-white p-6 shadow rounded h-fit"
+            className="bg-white p-4 sm:p-6 shadow rounded h-fit"
           >
-            <h2 className="text-lg font-semibold mb-3 text-blue-700">
+            <h2 className="text-base sm:text-lg font-semibold mb-3 text-blue-700">
               Add New Staff
             </h2>
 
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4">
               <input
                 type="text"
                 name="name"
@@ -434,10 +514,10 @@ export default function ManageStaff() {
           </form>
         </div>
 
-        <div className="flex flex-col lg:flex-row justify-between items-start gap-6 h-120 mt-6">
+        <div className="flex flex-col lg:flex-row justify-between items-start gap-4 sm:gap-6 mt-4 sm:mt-6">
           {/* All Staff List */}
-          <div className="bg-white p-6 shadow rounded-lg w-full lg:w-2/3 overflow-y-auto h-full">
-            <h2 className="text-xl font-semibold mb-6 text-blue-700">
+          <div className="bg-white p-4 sm:p-6 shadow rounded-lg w-full lg:w-2/3 overflow-y-auto max-h-[600px] lg:h-full">
+            <h2 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6 text-blue-700">
               All Staff
             </h2>
 
@@ -603,15 +683,15 @@ export default function ManageStaff() {
           </div>
 
           {/* Penalty Entry */}
-          <div className="bg-white p-6 shadow rounded-lg w-full lg:w-1/3 overflow-y-auto h-full">
-            <h2 className="text-xl font-semibold mb-4 text-blue-700">
+          <div className="bg-white p-4 sm:p-6 shadow rounded-lg w-full lg:w-1/3 overflow-y-auto max-h-[600px] lg:h-full">
+            <h2 className="text-lg sm:text-xl font-semibold mb-4 text-blue-700">
               Staff Penalty
             </h2>
 
             {/* Tab Pills */}
-            <div className="flex space-x-4 mb-4">
+            <div className="flex space-x-2 sm:space-x-4 mb-4">
               <button
-                className={`px-4 py-2 rounded-full ${
+                className={`px-3 sm:px-4 py-2 rounded-full text-sm ${
                   activeTab === "list"
                     ? "bg-blue-600 text-white"
                     : "bg-gray-200"
@@ -622,7 +702,7 @@ export default function ManageStaff() {
               </button>
 
               <button
-                className={`px-4 py-2 rounded-full ${
+                className={`px-3 sm:px-4 py-2 rounded-full text-sm ${
                   activeTab === "form"
                     ? "bg-blue-600 text-white"
                     : "bg-gray-200"
@@ -641,16 +721,16 @@ export default function ManageStaff() {
                   .map((staff) => (
                     <div
                       key={staff._id}
-                      className="bg-white border border-gray-200 p-5 rounded-lg shadow hover:shadow-md transition"
+                      className="bg-white border border-gray-200 p-4 sm:p-5 rounded-lg shadow hover:shadow-md transition"
                     >
                       <div className="flex justify-between items-center mb-2">
-                        <h3 className="text-lg font-semibold text-blue-800">
+                        <h3 className="text-base sm:text-lg font-semibold text-blue-800">
                           {staff.name}
                           <span className="text-sm text-gray-500 ml-2">
                             ({staff.role})
                           </span>
                         </h3>
-                        <span className="text-sm bg-red-100 text-red-600 px-2 py-1 rounded-full">
+                        <span className="text-xs sm:text-sm bg-red-100 text-red-600 px-2 py-1 rounded-full">
                           {staff.penalty.length} Penalt
                           {staff.penalty.length > 1 ? "ies" : "y"}
                         </span>
@@ -658,18 +738,73 @@ export default function ManageStaff() {
                       <ul className="space-y-2 pl-4 border-l-2 border-blue-100">
                         {staff.penalty.map((p, i) => (
                           <li key={i} className="text-sm text-gray-800">
-                            <span className="font-medium text-red-700">
-                              ₦{p.amount}
-                            </span>{" "}
-                            – <span className="italic">{p.reason}</span>{" "}
-                            <span className="text-gray-500">
-                              ({new Date(p.date).toLocaleDateString()})
-                            </span>
+                            {editingPenalty?.staffId === staff._id && editingPenalty?.index === i ? (
+                              <div className="flex flex-wrap items-center gap-2 py-1">
+                                <input
+                                  type="number"
+                                  value={editPenaltyForm.amount}
+                                  onChange={(e) => setEditPenaltyForm((prev) => ({ ...prev, amount: e.target.value }))}
+                                  className="border px-2 py-1 rounded text-sm w-20"
+                                  placeholder="Amount"
+                                />
+                                <input
+                                  type="text"
+                                  value={editPenaltyForm.reason}
+                                  onChange={(e) => setEditPenaltyForm((prev) => ({ ...prev, reason: e.target.value }))}
+                                  className="border px-2 py-1 rounded text-sm flex-1 min-w-[100px]"
+                                  placeholder="Reason"
+                                />
+                                <input
+                                  type="date"
+                                  value={editPenaltyForm.date}
+                                  onChange={(e) => setEditPenaltyForm((prev) => ({ ...prev, date: e.target.value }))}
+                                  className="border px-2 py-1 rounded text-sm"
+                                />
+                                <button onClick={handleSavePenaltyEdit} className="bg-green-600 text-white text-xs px-2 py-1 rounded hover:bg-green-700">Save</button>
+                                <button onClick={() => setEditingPenalty(null)} className="bg-gray-300 text-gray-700 text-xs px-2 py-1 rounded hover:bg-gray-400">Cancel</button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-between gap-2">
+                                <span>
+                                  <span className="font-medium text-red-700">₦{p.amount}</span>
+                                  {" – "}<span className="italic">{p.reason}</span>{" "}
+                                  <span className="text-gray-500">({new Date(p.date).toLocaleDateString()})</span>
+                                </span>
+                                <div className="flex gap-1 shrink-0">
+                                  <button
+                                    onClick={() => handleEditPenalty(staff._id, i, p)}
+                                    className="text-xs text-blue-600 border border-blue-400 px-2 py-0.5 rounded hover:bg-blue-500 hover:text-white transition"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeletePenalty(staff._id, i)}
+                                    className="text-xs text-red-600 border border-red-400 px-2 py-0.5 rounded hover:bg-red-500 hover:text-white transition"
+                                  >
+                                    Del
+                                  </button>
+                                </div>
+                              </div>
+                            )}
                           </li>
                         ))}
                       </ul>
                     </div>
                   ))}
+
+                {staffList.some((s) => s.penalty && s.penalty.length > 0) && (
+                  <button
+                    onClick={handleClearAllPenalties}
+                    disabled={clearingPenalties}
+                    className="w-full mt-4 bg-red-600 text-white text-sm py-2 rounded-lg hover:bg-red-700 transition disabled:opacity-50"
+                  >
+                    {clearingPenalties ? "Clearing..." : "Clear All Penalties (After Memo)"}
+                  </button>
+                )}
+
+                {!staffList.some((s) => s.penalty && s.penalty.length > 0) && (
+                  <p className="text-gray-500 text-sm italic">No penalties recorded.</p>
+                )}
               </div>
             )}
 
@@ -739,8 +874,8 @@ export default function ManageStaff() {
         </div>
 
         {/* Salary Table Entry */}
-        <div className="bg-white mt-8 p-6 shadow rounded-lg w-full overflow-y-auto h-full">
-          <h2 className="text-xl font-semibold mb-6 text-blue-700">
+        <div className="bg-white mt-4 sm:mt-8 p-4 sm:p-6 shadow rounded-lg w-full overflow-x-auto">
+          <h2 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6 text-blue-700">
             Salary Table
           </h2>
 
@@ -752,20 +887,20 @@ export default function ManageStaff() {
           />
 
           {currentStaff?.role === "admin" && (
-            <div className="flex justify-end mt-6 gap-3">
+            <div className="flex flex-col sm:flex-row justify-end mt-4 sm:mt-6 gap-2 sm:gap-3">
               <button
                 onClick={handleSendingMail}
                 disabled={isSending}
-                className={`mt-4 ${
+                className={`${
                   isSending ? "bg-gray-400" : "bg-gray-500 hover:bg-gray-700"
-                } text-white px-4 py-2 rounded transition-colors duration-200 cursor-pointer`}
+                } text-white px-4 py-2 rounded transition-colors duration-200 cursor-pointer text-sm w-full sm:w-auto`}
               >
                 {isSending ? "Sending Mail..." : "Send Salary Mail"}
               </button>
 
               <button
                 onClick={() => window.print()}
-                className="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors duration-200 cursor-pointer"
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors duration-200 cursor-pointer text-sm w-full sm:w-auto"
               >
                 Print Salary Table
               </button>
