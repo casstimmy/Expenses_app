@@ -296,26 +296,54 @@ export default function PayTracker() {
         .filter((o) => {
           const date = new Date(getOrderDate(o));
           if (isNaN(date)) return false;
+          const orderDate = startOfDay(date);
+          
           switch (filterType) {
             case "today":
             case "day":
-              return date >= todayStart && date < todayEnd;
-            case "week": {
-              const weekAgo = new Date(todayStart);
-              weekAgo.setDate(todayStart.getDate() - 7);
-              return date >= weekAgo && date < todayEnd;
+              return orderDate >= todayStart && orderDate < todayEnd;
+            
+            case "week":
+            case "thisWeek": {
+              // Start of this week (Sunday)
+              const startOfWeek = new Date(todayStart);
+              const day = startOfWeek.getDay();
+              startOfWeek.setDate(todayStart.getDate() - day);
+              return orderDate >= startOfWeek && orderDate < todayEnd;
             }
-            case "month": {
+            
+            case "lastWeek": {
+              // Start of last week (Sunday) to end of last week (Saturday)
+              const startOfWeek = new Date(todayStart);
+              const day = startOfWeek.getDay();
+              startOfWeek.setDate(todayStart.getDate() - day - 7); // Go back to last Sunday
+              const endOfLastWeek = new Date(startOfWeek);
+              endOfLastWeek.setDate(startOfWeek.getDate() + 7); // Add 7 days for Saturday end
+              return orderDate >= startOfWeek && orderDate < endOfLastWeek;
+            }
+            
+            case "month":
+            case "thisMonth": {
               const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-              return date >= monthStart && date < todayEnd;
+              return orderDate >= monthStart && orderDate < todayEnd;
             }
+            
+            case "lastMonth": {
+              const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+              const monthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+              monthEnd.setHours(23, 59, 59, 999);
+              return orderDate >= lastMonthDate && orderDate <= monthEnd;
+            }
+            
             case "period": {
               if (!range.start || !range.end) return true;
               const startDate = new Date(range.start);
+              startDate.setHours(0, 0, 0, 0);
               const endDate = new Date(range.end);
               endDate.setHours(23, 59, 59, 999);
-              return date >= startDate && date <= endDate;
+              return orderDate >= startDate && orderDate <= endDate;
             }
+            
             case "tillDate":
             default:
               return true;
@@ -488,8 +516,10 @@ export default function PayTracker() {
                   colorTo="to-green-600"
                   options={[
                     { value: "tillDate", label: "Till Date" },
-                    { value: "week", label: "Week" },
-                    { value: "month", label: "Month" },
+                    { value: "thisWeek", label: "This Week" },
+                    { value: "lastWeek", label: "Last Week" },
+                    { value: "thisMonth", label: "This Month" },
+                    { value: "lastMonth", label: "Last Month" },
                     { value: "period", label: "Custom Period" },
                   ]}
                   onFilterChange={(filter) => {
