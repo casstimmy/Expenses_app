@@ -367,9 +367,9 @@ export default function PayTracker() {
             Vendor Payment Tracker
           </h1>
 
-          <div className="flex flex-col gap-4 sm:gap-6 w-full">
-            {/* Overdue Orders */}
-            <div className="w-full">
+          <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 w-full">
+            {/* Left Side: Overdue Orders + Credit Orders */}
+            <div className="w-full lg:w-1/2 flex flex-col gap-4">
               {unpaidDueOrders.length > 0 ? (
                 <div className="bg-red-50 border border-red-200 text-red-800 p-3 sm:p-5 rounded-xl shadow-md">
                   <div className="font-semibold mb-3 text-sm md:text-base">
@@ -473,103 +473,99 @@ export default function PayTracker() {
               )}
             </div>
 
-            {/* Right Side */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 w-full">
-              <div className="flex flex-col gap-3">
-                <div>
-                  <StatCard
-                    title="Total Paid"
-                    value={totalPaid}
-                    colorFrom="from-green-400"
-                    colorTo="to-green-600"
-                    options={[
-                      { value: "tillDate", label: "Till Date" },
-                      { value: "week", label: "Week" },
-                      { value: "month", label: "Month" },
-                      { value: "period", label: "Custom Period" },
-                    ]}
-                    onFilterChange={(filter) => {
-                      setPaidFilter(filter); // update filter state
-                      setTableFilter("paid"); // table always shows paid orders
+            {/* Right Side: Stats Cards */}
+            <div className="w-full lg:w-1/2 flex flex-col gap-3 sm:gap-6">
+              {/* Total Paid Card */}
+              <div>
+                <StatCard
+                  title="Total Paid"
+                  value={totalPaid}
+                  colorFrom="from-green-400"
+                  colorTo="to-green-600"
+                  options={[
+                    { value: "tillDate", label: "Till Date" },
+                    { value: "week", label: "Week" },
+                    { value: "month", label: "Month" },
+                    { value: "period", label: "Custom Period" },
+                  ]}
+                  onFilterChange={(filter) => {
+                    setPaidFilter(filter);
+                    setTableFilter("paid");
+                    if (filter === "period" && (!customRange.start || !customRange.end)) {
+                      setCustomRange({ start: new Date(), end: new Date() });
+                    }
+                  }}
+                />
 
-                      // initialize customRange only when period is selected
-                      if (filter === "period" && (!customRange.start || !customRange.end)) {
-                        setCustomRange({ start: new Date(), end: new Date() });
-                      }
-                    }}
-                  />
-
-                  {/* Show date pickers only when "period" is selected */}
-                  {paidFilter === "period" && (
-                    <div className="flex flex-col sm:gap-2 md:gap-0 mt-2 items-center">
-                      <DatePicker
-                        selected={customRange.start ? new Date(customRange.start) : null}
-                        onChange={(date) => setCustomRange((prev) => ({ ...prev, start: date }))}
-                        selectsStart
-                        startDate={customRange.start}
-                        endDate={customRange.end}
-                        placeholderText="Start Date"
-                        className="border p-2 rounded"
-                      />
-                      <span>-</span>
-                      <DatePicker
-                        selected={customRange.end ? new Date(customRange.end) : null}
-                        onChange={(date) => setCustomRange((prev) => ({ ...prev, end: date }))}
-                        selectsEnd
-                        startDate={customRange.start}
-                        endDate={customRange.end}
-                        minDate={customRange.start}
-                        placeholderText="End Date"
-                        className="border p-2 rounded"
-                      />
-                    </div>
-                  )}
-                </div>
-
-                <button
-                  onClick={() => setTableFilter("all")}
-                  aria-label="Show full table"
-                  className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium px-5 py-2 rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
-                >
-                  Full Table
-                </button>
+                {paidFilter === "period" && (
+                  <div className="flex flex-col sm:gap-2 md:gap-0 mt-2 items-center">
+                    <DatePicker
+                      selected={customRange.start ? new Date(customRange.start) : null}
+                      onChange={(date) => setCustomRange((prev) => ({ ...prev, start: date }))}
+                      selectsStart
+                      startDate={customRange.start}
+                      endDate={customRange.end}
+                      placeholderText="Start Date"
+                      className="border p-2 rounded"
+                    />
+                    <span>-</span>
+                    <DatePicker
+                      selected={customRange.end ? new Date(customRange.end) : null}
+                      onChange={(date) => setCustomRange((prev) => ({ ...prev, end: date }))}
+                      selectsEnd
+                      startDate={customRange.start}
+                      endDate={customRange.end}
+                      minDate={customRange.start}
+                      placeholderText="End Date"
+                      className="border p-2 rounded"
+                    />
+                  </div>
+                )}
               </div>
 
-              <div className="flex flex-col gap-3 sm:gap-6">
-                <div className="grid grid-cols-2 sm:grid-cols-1 gap-3 sm:gap-6">
-                  <div
-                    onClick={() => setTableFilter("overdue")}
-                    role="button"
-                    tabIndex={0}
-                    className="cursor-pointer bg-gradient-to-br from-red-400 to-red-600 text-white p-3 sm:p-6 rounded-2xl shadow-lg flex flex-col justify-center items-center transform hover:scale-[1.03] transition-all duration-300"
-                  >
-                    <span className="text-xs sm:text-sm uppercase tracking-wide text-center pb-1 font-medium opacity-90 w-full border-b-2 border-gray-300">
-                      Total Overdue
-                    </span>
-                    <span className="text-xs sm:text-lg text-gray-700 font-medium bg-gray-300 py-1 px-2 rounded-b-lg opacity-80">
-                      {overduePayments.length} payments
-                    </span>
-                    <span className="mt-1 sm:mt-2 text-xl sm:text-3xl font-bold drop-shadow-sm">
-                      ₦{totalOverdueValue.toLocaleString()}
-                    </span>
-                  </div>
+              {/* Full Table Button */}
+              <button
+                onClick={() => setTableFilter("all")}
+                aria-label="Show full table"
+                className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium px-5 py-2 rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 w-full"
+              >
+                Full Table
+              </button>
 
-                  <div
-                    onClick={() => setTableFilter("outstanding")}
-                    role="button"
-                    tabIndex={0}
-                    className="cursor-pointer bg-gradient-to-br from-yellow-300 to-yellow-500 text-gray-900 p-3 sm:p-6 rounded-2xl shadow-lg flex flex-col justify-center items-center transform hover:scale-[1.03] transition-all duration-300"
-                  >
-                    <span className="text-xs sm:text-sm uppercase tracking-wide text-center pb-1 font-medium opacity-90 w-full border-b-2 border-gray-400">
-                      Total Outstanding
-                    </span>
-                    <span className="text-xs sm:text-lg text-gray-100 font-medium bg-gray-400 py-1 px-2 rounded-b-lg opacity-80">
-                      {outstandingPayments.length} payments
-                    </span>
-                    <span className="mt-1 sm:mt-2 text-xl sm:text-3xl font-bold drop-shadow-sm">
-                      ₦{totalOutstanding.toLocaleString()}
-                    </span>
-                  </div>
+              {/* Stats Cards Grid - 2 column on all screens */}
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                <div
+                  onClick={() => setTableFilter("overdue")}
+                  role="button"
+                  tabIndex={0}
+                  className="cursor-pointer bg-gradient-to-br from-red-400 to-red-600 text-white p-3 sm:p-4 rounded-2xl shadow-lg flex flex-col justify-center items-center transform hover:scale-[1.03] transition-all duration-300 min-h-[120px]"
+                >
+                  <span className="text-[11px] sm:text-xs uppercase tracking-wide text-center pb-1 font-semibold opacity-90 w-full border-b border-gray-300">
+                    Overdue
+                  </span>
+                  <span className="text-xs sm:text-sm text-gray-200 font-medium mt-1">
+                    {overduePayments.length} orders
+                  </span>
+                  <span className="mt-auto text-lg sm:text-2xl font-bold drop-shadow-sm text-center">
+                    ₦{totalOverdueValue.toLocaleString()}
+                  </span>
+                </div>
+
+                <div
+                  onClick={() => setTableFilter("outstanding")}
+                  role="button"
+                  tabIndex={0}
+                  className="cursor-pointer bg-gradient-to-br from-yellow-300 to-yellow-500 text-gray-900 p-3 sm:p-4 rounded-2xl shadow-lg flex flex-col justify-center items-center transform hover:scale-[1.03] transition-all duration-300 min-h-[120px]"
+                >
+                  <span className="text-[11px] sm:text-xs uppercase tracking-wide text-center pb-1 font-semibold opacity-90 w-full border-b border-gray-400">
+                    Outstanding
+                  </span>
+                  <span className="text-xs sm:text-sm text-gray-700 font-medium mt-1">
+                    {outstandingPayments.length} orders
+                  </span>
+                  <span className="mt-auto text-lg sm:text-2xl font-bold drop-shadow-sm text-center">
+                    ₦{totalOutstanding.toLocaleString()}
+                  </span>
                 </div>
               </div>
             </div>
