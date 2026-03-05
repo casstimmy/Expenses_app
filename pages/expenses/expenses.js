@@ -585,7 +585,6 @@ export default function ManageExpenses() {
 
   // Paginated slices
   const visibleExpenses = useMemo(() => searchedExpenses.slice(0, expenseLimit), [searchedExpenses, expenseLimit]);
-  const visibleCash = useMemo(() => filteredCashEntries.slice(0, cashLimit), [filteredCashEntries, cashLimit]);
 
   // Reset page counts when filters change
   useEffect(() => { setExpenseLimit(20); }, [expenseSearch, filterDate, selectedLocation, filters.startDate, filters.endDate, filters.selectedDate]);
@@ -616,6 +615,8 @@ export default function ManageExpenses() {
 
     return list.sort((a, b) => new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt));
   }, [cashEntries, staffData, selectedLocation, filterDate, filters.startDate, filters.endDate, filters.selectedDate]);
+
+  const visibleCash = useMemo(() => filteredCashEntries.slice(0, cashLimit), [filteredCashEntries, cashLimit]);
 
   const locations = useMemo(() => Array.from(new Set(expenses.map((e) => e.location))).filter(Boolean), [expenses]);
 
