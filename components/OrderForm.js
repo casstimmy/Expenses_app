@@ -10,11 +10,18 @@ export default function OrderForm({ product, index, form, setForm }) {
     <>
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4 bg-blue-50 p-4 rounded items-end">
         {/* Product Name */}
-        <input
-          readOnly
-          value={product.name}
-          className="bg-gray-100 border p-2 rounded"
-        />
+        <div>
+          <input
+            readOnly
+            value={product.name}
+            className="bg-gray-100 border p-2 rounded w-full"
+          />
+          {product.isPack && (
+            <span className="text-[10px] font-semibold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full mt-1 inline-block">
+              Pack ({product.unitsPerPack} units)
+            </span>
+          )}
+        </div>
 
         {/* Quantity */}
         {/* Quantity */}

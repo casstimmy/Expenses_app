@@ -42,7 +42,7 @@ export default function VendorForm({ onSuccess, editingVendor = null }) {
     bankName: "",
     accountName: "",
     accountNumber: "",
-    products: [{ product: "", name: "", category: "", price: 0 }],
+    products: [{ product: "", name: "", category: "", price: 0, isPack: false, unitsPerPack: 1 }],
   });
 
   useEffect(() => {
@@ -62,6 +62,8 @@ export default function VendorForm({ onSuccess, editingVendor = null }) {
           name: p.product?.name || "",
           category: p.product?.category || "",
           price: p.price || "",
+          isPack: p.product?.isPack || false,
+          unitsPerPack: p.product?.unitsPerPack || 1,
         })),
       });
     }
@@ -89,7 +91,7 @@ export default function VendorForm({ onSuccess, editingVendor = null }) {
     ...prev,
     products: [
       ...prev.products,
-      { product: "", name: "", category: "", price: 0 },
+      { product: "", name: "", category: "", price: 0, isPack: false, unitsPerPack: 1 },
     ],
   }));
 };
@@ -114,6 +116,8 @@ export default function VendorForm({ onSuccess, editingVendor = null }) {
       name: p.name,
       category: p.category,
       price: parseFloat(p.price) || 0,
+      isPack: !!p.isPack,
+      unitsPerPack: p.isPack ? (Number(p.unitsPerPack) || 1) : 1,
     }));
 
     try {
@@ -143,7 +147,7 @@ export default function VendorForm({ onSuccess, editingVendor = null }) {
     ...prev,
     products: [
       ...prev.products,
-      { name: "", category: "", price: "", quantity: "" },
+      { name: "", category: "", price: "", quantity: "", isPack: false, unitsPerPack: 1 },
     ],
   }));
 };
@@ -278,9 +282,13 @@ export default function VendorForm({ onSuccess, editingVendor = null }) {
       const selected = availableProducts.find((p) => p._id === val);
       handleProductChange(index, "name", selected?.name || "");
       handleProductChange(index, "category", selected?.category || "");
+      handleProductChange(index, "isPack", selected?.isPack || false);
+      handleProductChange(index, "unitsPerPack", selected?.unitsPerPack || 1);
     } else {
       handleProductChange(index, "name", "");
       handleProductChange(index, "category", "");
+      handleProductChange(index, "isPack", false);
+      handleProductChange(index, "unitsPerPack", 1);
     }
   }}
   className="border p-3 rounded w-full"
@@ -341,6 +349,52 @@ export default function VendorForm({ onSuccess, editingVendor = null }) {
           />
         </div>
       </div>
+
+      {/* Pack / Unit Toggle */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
+        <div className="flex items-center gap-3">
+          <label className="text-sm text-gray-700 font-medium">Pack Product?</label>
+          <button
+            type="button"
+            onClick={() => {
+              const newVal = !product.isPack;
+              handleProductChange(index, "isPack", newVal);
+              if (!newVal) handleProductChange(index, "unitsPerPack", 1);
+            }}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${product.isPack ? "bg-blue-600" : "bg-gray-300"}`}
+          >
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${product.isPack ? "translate-x-6" : "translate-x-1"}`} />
+          </button>
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${product.isPack ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"}`}>
+            {product.isPack ? "Pack" : "Single"}
+          </span>
+        </div>
+
+        {product.isPack && (
+          <div>
+            <label className="text-sm text-gray-700 mb-1 block">Units Per Pack</label>
+            <input
+              type="number"
+              min={2}
+              value={product.unitsPerPack || ""}
+              onChange={(e) => handleProductChange(index, "unitsPerPack", Number(e.target.value) || 1)}
+              placeholder="e.g., 12"
+              className="border p-3 rounded w-full"
+              required
+              onWheel={(e) => e.target.blur()}
+            />
+          </div>
+        )}
+
+        {product.isPack && product.unitsPerPack > 1 && product.price > 0 && (
+          <div className="flex items-center">
+            <span className="text-sm text-gray-600">
+              Unit Price: <span className="font-semibold text-green-700">₦{(product.price / product.unitsPerPack).toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </span>
+          </div>
+        )}
+      </div>
+
                 {/* Input for New Product Name */}
   <div>
   <label className="text-sm w-full text-gray-700 mb-1 block">New Product Name</label>

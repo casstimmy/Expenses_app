@@ -12,7 +12,7 @@ export default async function handler(req, res) {
 
   if (req.method === "GET") {
     try {
-      const products = await Product.find({}, "_id name category costPrice");
+      const products = await Product.find({}, "_id name category costPrice isPack unitsPerPack");
       return res.status(200).json(products);
     } catch (err) {
       console.error("GET /api/products failed", err);
@@ -22,13 +22,18 @@ export default async function handler(req, res) {
 
   if (req.method === "POST") {
     try {
-      const { name, category } = req.body;
+      const { name, category, isPack, unitsPerPack } = req.body;
 
       if (!name || !category) {
         return res.status(400).json({ error: "Name and category are required" });
       }
 
-      const product = await Product.create({ name: name.trim(), category });
+      const product = await Product.create({
+        name: name.trim(),
+        category,
+        isPack: !!isPack,
+        unitsPerPack: isPack ? (Number(unitsPerPack) || 1) : 1,
+      });
       return res.status(201).json(product);
     } catch (err) {
       console.error("POST /api/products failed", err);

@@ -572,13 +572,13 @@ export default function PayTracker() {
           </div>
 
           {loading ? (
-            <div className="w-full h-20 bg-gray-100 mt-6">
+            <div className="w-full h-20 bg-gray-100 mt-8">
               <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
             </div>
           ) : (
-            <>
+            <div className="mt-8">
               <VendorPaymentTracker orders={filteredOrdersForTable} onOrdersChange={handleOrdersChange} />
-            </>
+            </div>
           )}
         </div>
       </div>

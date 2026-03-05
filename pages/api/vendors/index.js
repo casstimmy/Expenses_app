@@ -39,11 +39,16 @@ export default async function handler(req, res) {
     let productId;
 
     // Destructure all expected fields from prod
-    const { product, name, category, price, quantity, costPrice, total } = prod;
+    const { product, name, category, price, quantity, costPrice, total, isPack, unitsPerPack } = prod;
 
     if (product && product !== "custom") {
       if (typeof product === "string" && mongoose.Types.ObjectId.isValid(product)) {
         productId = new mongoose.Types.ObjectId(product);
+        // Update pack info on existing product
+        await Product.findByIdAndUpdate(productId, {
+          isPack: !!isPack,
+          unitsPerPack: isPack ? (Number(unitsPerPack) || 1) : 1,
+        });
       } else {
         throw new Error(`Invalid product ID: ${product}`);
       }
@@ -56,7 +61,9 @@ export default async function handler(req, res) {
       const newProduct = await Product.create({
         name: name.trim(),
         category: category.trim(),
-        price: price || 0, // Optional fallback
+        price: price || 0,
+        isPack: !!isPack,
+        unitsPerPack: isPack ? (Number(unitsPerPack) || 1) : 1,
       });
 
       productId = newProduct._id;

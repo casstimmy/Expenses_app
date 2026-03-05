@@ -207,6 +207,8 @@ export default function ManageExpenses() {
   const [filters, setFilters] = useState({ startDate: "", endDate: "", selectedDate: "" });
   const [filtersApplied, setFiltersApplied] = useState(false);
   const [expenseSearch, setExpenseSearch] = useState("");
+  const [expenseLimit, setExpenseLimit] = useState(20);
+  const [cashLimit, setCashLimit] = useState(20);
 
   const router = useRouter();
   const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -578,6 +580,14 @@ export default function ManageExpenses() {
     );
   }, [filteredExpenses, expenseSearch]);
 
+  // Paginated slices
+  const visibleExpenses = useMemo(() => searchedExpenses.slice(0, expenseLimit), [searchedExpenses, expenseLimit]);
+  const visibleCash = useMemo(() => filteredCashEntries.slice(0, cashLimit), [filteredCashEntries, cashLimit]);
+
+  // Reset page counts when filters change
+  useEffect(() => { setExpenseLimit(20); }, [expenseSearch, filterDate, selectedLocation, filters.startDate, filters.endDate, filters.selectedDate]);
+  useEffect(() => { setCashLimit(20); }, [filterDate, selectedLocation, filters.startDate, filters.endDate, filters.selectedDate]);
+
   const filteredCashEntries = useMemo(() => {
     const list = (cashEntries || []).filter((entry) => {
       if (staffData?.role !== "admin") {
@@ -697,7 +707,7 @@ export default function ManageExpenses() {
 
                   {/* Scrollable list */}
                   <div className="overflow-y-auto scrollbar-hide flex-grow min-h-[400px] max-h-[75vh] pr-2 space-y-4">
-                    {searchedExpenses.map((exp) => (
+                    {visibleExpenses.map((exp) => (
                         <div key={exp._id} className="bg-gray-50 hover:bg-gray-100 transition-all border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md">
                           <div className="flex justify-between items-start gap-4">
                             <div className="flex-1">
@@ -750,17 +760,22 @@ export default function ManageExpenses() {
                           )}
                         </div>
                       ))}
+                    {expenseLimit < searchedExpenses.length && (
+                      <button onClick={() => setExpenseLimit((p) => p + 20)} className="w-full py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all">
+                        Load More ({searchedExpenses.length - expenseLimit} remaining)
+                      </button>
+                    )}
                   </div>
                 </div>
 
-                {/* Cash Entries (inline editing enabled) */}
+                {/* Cash Entries (inline editing enabled) */
                 <div className="bg-white p-4 sm:p-6 rounded-2xl border border-blue-100 shadow-lg flex flex-col overflow-hidden">
                   <div className="flex justify-between items-center mb-4 sticky top-0 bg-white z-10 pb-2 border-b border-blue-50">
                     <h2 className="text-base sm:text-xl font-bold text-blue-700 flex items-center gap-2"><CircleDollarSign className="w-4 sm:w-5 h-4 sm:h-5 text-green-600" /> Daily Cash Entries</h2>
                   </div>
 
                   <div className="overflow-y-auto scrollbar-hide flex-grow max-h-[75vh] pr-2 space-y-4">
-                    {filteredCashEntries.map((entry) => (
+                    {visibleCash.map((entry) => (
                         <div key={entry._id} className="bg-gray-50 hover:bg-gray-100 transition-all border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md">
                           <div className="flex justify-between items-start gap-4">
                             <div className="flex-1">
@@ -799,6 +814,11 @@ export default function ManageExpenses() {
                           )}
                         </div>
                       ))}
+                    {cashLimit < filteredCashEntries.length && (
+                      <button onClick={() => setCashLimit((p) => p + 20)} className="w-full py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all">
+                        Load More ({filteredCashEntries.length - cashLimit} remaining)
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

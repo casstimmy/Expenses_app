@@ -27,6 +27,8 @@ export default function VendorList({
         ...p.product,
         costPrice: p.price || 0,
         quantity: 1,
+        isPack: p.product?.isPack || false,
+        unitsPerPack: p.product?.unitsPerPack || 1,
       })),
     }));
   };

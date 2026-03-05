@@ -516,7 +516,7 @@ export default function ManageStaff() {
 
         <div className="flex flex-col lg:flex-row justify-between items-start gap-4 sm:gap-6 mt-4 sm:mt-6">
           {/* All Staff List */}
-          <div className="bg-white p-4 sm:p-6 shadow rounded-lg w-full lg:w-2/3 overflow-y-auto max-h-[600px] lg:h-full">
+          <div className="bg-white p-4 sm:p-6 shadow rounded-lg w-full lg:w-2/3 overflow-y-auto max-h-[340px]">
             <h2 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6 text-blue-700">
               All Staff
             </h2>
