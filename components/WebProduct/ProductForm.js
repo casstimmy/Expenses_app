@@ -246,6 +246,7 @@ export default function ProductForm({ selectedProduct, onClear, onSaved }) {
 
       {formData.images.map((link) => (
         <div key={link} className="relative w-28 h-28 rounded-lg overflow-hidden shadow-sm border">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={link} alt="Product" className="w-full h-full object-cover" />
           <button
             type="button"

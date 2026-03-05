@@ -143,6 +143,7 @@ export default function GetStarted() {
             {selectedFeature.images && selectedFeature.images.length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                 {selectedFeature.images.map((img, idx) => (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     key={idx}
                     src={img}

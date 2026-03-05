@@ -768,7 +768,7 @@ export default function ManageExpenses() {
                   </div>
                 </div>
 
-                {/* Cash Entries (inline editing enabled) */
+                {/* Cash Entries (inline editing enabled) */}
                 <div className="bg-white p-4 sm:p-6 rounded-2xl border border-blue-100 shadow-lg flex flex-col overflow-hidden">
                   <div className="flex justify-between items-center mb-4 sticky top-0 bg-white z-10 pb-2 border-b border-blue-50">
                     <h2 className="text-base sm:text-xl font-bold text-blue-700 flex items-center gap-2"><CircleDollarSign className="w-4 sm:w-5 h-4 sm:h-5 text-green-600" /> Daily Cash Entries</h2>

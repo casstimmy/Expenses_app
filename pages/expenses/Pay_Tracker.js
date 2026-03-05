@@ -119,6 +119,7 @@ export default function PayTracker() {
     } finally {
       if (mountedRef.current) setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // onOrdersChange passed to child will simply call fetchOrders()
@@ -250,6 +251,7 @@ export default function PayTracker() {
   const outstandingPayments = useMemo(
     () =>
       orders.filter((o) => outstandingCheck.includes(o?.status?.toLowerCase())),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [orders]
   );
 
