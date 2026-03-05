@@ -73,6 +73,7 @@ export default function OrderTracker({
     }
 
     enrichProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!order) return null;

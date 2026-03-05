@@ -84,6 +84,7 @@ const SalaryMemo = forwardRef(
                 <div
                   style={{ position: "absolute", top: "1rem", right: "2rem" }}
                 >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src="/image/LogoName.png"
                     alt="Ibile Mart Logo"
@@ -280,6 +281,7 @@ const SalaryMemo = forwardRef(
                 </div>
 
                 {/* Watermarks */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="/image/LogoWaterMarkFull.png"
                   alt="WatermarkLeft"
@@ -293,6 +295,7 @@ const SalaryMemo = forwardRef(
                     width: "auto",
                   }}
                 />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="/image/LogoWaterMark.png"
                   alt="WatermarkRight"
