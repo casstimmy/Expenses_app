@@ -640,20 +640,22 @@ export default function ManageExpenses() {
                 <span className="font-semibold">Location:</span> {staffData?.location || "—"}
               </p>
 
-              {staffData?.role === "admin" && (
-                <div className="flex items-center gap-2">
-                  <label htmlFor="locationFilter" className="text-gray-700 font-medium">Location:</label>
-                  <select id="locationFilter" value={selectedLocation} onChange={(e) => setSelectedLocation(e.target.value)} className="px-3 py-1.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm">
-                    <option value="All">All</option>
-                    {locations.map((loc) => <option key={loc} value={loc}>{loc}</option>)}
-                  </select>
-                </div>
-              )}
+              <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 sm:gap-3">
+                {staffData?.role === "admin" && (
+                  <div className="flex items-center gap-2">
+                    <label htmlFor="locationFilter" className="text-gray-700 font-medium">Location:</label>
+                    <select id="locationFilter" value={selectedLocation} onChange={(e) => setSelectedLocation(e.target.value)} className="px-3 py-1.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm">
+                      <option value="All">All</option>
+                      {locations.map((loc) => <option key={loc} value={loc}>{loc}</option>)}
+                    </select>
+                  </div>
+                )}
 
-              <div className="flex items-center gap-2">
-                <label htmlFor="dateFilter" className="text-gray-700 font-medium">Date:</label>
-                <input id="dateFilter" type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} className="px-3 py-1.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm" />
-                <button onClick={() => setFilterDate("")} className="text-xs px-2 py-1 bg-gray-100 rounded-md hover:bg-gray-200" title="Clear date filter">Clear</button>
+                <div className="flex items-center gap-2">
+                  <label htmlFor="dateFilter" className="text-gray-700 font-medium">Date:</label>
+                  <input id="dateFilter" type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} className="px-3 py-1.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm" />
+                  <button onClick={() => setFilterDate("")} className="text-xs px-2 py-1 bg-gray-100 rounded-md hover:bg-gray-200" title="Clear date filter">Clear</button>
+                </div>
               </div>
             </div>
           </header>
