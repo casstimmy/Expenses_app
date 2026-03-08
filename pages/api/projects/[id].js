@@ -1,6 +1,6 @@
 import { mongooseConnect } from "@/lib/mongoose";
 import Project from "@/models/Project";
-import { requireAuth } from "@/lib/auth";
+import { getAuthStaff, requireAuth } from "@/lib/auth";
 
 export default async function handler(req, res) {
   const { id } = req.query;
@@ -17,12 +17,8 @@ export default async function handler(req, res) {
     }
   }
 
-  // PUT/DELETE require admin/senior
-  const staff = await requireAuth(req, res, ["admin", "Senior staff"]);
-  if (!staff) return;
-
   if (req.method === "PUT") {
-    const { name, description, status, startDate, totalDays, categories } = req.body;
+    const { name, description, status, startDate, totalDays, categories, assignedTo } = req.body;
 
     try {
       const project = await Project.findById(id);
@@ -34,6 +30,7 @@ export default async function handler(req, res) {
       if (startDate) project.startDate = startDate;
       if (totalDays) project.totalDays = totalDays;
       if (categories) project.categories = categories;
+      if (assignedTo !== undefined) project.assignedTo = assignedTo;
 
       await project.save();
       return res.status(200).json(project);
@@ -44,6 +41,10 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "DELETE") {
+    // Only authenticated staff can delete
+    const staff = await requireAuth(req, res);
+    if (!staff) return;
+
     try {
       await Project.findByIdAndDelete(id);
       return res.status(200).json({ message: "Project deleted" });

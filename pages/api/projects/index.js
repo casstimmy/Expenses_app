@@ -1,6 +1,6 @@
 import { mongooseConnect } from "@/lib/mongoose";
 import Project from "@/models/Project";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, getAuthStaff } from "@/lib/auth";
 
 export default async function handler(req, res) {
   await mongooseConnect();
@@ -16,16 +16,16 @@ export default async function handler(req, res) {
     }
   }
 
-  // POST requires auth
-  const staff = await requireAuth(req, res, ["admin", "Senior staff"]);
-  if (!staff) return;
-
   if (req.method === "POST") {
-    const { name, description, startDate, totalDays, categories } = req.body;
+    const { name, description, startDate, totalDays, categories, assignedTo, guestName } = req.body;
 
     if (!name) {
       return res.status(400).json({ message: "Project name is required" });
     }
+
+    // Try auth — if logged in use staff name, otherwise require guestName
+    const staff = await getAuthStaff(req);
+    const createdBy = staff ? staff.name : (guestName || "Guest");
 
     try {
       const project = await Project.create({
@@ -34,7 +34,8 @@ export default async function handler(req, res) {
         startDate: startDate || new Date(),
         totalDays: totalDays || 7,
         categories: categories || [],
-        createdBy: staff.name,
+        assignedTo: assignedTo || "",
+        createdBy,
       });
       return res.status(201).json(project);
     } catch (err) {

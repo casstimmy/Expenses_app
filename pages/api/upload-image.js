@@ -37,7 +37,11 @@ export default async function handler(req, res) {
 
     for (const file of files.file || []) {
       const ext = file.originalFilename.split(".").pop();
-      const key = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const baseName = file.originalFilename
+        .replace(/\.[^/.]+$/, "")
+        .replace(/[^a-zA-Z0-9_-]/g, "_")
+        .slice(0, 60);
+      const key = `${baseName}-${Date.now()}.${ext}`;
       const body = fs.readFileSync(file.path);
 
       await client.send(

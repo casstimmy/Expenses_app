@@ -4,11 +4,11 @@ import { requireAuth } from "@/lib/auth";
 import crypto from "crypto";
 
 export default async function handler(req, res) {
+  await mongooseConnect();
+
   // Admin + Senior staff only
   const authStaff = await requireAuth(req, res, ["admin", "Senior staff", "account"]);
   if (!authStaff) return;
-
-  await mongooseConnect();
 
   if (req.method === "GET") {
     try {
@@ -26,6 +26,7 @@ export default async function handler(req, res) {
 
       res.status(200).json(staffList);
     } catch (error) {
+      console.error("Staff list fetch error:", error);
       res.status(500).json({ message: "Failed to fetch staff." });
     }
   } else {

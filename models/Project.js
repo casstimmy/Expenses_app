@@ -1,5 +1,10 @@
 import mongoose from "mongoose";
 
+const ChecklistItemSchema = new mongoose.Schema({
+  text: { type: String, required: true, trim: true },
+  checked: { type: Boolean, default: false },
+});
+
 const TaskSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
   status: {
@@ -11,6 +16,8 @@ const TaskSchema = new mongoose.Schema({
   endDay: { type: Number, default: 1 },
   assignee: { type: String, trim: true, default: "" },
   notes: { type: String, trim: true, default: "" },
+  dueDate: { type: Date },
+  checklist: [ChecklistItemSchema],
 });
 
 const CategorySchema = new mongoose.Schema({
@@ -30,6 +37,7 @@ const ProjectSchema = new mongoose.Schema(
     startDate: { type: Date },
     totalDays: { type: Number, default: 7 },
     categories: [CategorySchema],
+    assignedTo: { type: String, trim: true, default: "" },
     createdBy: { type: String, trim: true },
   },
   { timestamps: true }

@@ -68,6 +68,7 @@ export default function Nav() {
     { href: "/expenses/expenses", label: "Expenses", icon: "📊" },
     { href: "/expenses/Stock_Order", label: "Vendors", icon: "📦" },
     { href: "/expenses/Web_Products", label: "Web Products", icon: "🌐" },
+    { href: "/projects", label: "Projects", icon: "📋" },
   ];
 
   if (role === "admin" || role === "Senior staff") {
@@ -75,7 +76,6 @@ export default function Nav() {
       { href: "/expenses/analysis", label: "Reports", icon: "📈" },
       { href: "/categories", label: "Categories", icon: "🏷️" },
       { href: "/expenses/Pay_Tracker", label: "Pay Tracker", icon: "💳" },
-      { href: "/projects", label: "Projects", icon: "📊" },
       { href: "/admin/staff", label: "Staff", icon: "👥" }
     );
   } else if (role === "account") {

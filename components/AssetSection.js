@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Camera, Plus, Edit2, Trash2, History, X, Search, Filter } from "lucide-react";
+import { Camera, Plus, Edit2, Trash2, History, X, Search, Filter, Eye } from "lucide-react";
 
 const LOCATIONS = ["Ibile 1", "Ibile 2"];
 const ASSET_STATUSES = [
@@ -61,6 +61,7 @@ export default function AssetSection({ isLoggedIn }) {
   const [statusNote, setStatusNote] = useState("");
 
   const [historyModal, setHistoryModal] = useState(null);
+  const [detailModal, setDetailModal] = useState(null);
 
   const [editModal, setEditModal] = useState(null);
   const [editForm, setEditForm] = useState({});
@@ -413,60 +414,27 @@ export default function AssetSection({ isLoggedIn }) {
           <p className="text-sm mt-1">Add your first asset using the button above</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
           {filteredAssets.map((asset) => (
-            <div key={asset._id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition">
-              <div className="h-44 bg-gray-100 flex items-center justify-center overflow-hidden">
+            <div
+              key={asset._id}
+              onClick={() => setDetailModal(asset)}
+              className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition cursor-pointer group"
+            >
+              <div className="h-24 bg-gray-100 flex items-center justify-center overflow-hidden">
                 {asset.image ? (
-                  <img src={asset.image} alt={asset.name} className="w-full h-full object-cover" />
+                  <img src={asset.image} alt={asset.name} className="w-full h-full object-cover group-hover:scale-105 transition" />
                 ) : (
-                  <div className="text-gray-300 text-4xl">📦</div>
+                  <div className="text-gray-300 text-2xl">📦</div>
                 )}
               </div>
-              <div className="p-4">
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <h3 className="font-semibold text-gray-800 text-base">{asset.name}</h3>
-                  <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${STATUS_COLORS[asset.status] || "bg-gray-100 text-gray-600"}`}>
+              <div className="p-2">
+                <h3 className="font-medium text-gray-800 text-xs truncate">{asset.name}</h3>
+                <div className="flex items-center justify-between mt-1">
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${STATUS_COLORS[asset.status] || "bg-gray-100 text-gray-600"}`}>
                     {asset.status}
                   </span>
-                </div>
-                {asset.category && <p className="text-xs text-gray-500 mb-1">🏷️ {asset.category}</p>}
-                {asset.location && <p className="text-xs text-gray-500 mb-1">📍 {asset.location}</p>}
-                {asset.description && <p className="text-xs text-gray-400 mt-1 line-clamp-2">{asset.description}</p>}
-                <p className="text-xs text-gray-400 mt-2">
-                  Added by {asset.addedBy || "Unknown"} · {new Date(asset.createdAt).toLocaleString()}
-                </p>
-                <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
-                  {isLoggedIn && (
-                    <button
-                      onClick={() => { setStatusModal(asset._id); setNewStatus(asset.status); setStatusNote(""); }}
-                      className="flex-1 flex items-center justify-center gap-1 text-xs bg-blue-50 text-blue-600 px-2 py-1.5 rounded-lg hover:bg-blue-100 transition"
-                    >
-                      <Filter size={12} /> Update Status
-                    </button>
-                  )}
-                  <button
-                    onClick={() => setHistoryModal(asset)}
-                    className="flex items-center justify-center gap-1 text-xs bg-gray-50 text-gray-600 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition"
-                  >
-                    <History size={12} />
-                  </button>
-                  {isLoggedIn && (
-                    <>
-                      <button
-                        onClick={() => openEdit(asset)}
-                        className="flex items-center justify-center gap-1 text-xs bg-gray-50 text-gray-600 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition"
-                      >
-                        <Edit2 size={12} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(asset._id)}
-                        className="flex items-center justify-center gap-1 text-xs bg-red-50 text-red-500 px-2 py-1.5 rounded-lg hover:bg-red-100 transition"
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </>
-                  )}
+                  {asset.location && <span className="text-[9px] text-gray-400">📍{asset.location}</span>}
                 </div>
               </div>
             </div>
@@ -528,6 +496,74 @@ export default function AssetSection({ isLoggedIn }) {
             ) : (
               <p className="text-sm text-gray-400">No history yet.</p>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Detail Modal (Full View) */}
+      {detailModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setDetailModal(null)}>
+          <div className="bg-white rounded-xl w-full max-w-lg shadow-xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            {/* Image */}
+            <div className="h-56 bg-gray-100 flex items-center justify-center overflow-hidden relative">
+              {detailModal.image ? (
+                <img src={detailModal.image} alt={detailModal.name} className="w-full h-full object-cover" />
+              ) : (
+                <div className="text-gray-300 text-5xl">📦</div>
+              )}
+              <button onClick={() => setDetailModal(null)} className="absolute top-3 right-3 bg-white/80 backdrop-blur rounded-full p-1.5 hover:bg-white transition">
+                <X size={18} className="text-gray-600" />
+              </button>
+            </div>
+            {/* Info */}
+            <div className="p-5">
+              <div className="flex items-start justify-between gap-2 mb-3">
+                <h3 className="text-lg font-bold text-gray-800">{detailModal.name}</h3>
+                <span className={`text-xs px-2.5 py-1 rounded-full whitespace-nowrap ${STATUS_COLORS[detailModal.status] || "bg-gray-100 text-gray-600"}`}>
+                  {detailModal.status}
+                </span>
+              </div>
+              {detailModal.category && <p className="text-sm text-gray-600 mb-1">🏷️ {detailModal.category}</p>}
+              {detailModal.location && <p className="text-sm text-gray-600 mb-1">📍 {detailModal.location}</p>}
+              {detailModal.description && <p className="text-sm text-gray-500 mt-2">{detailModal.description}</p>}
+              <p className="text-xs text-gray-400 mt-3">
+                Added by {detailModal.addedBy || "Unknown"} · {new Date(detailModal.createdAt).toLocaleString()}
+              </p>
+
+              {/* Actions */}
+              <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100">
+                {isLoggedIn && (
+                  <button
+                    onClick={() => { setDetailModal(null); setStatusModal(detailModal._id); setNewStatus(detailModal.status); setStatusNote(""); }}
+                    className="flex-1 flex items-center justify-center gap-1 text-xs bg-blue-50 text-blue-600 px-3 py-2 rounded-lg hover:bg-blue-100 transition"
+                  >
+                    <Filter size={12} /> Update Status
+                  </button>
+                )}
+                <button
+                  onClick={() => { setDetailModal(null); setHistoryModal(detailModal); }}
+                  className="flex items-center justify-center gap-1 text-xs bg-gray-50 text-gray-600 px-3 py-2 rounded-lg hover:bg-gray-100 transition"
+                >
+                  <History size={12} /> History
+                </button>
+                {isLoggedIn && (
+                  <>
+                    <button
+                      onClick={() => { setDetailModal(null); openEdit(detailModal); }}
+                      className="flex items-center justify-center gap-1 text-xs bg-gray-50 text-gray-600 px-3 py-2 rounded-lg hover:bg-gray-100 transition"
+                    >
+                      <Edit2 size={12} /> Edit
+                    </button>
+                    <button
+                      onClick={() => { setDetailModal(null); handleDelete(detailModal._id); }}
+                      className="flex items-center justify-center gap-1 text-xs bg-red-50 text-red-500 px-3 py-2 rounded-lg hover:bg-red-100 transition"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}
