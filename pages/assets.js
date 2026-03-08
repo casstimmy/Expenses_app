@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
-import Layout from "@/components/Layout";
-import { Camera, Plus, Edit2, Trash2, History, X, Search, Filter } from "lucide-react";
+import Head from "next/head";
+import Link from "next/link";
+import { Camera, Plus, Edit2, Trash2, History, X, Search, Filter, Lock } from "lucide-react";
 
 const LOCATIONS = ["Ibile 1", "Ibile 2"];
 const ASSET_STATUSES = [
@@ -43,6 +44,7 @@ export default function AssetManagement() {
   const [imagePreview, setImagePreview] = useState(null);
   const [imageFile, setImageFile] = useState(null);
   const [message, setMessage] = useState("");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const fileInputRef = useRef(null);
 
   const [form, setForm] = useState({
@@ -74,6 +76,8 @@ export default function AssetManagement() {
   const editFileRef = useRef(null);
 
   useEffect(() => {
+    const staff = localStorage.getItem("staff");
+    setIsLoggedIn(!!staff);
     fetchAssets();
   }, []);
 
@@ -246,7 +250,25 @@ export default function AssetManagement() {
   });
 
   return (
-    <Layout>
+    <>
+      <Head>
+        <title>Asset Management — BizSuits</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </Head>
+      <div className="min-h-screen bg-gray-50">
+        {/* Simple header for public access */}
+        <header className="bg-white shadow-sm border-b px-4 py-3">
+          <div className="max-w-7xl mx-auto flex items-center justify-between">
+            <Link href="/" className="text-xl font-bold bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-500 bg-clip-text text-transparent">
+              BizSuits™
+            </Link>
+            {!isLoggedIn && (
+              <Link href="/" className="flex items-center gap-1 text-xs text-gray-500 hover:text-blue-600 transition">
+                <Lock size={12} /> Staff Login
+              </Link>
+            )}
+          </div>
+        </header>
       <div className="max-w-7xl mx-auto py-4 sm:py-8 px-2 sm:px-4">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
@@ -256,7 +278,7 @@ export default function AssetManagement() {
           </div>
           <button
             onClick={() => setShowForm(!showForm)}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm"
+            className={`flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm ${!isLoggedIn ? "hidden" : ""}`}
           >
             {showForm ? <X size={18} /> : <Plus size={18} />}
             {showForm ? "Close" : "Add Asset"}
@@ -475,30 +497,36 @@ export default function AssetManagement() {
 
                   {/* Actions */}
                   <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
-                    <button
-                      onClick={() => { setStatusModal(asset._id); setNewStatus(asset.status); setStatusNote(""); }}
-                      className="flex-1 flex items-center justify-center gap-1 text-xs bg-blue-50 text-blue-600 px-2 py-1.5 rounded-lg hover:bg-blue-100 transition"
-                    >
-                      <Filter size={12} /> Update Status
-                    </button>
+                    {isLoggedIn && (
+                      <button
+                        onClick={() => { setStatusModal(asset._id); setNewStatus(asset.status); setStatusNote(""); }}
+                        className="flex-1 flex items-center justify-center gap-1 text-xs bg-blue-50 text-blue-600 px-2 py-1.5 rounded-lg hover:bg-blue-100 transition"
+                      >
+                        <Filter size={12} /> Update Status
+                      </button>
+                    )}
                     <button
                       onClick={() => setHistoryModal(asset)}
                       className="flex items-center justify-center gap-1 text-xs bg-gray-50 text-gray-600 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition"
                     >
                       <History size={12} />
                     </button>
-                    <button
-                      onClick={() => openEdit(asset)}
-                      className="flex items-center justify-center gap-1 text-xs bg-gray-50 text-gray-600 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition"
-                    >
-                      <Edit2 size={12} />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(asset._id)}
-                      className="flex items-center justify-center gap-1 text-xs bg-red-50 text-red-500 px-2 py-1.5 rounded-lg hover:bg-red-100 transition"
-                    >
-                      <Trash2 size={12} />
-                    </button>
+                    {isLoggedIn && (
+                      <>
+                        <button
+                          onClick={() => openEdit(asset)}
+                          className="flex items-center justify-center gap-1 text-xs bg-gray-50 text-gray-600 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition"
+                        >
+                          <Edit2 size={12} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(asset._id)}
+                          className="flex items-center justify-center gap-1 text-xs bg-red-50 text-red-500 px-2 py-1.5 rounded-lg hover:bg-red-100 transition"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -636,6 +664,7 @@ export default function AssetManagement() {
           </div>
         )}
       </div>
-    </Layout>
+      </div>
+    </>
   );
 }

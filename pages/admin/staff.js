@@ -74,7 +74,13 @@ export default function ManageStaff() {
       accountNumber: "",
       bankName: "",
     },
+    photo: "",
   });
+
+  // Edit photo state
+  const [editPhotoPreview, setEditPhotoPreview] = useState(null);
+  const [uploadingEditPhoto, setUploadingEditPhoto] = useState(false);
+  const editPhotoRef = useRef(null);
 
   useEffect(() => {
     const stored = localStorage.getItem("staff");
@@ -313,11 +319,14 @@ export default function ManageStaff() {
         accountNumber: staff.bank?.accountNumber || "",
         bankName: staff.bank?.bankName || "",
       },
+      photo: staff.photo || "",
     });
+    setEditPhotoPreview(staff.photo || null);
   };
 
   const cancelEdit = () => {
     setEditingId(null);
+    setEditPhotoPreview(null);
     setEditForm({
       name: "",
       password: "",
@@ -328,7 +337,31 @@ export default function ManageStaff() {
         accountNumber: "",
         bankName: "",
       },
+      photo: "",
     });
+  };
+
+  const handleEditPhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => setEditPhotoPreview(ev.target.result);
+    reader.readAsDataURL(file);
+    setUploadingEditPhoto(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/upload-image", { method: "POST", body: formData });
+      if (res.ok) {
+        const data = await res.json();
+        const url = data.links?.[0] || "";
+        setEditForm((prev) => ({ ...prev, photo: url }));
+      }
+    } catch (err) {
+      console.error("Edit photo upload failed:", err);
+    } finally {
+      setUploadingEditPhoto(false);
+    }
   };
 
   const saveEdit = async (id) => {
@@ -605,6 +638,23 @@ export default function ManageStaff() {
                   >
                     {editingId === staff._id ? (
                       <div className="space-y-3">
+                        {/* Edit Photo */}
+                        <div className="flex items-center gap-3">
+                          <div
+                            onClick={() => editPhotoRef.current?.click()}
+                            className="w-14 h-14 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-blue-400 transition overflow-hidden shrink-0"
+                          >
+                            {uploadingEditPhoto ? (
+                              <Loader2 size={18} className="text-blue-400 animate-spin" />
+                            ) : editPhotoPreview ? (
+                              <img src={editPhotoPreview} alt="Staff" className="w-full h-full object-cover" />
+                            ) : (
+                              <Camera size={18} className="text-gray-400" />
+                            )}
+                          </div>
+                          <input ref={editPhotoRef} type="file" accept="image/*" onChange={handleEditPhotoUpload} className="hidden" />
+                          <span className="text-xs text-gray-400">Update photo</span>
+                        </div>
                         <input
                           type="text"
                           name="name"

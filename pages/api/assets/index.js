@@ -3,11 +3,9 @@ import Asset from "@/models/Asset";
 import { requireAuth } from "@/lib/auth";
 
 export default async function handler(req, res) {
-  const staff = await requireAuth(req, res);
-  if (!staff) return;
-
   await mongooseConnect();
 
+  // GET is public (no auth)
   if (req.method === "GET") {
     try {
       const assets = await Asset.find().sort({ createdAt: -1 });
@@ -17,6 +15,10 @@ export default async function handler(req, res) {
       return res.status(500).json({ message: "Failed to fetch assets" });
     }
   }
+
+  // POST requires auth
+  const staff = await requireAuth(req, res);
+  if (!staff) return;
 
   if (req.method === "POST") {
     const { name, image, description, location, category, status } = req.body;

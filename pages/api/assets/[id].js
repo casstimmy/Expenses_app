@@ -3,12 +3,10 @@ import Asset from "@/models/Asset";
 import { requireAuth } from "@/lib/auth";
 
 export default async function handler(req, res) {
-  const staff = await requireAuth(req, res);
-  if (!staff) return;
-
   const { id } = req.query;
   await mongooseConnect();
 
+  // GET is public (no auth)
   if (req.method === "GET") {
     try {
       const asset = await Asset.findById(id);
@@ -18,6 +16,10 @@ export default async function handler(req, res) {
       return res.status(500).json({ message: "Server error" });
     }
   }
+
+  // PUT/DELETE require auth
+  const staff = await requireAuth(req, res);
+  if (!staff) return;
 
   if (req.method === "PUT") {
     const { name, image, description, location, category, status, statusNote } = req.body;
