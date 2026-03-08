@@ -22,7 +22,7 @@ export default function Layout({ children }) {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const isPublic = PUBLIC_PATHS.some(
-      (p) => routerRef.current.pathname === p || routerRef.current.pathname.startsWith("/memo") || routerRef.current.pathname.startsWith("/onboarding") || routerRef.current.pathname.startsWith("/assets") || routerRef.current.pathname.startsWith("/projects")
+      (p) => routerRef.current.pathname === p || routerRef.current.pathname.startsWith("/memo") || routerRef.current.pathname.startsWith("/onboarding") || routerRef.current.pathname.startsWith("/projects")
     );
     if (isPublic) return;
 
