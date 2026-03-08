@@ -38,15 +38,20 @@ export default async function handler(req, res) {
     const thumbnails = [];
 
     for (const file of files.file || []) {
-      const ext = file.originalFilename.split(".").pop();
       const baseName = file.originalFilename
         .replace(/\.[^/.]+$/, "")
         .replace(/[^a-zA-Z0-9_-]/g, "_")
         .slice(0, 60);
       const timestamp = Date.now();
-      const key = `${baseName}-${timestamp}.${ext}`;
+      const key = `${baseName}-${timestamp}.webp`;
       const thumbKey = `thumb-${baseName}-${timestamp}.webp`;
       const body = fs.readFileSync(file.path);
+
+      // Compress main image (max 1200px wide, 70% quality WebP)
+      const compressedBuffer = await sharp(body)
+        .resize(1200, null, { withoutEnlargement: true })
+        .webp({ quality: 70 })
+        .toBuffer();
 
       // Generate compressed thumbnail (300px wide, 60% quality WebP)
       const thumbBuffer = await sharp(body)
@@ -54,14 +59,14 @@ export default async function handler(req, res) {
         .webp({ quality: 60 })
         .toBuffer();
 
-      // Upload original
+      // Upload compressed original
       await client.send(
         new PutObjectCommand({
           Bucket: S3BucketName,
           Key: key,
-          Body: body,
+          Body: compressedBuffer,
           ACL: "public-read",
-          ContentType: mime.lookup(file.path) || "application/octet-stream",
+          ContentType: "image/webp",
         })
       );
 

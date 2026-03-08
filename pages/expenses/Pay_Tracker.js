@@ -53,6 +53,7 @@ export default function PayTracker() {
           paymentMade,
           balance,
           status,
+          payBeforeSupply: !!o.payBeforeSupply,
         };
       });
 
@@ -250,7 +251,7 @@ export default function PayTracker() {
   const overduePayments = unpaidDueOrders;
   const outstandingPayments = useMemo(
     () =>
-      orders.filter((o) => outstandingCheck.includes(o?.status?.toLowerCase())),
+      orders.filter((o) => outstandingCheck.includes(o?.status?.toLowerCase()) && !o.payBeforeSupply),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [orders]
   );

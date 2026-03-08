@@ -29,6 +29,7 @@ const stockOrderSchema = new mongoose.Schema({
   balance: { type: Number, default: 0 },
   status: { type: String, enum: ["Not Paid", "Partly Paid", "Paid", "Credit"], default: "Not Paid" },
   paymentDate: { type: String },
+  payBeforeSupply: { type: Boolean, default: false },
 }, { timestamps: true });
 
 const StockOrder = mongoose.models.StockOrder || mongoose.model("StockOrder", stockOrderSchema);

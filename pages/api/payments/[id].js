@@ -12,7 +12,7 @@ export default async function handler(req, res) {
 
   if (req.method === "PUT") {
     try {
-      const { paymentMade, date, grandTotal, balance, status, paymentDate } = req.body;
+      const { paymentMade, date, grandTotal, balance, status, paymentDate, payBeforeSupply } = req.body;
 
       const updated = await StockOrder.findByIdAndUpdate(
         id,
@@ -22,7 +22,8 @@ export default async function handler(req, res) {
           grandTotal,
           balance,
           status,
-          paymentDate, // ✅ include payment date
+          paymentDate,
+          ...(payBeforeSupply !== undefined && { payBeforeSupply }),
         },
         { new: true }
       );

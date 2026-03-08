@@ -157,6 +157,28 @@ export function VendorPaymentTracker({
     setMessage(text);
   };
 
+  const handleTogglePayBeforeSupply = async (orderId, currentValue) => {
+    setIsBusy(true);
+    try {
+      const res = await fetch(`/api/payments/${orderId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ payBeforeSupply: !currentValue }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      showMessage(
+        !currentValue ? "Marked as Pay Before Supply" : "Marked as Outstanding",
+        "success"
+      );
+      await onOrdersChange();
+    } catch (err) {
+      console.error("Toggle payBeforeSupply failed:", err);
+      showMessage("Failed to update entry type", "error");
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   const handleDelete = async (orderId) => {
     const confirmDelete = window.confirm(
       "Are you sure you want to delete this order?"
@@ -379,6 +401,7 @@ export function VendorPaymentTracker({
               <th className="px-4 py-3 text-left">Pay Date</th>
               <th className="px-4 py-3 text-right">Balance</th>
               <th className="px-4 py-3 text-left">Status</th>
+              <th className="px-4 py-3 text-center">Type</th>
               <th className="px-4 py-3 text-left">Memo</th>
               <th className="px-4 py-3 text-left">Actions</th>
             </tr>
@@ -517,6 +540,20 @@ export function VendorPaymentTracker({
                   >
                     {order.status || "Not Paid"}
                   </span>
+                </td>
+                <td className="px-4 py-3 text-center">
+                  <button
+                    disabled={isBusy}
+                    onClick={() => handleTogglePayBeforeSupply(order._id, order.payBeforeSupply)}
+                    className={`inline-block px-2 py-1 rounded-full text-[10px] font-semibold transition ${
+                      order.payBeforeSupply
+                        ? "bg-purple-100 text-purple-700 hover:bg-purple-200"
+                        : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                    }`}
+                    title={order.payBeforeSupply ? "Pay Before Supply — click to mark as Outstanding" : "Outstanding — click to mark as Pay Before Supply"}
+                  >
+                    {order.payBeforeSupply ? "Pre-Pay" : "Outstanding"}
+                  </button>
                 </td>
                 <td className="px-4 py-3">
                   <a
@@ -669,6 +706,21 @@ export function VendorPaymentTracker({
                   {order.paymentDate ? new Date(order.paymentDate).toLocaleDateString("en-NG") : "—"}
                 </div>
               </div>
+            </div>
+
+            <div className="flex items-center gap-2 text-sm border-t border-gray-100 pt-2">
+              <strong>Type:</strong>
+              <button
+                disabled={isBusy}
+                onClick={() => handleTogglePayBeforeSupply(order._id, order.payBeforeSupply)}
+                className={`inline-block px-2 py-1 rounded-full text-xs font-semibold transition ${
+                  order.payBeforeSupply
+                    ? "bg-purple-100 text-purple-700"
+                    : "bg-gray-100 text-gray-500"
+                }`}
+              >
+                {order.payBeforeSupply ? "Pre-Pay (Pay Before Supply)" : "Outstanding"}
+              </button>
             </div>
 
             <div className="text-sm">
