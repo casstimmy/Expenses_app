@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import Head from "next/head";
-import Link from "next/link";
 import {
   Plus, X, ChevronDown, ChevronUp, Trash2, Edit2,
-  CheckCircle, Clock, AlertCircle, Pause, Lock,
+  CheckCircle, Clock, AlertCircle, Pause,
 } from "lucide-react";
+import AssetSection from "../components/AssetSection";
 
 const TASK_STATUSES = ["not-started", "in-progress", "completed", "blocked", "on-hold"];
 const PROJECT_STATUSES = ["planning", "active", "completed", "on-hold"];
@@ -44,6 +44,7 @@ export default function ProjectTracker() {
   const [expandedProject, setExpandedProject] = useState(null);
   const [editingTask, setEditingTask] = useState(null);
   const [message, setMessage] = useState("");
+  const [activeTab, setActiveTab] = useState("projects");
 
   // New project form
   const [newProject, setNewProject] = useState({
@@ -190,21 +191,33 @@ export default function ProjectTracker() {
         {/* Header */}
         <header className="bg-white shadow-sm border-b px-4 py-3">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <Link href="/" className="text-xl font-bold bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-500 bg-clip-text text-transparent">
+            <span className="text-xl font-bold bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-500 bg-clip-text text-transparent">
               BizSuits™
-            </Link>
-            <div className="flex items-center gap-3">
-              <Link href="/assets" className="text-xs text-gray-500 hover:text-blue-600 transition">Assets</Link>
-              {!isLoggedIn && (
-                <Link href="/" className="flex items-center gap-1 text-xs text-gray-500 hover:text-blue-600 transition">
-                  <Lock size={12} /> Staff Login
-                </Link>
-              )}
-            </div>
+            </span>
           </div>
         </header>
 
         <div className="max-w-7xl mx-auto py-4 sm:py-8 px-2 sm:px-4">
+          {/* Tabs */}
+          <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-lg w-fit">
+            <button
+              onClick={() => setActiveTab("projects")}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition ${activeTab === "projects" ? "bg-white text-blue-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+            >
+              📊 Projects
+            </button>
+            <button
+              onClick={() => setActiveTab("assets")}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition ${activeTab === "assets" ? "bg-white text-blue-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+            >
+              📋 Assets
+            </button>
+          </div>
+
+          {activeTab === "assets" ? (
+            <AssetSection isLoggedIn={isLoggedIn} />
+          ) : (
+          <>
           {/* Page Header */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
             <div>
@@ -612,6 +625,8 @@ export default function ProjectTracker() {
                 );
               })}
             </div>
+          )}
+          </>
           )}
         </div>
       </div>
