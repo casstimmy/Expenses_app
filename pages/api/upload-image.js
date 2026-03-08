@@ -2,6 +2,7 @@ import multiparty from "multiparty";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import fs from "fs";
 import mime from "mime-types";
+import sharp from "sharp";
 import { requireAuth } from "@/lib/auth";
 
 const S3BucketName = "image-bucket-admin";
@@ -34,6 +35,7 @@ export default async function handler(req, res) {
     });
 
     const links = [];
+    const thumbnails = [];
 
     for (const file of files.file || []) {
       const ext = file.originalFilename.split(".").pop();
@@ -41,9 +43,18 @@ export default async function handler(req, res) {
         .replace(/\.[^/.]+$/, "")
         .replace(/[^a-zA-Z0-9_-]/g, "_")
         .slice(0, 60);
-      const key = `${baseName}-${Date.now()}.${ext}`;
+      const timestamp = Date.now();
+      const key = `${baseName}-${timestamp}.${ext}`;
+      const thumbKey = `thumb-${baseName}-${timestamp}.webp`;
       const body = fs.readFileSync(file.path);
 
+      // Generate compressed thumbnail (300px wide, 60% quality WebP)
+      const thumbBuffer = await sharp(body)
+        .resize(300, null, { withoutEnlargement: true })
+        .webp({ quality: 60 })
+        .toBuffer();
+
+      // Upload original
       await client.send(
         new PutObjectCommand({
           Bucket: S3BucketName,
@@ -54,10 +65,22 @@ export default async function handler(req, res) {
         })
       );
 
+      // Upload thumbnail
+      await client.send(
+        new PutObjectCommand({
+          Bucket: S3BucketName,
+          Key: thumbKey,
+          Body: thumbBuffer,
+          ACL: "public-read",
+          ContentType: "image/webp",
+        })
+      );
+
       links.push(`https://${S3BucketName}.s3.amazonaws.com/${key}`);
+      thumbnails.push(`https://${S3BucketName}.s3.amazonaws.com/${thumbKey}`);
     }
 
-    return res.status(200).json({ links });
+    return res.status(200).json({ links, thumbnails });
   } catch (error) {
     console.error("Upload error:", error);
     return res.status(500).json({ message: "Upload failed" });

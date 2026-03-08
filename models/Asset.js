@@ -4,6 +4,7 @@ const AssetSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
     image: { type: String },
+    thumbnail: { type: String },
     description: { type: String, trim: true, default: "" },
     location: { type: String, trim: true },
     category: { type: String, trim: true, default: "" },

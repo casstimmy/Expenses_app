@@ -159,7 +159,7 @@ export default function AssetSection({ isLoggedIn }) {
     const res = await fetch("/api/upload-image", { method: "POST", body: formData });
     if (!res.ok) throw new Error("Upload failed");
     const data = await res.json();
-    return data.links?.[0];
+    return { image: data.links?.[0], thumbnail: data.thumbnails?.[0] };
   };
 
   const handleSubmit = async (e) => {
@@ -168,15 +168,18 @@ export default function AssetSection({ isLoggedIn }) {
     setMessage("");
     try {
       let imageUrl = "";
+      let thumbnailUrl = "";
       if (imageFile) {
         setUploading(true);
-        imageUrl = await uploadImage(imageFile);
+        const uploaded = await uploadImage(imageFile);
+        imageUrl = uploaded.image;
+        thumbnailUrl = uploaded.thumbnail;
         setUploading(false);
       }
       const res = await fetch("/api/assets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, image: imageUrl }),
+        body: JSON.stringify({ ...form, image: imageUrl, thumbnail: thumbnailUrl }),
       });
       if (res.ok) {
         setMessage("Asset added successfully!");
@@ -250,12 +253,15 @@ export default function AssetSection({ isLoggedIn }) {
 
   const handleEditSubmit = async (assetId) => {
     try {
-      let imageUrl;
+      let imageUrl, thumbnailUrl;
       if (editImageFile) {
-        imageUrl = await uploadImage(editImageFile);
+        const uploaded = await uploadImage(editImageFile);
+        imageUrl = uploaded.image;
+        thumbnailUrl = uploaded.thumbnail;
       }
       const body = { ...editForm };
       if (imageUrl) body.image = imageUrl;
+      if (thumbnailUrl) body.thumbnail = thumbnailUrl;
       const res = await fetch(`/api/assets/${assetId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -524,8 +530,8 @@ export default function AssetSection({ isLoggedIn }) {
               className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition cursor-pointer group"
             >
               <div className="h-24 bg-gray-100 flex items-center justify-center overflow-hidden">
-                {asset.image ? (
-                  <img src={asset.image} alt={asset.name} className="w-full h-full object-cover group-hover:scale-105 transition" />
+                {(asset.thumbnail || asset.image) ? (
+                  <img src={asset.thumbnail || asset.image} alt={asset.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition" />
                 ) : (
                   <div className="text-gray-300 text-2xl">📦</div>
                 )}
@@ -609,7 +615,7 @@ export default function AssetSection({ isLoggedIn }) {
             {/* Image */}
             <div className="h-56 bg-gray-100 flex items-center justify-center overflow-hidden relative">
               {detailModal.image ? (
-                <img src={detailModal.image} alt={detailModal.name} className="w-full h-full object-cover" />
+                <img src={detailModal.image} alt={detailModal.name} loading="lazy" className="w-full h-full object-cover" />
               ) : (
                 <div className="text-gray-300 text-5xl">📦</div>
               )}

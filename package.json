@@ -50,6 +50,7 @@
     "react-to-print": "^3.1.1",
     "recharts": "^3.0.2",
     "resend": "^4.8.0",
+    "sharp": "^0.34.5",
     "tsparticles-basic": "^2.12.0",
     "tsparticles-engine": "^2.12.0",
     "twilio": "^5.7.3"
