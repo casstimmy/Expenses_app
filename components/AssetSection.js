@@ -62,6 +62,7 @@ export default function AssetSection({ isLoggedIn }) {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [identifying, setIdentifying] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
   const [imageFile, setImageFile] = useState(null);
@@ -134,8 +135,21 @@ export default function AssetSection({ isLoggedIn }) {
     const reader = new FileReader();
     reader.onload = (ev) => setImagePreview(ev.target.result);
     reader.readAsDataURL(file);
+
+    // Use AI to identify the item in the image
     if (!form.name) {
-      setForm((prev) => ({ ...prev, name: suggestNameFromFile(file.name) }));
+      setIdentifying(true);
+      const fd = new FormData();
+      fd.append("file", file);
+      fetch("/api/identify-image", { method: "POST", body: fd })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.name) {
+            setForm((prev) => ({ ...prev, name: prev.name || data.name }));
+          }
+        })
+        .catch(() => {})
+        .finally(() => setIdentifying(false));
     }
   };
 
@@ -328,6 +342,11 @@ export default function AssetSection({ isLoggedIn }) {
             {form.name && imageFile && (
               <p className="text-xs text-gray-400 text-center mt-1">
                 Name auto-suggested from image. Edit as needed.
+              </p>
+            )}
+            {identifying && (
+              <p className="text-xs text-blue-500 text-center mt-1 animate-pulse">
+                Identifying item...
               </p>
             )}
           </div>

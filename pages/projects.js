@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import AssetSection from "../components/AssetSection";
+import Layout from "@/components/Layout";
 
 const ReactCalendar = dynamic(() => import("react-calendar"), { ssr: false });
 
@@ -60,6 +61,9 @@ function allTasks(project) {
 
 /* ── Board view (Kanban with @hello-pangea/dnd) ────────────── */
 function BoardView({ project, canEdit, onUpdateTask, onRemoveTask }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   const tasksByColumn = useMemo(() => {
     const all = allTasks(project);
     return {
@@ -76,6 +80,21 @@ function BoardView({ project, canEdit, onUpdateTask, onRemoveTask }) {
     const newStatus = destination.droppableId;
     onUpdateTask(project, catIdx, taskIdx, { status: newStatus });
   };
+
+  if (!mounted) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4">
+        {BOARD_COLUMNS.map((col) => (
+          <div key={col.key} className={`rounded-xl border border-gray-200 border-t-4 ${col.accent} ${col.bg} p-3 min-h-[250px]`}>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-xs font-bold text-gray-600 tracking-wider">{col.label}</h4>
+            </div>
+            <p className="text-xs text-gray-400 text-center py-8">Loading...</p>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
@@ -632,6 +651,7 @@ export default function ProjectTracker() {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [addingTaskTo, setAddingTaskTo] = useState(null);
   const [newTask, setNewTask] = useState({ name: "", startDay: 1, endDay: 1, assignee: "", dueDate: "" });
+  const [staffNames, setStaffNames] = useState([]);
 
   useEffect(() => {
     const staff = localStorage.getItem("staff");
@@ -639,6 +659,7 @@ export default function ProjectTracker() {
       try { const p = JSON.parse(staff); setIsLoggedIn(true); setStaffName(p.name || ""); } catch { setIsLoggedIn(false); }
     }
     fetchProjects();
+    fetch("/api/staff/names").then(r => r.ok ? r.json() : []).then(setStaffNames).catch(() => {});
   }, []);
 
   const getUserName = () => isLoggedIn ? staffName : guestName;
@@ -722,26 +743,19 @@ export default function ProjectTracker() {
   };
 
   return (
-    <>
+    <Layout>
       <Head>
         <title>Project Tracker — BizSuits</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
-      <div className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <header className="bg-white shadow-sm border-b px-4 py-3">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <span className="text-xl font-bold bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-500 bg-clip-text text-transparent">BizSuits™</span>
-            {!isLoggedIn && (
-              <div className="flex items-center gap-2">
-                <User size={14} className="text-gray-400" />
-                <input type="text" placeholder="Enter your name..." value={guestName} onChange={(e) => setGuestName(e.target.value)} className="border rounded-lg px-3 py-1.5 text-sm w-40 sm:w-56" />
-              </div>
-            )}
-          </div>
-        </header>
-
+      <div className="min-h-screen bg-gray-50 pt-20">
         <div className="max-w-7xl mx-auto py-4 sm:py-8 px-2 sm:px-4">
+          {!isLoggedIn && (
+            <div className="flex items-center gap-2 mb-4 bg-white rounded-lg border border-gray-200 px-4 py-3 w-fit">
+              <User size={14} className="text-gray-400" />
+              <input type="text" placeholder="Enter your name to contribute..." value={guestName} onChange={(e) => setGuestName(e.target.value)} className="border rounded-lg px-3 py-1.5 text-sm w-52 sm:w-64" />
+            </div>
+          )}
           {/* Page Tabs */}
           <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-lg w-fit">
             <button onClick={() => setPageTab("projects")} className={`px-4 py-2 rounded-md text-sm font-medium transition ${pageTab === "projects" ? "bg-white text-blue-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>📊 Projects</button>
@@ -781,7 +795,10 @@ export default function ProjectTracker() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     <input type="text" placeholder="Project Name *" value={newProject.name} onChange={(e) => setNewProject(p => ({ ...p, name: e.target.value }))} className="border p-2 rounded-lg w-full" required />
                     <input type="text" placeholder="Description" value={newProject.description} onChange={(e) => setNewProject(p => ({ ...p, description: e.target.value }))} className="border p-2 rounded-lg w-full" />
-                    <input type="text" placeholder="Assign to (staff name)" value={newProject.assignedTo} onChange={(e) => setNewProject(p => ({ ...p, assignedTo: e.target.value }))} className="border p-2 rounded-lg w-full" />
+                    <select value={newProject.assignedTo} onChange={(e) => setNewProject(p => ({ ...p, assignedTo: e.target.value }))} className="border p-2 rounded-lg w-full">
+                      <option value="">Assign to staff...</option>
+                      {staffNames.map(name => <option key={name} value={name}>{name}</option>)}
+                    </select>
                     <input type="date" value={newProject.startDate} onChange={(e) => setNewProject(p => ({ ...p, startDate: e.target.value }))} className="border p-2 rounded-lg w-full" />
                     <div className="flex items-center gap-2">
                       <input type="number" min={1} max={90} value={newProject.totalDays} onChange={(e) => setNewProject(p => ({ ...p, totalDays: parseInt(e.target.value) || 7 }))} className="border p-2 rounded-lg w-20" />
@@ -893,7 +910,10 @@ export default function ProjectTracker() {
                                   <h4 className="text-xs font-semibold text-blue-700 mb-2">New Task in {project.categories[addingTaskTo.catIdx]?.name}</h4>
                                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
                                     <input type="text" placeholder="Task name *" value={newTask.name} onChange={(e) => setNewTask(p => ({ ...p, name: e.target.value }))} className="border rounded px-2 py-1.5 text-xs w-full" autoFocus />
-                                    <input type="text" placeholder={`Assignee (default: ${getUserName() || "you"})`} value={newTask.assignee} onChange={(e) => setNewTask(p => ({ ...p, assignee: e.target.value }))} className="border rounded px-2 py-1.5 text-xs w-full" />
+                                    <select value={newTask.assignee} onChange={(e) => setNewTask(p => ({ ...p, assignee: e.target.value }))} className="border rounded px-2 py-1.5 text-xs w-full">
+                                      <option value="">{getUserName() ? `Assignee (default: ${getUserName()})` : "Select assignee..."}</option>
+                                      {staffNames.map(name => <option key={name} value={name}>{name}</option>)}
+                                    </select>
                                     <div className="flex items-center gap-1">
                                       <span className="text-[10px] text-gray-500">Day</span>
                                       <input type="number" min={1} max={project.totalDays} value={newTask.startDay} onChange={(e) => setNewTask(p => ({ ...p, startDay: e.target.value }))} className="border rounded px-1 py-1.5 w-10 text-xs" />
@@ -930,6 +950,6 @@ export default function ProjectTracker() {
           )}
         </div>
       </div>
-    </>
+    </Layout>
   );
 }
