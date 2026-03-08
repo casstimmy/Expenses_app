@@ -1,6 +1,7 @@
 import { mongooseConnect } from "@/lib/mongoose";
 import { Staff } from "@/models/Staff";
 import { requireAuth } from "@/lib/auth";
+import crypto from "crypto";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -11,7 +12,7 @@ export default async function handler(req, res) {
   const authStaff = await requireAuth(req, res, ["admin"]);
   if (!authStaff) return;
 
-  const { name, password, location, role = "staff", bank, salary } = req.body;
+  const { name, password, location, role = "staff", bank, salary, photo } = req.body;
 
   if (!name || !password || !location) {
     return res
@@ -40,12 +41,16 @@ export default async function handler(req, res) {
   }
 
   try {
+    const onboardingToken = crypto.randomBytes(32).toString("hex");
+
     const newStaff = new Staff({
       name,
       password,
       location,
       role,
-      salary: parseFloat(salary) || 0, // ✅ ADD THIS
+      salary: parseFloat(salary) || 0,
+      photo: photo || "",
+      onboardingToken,
       bank: {
         accountName: bank.accountName.trim(),
         accountNumber: bank.accountNumber.trim(),
@@ -54,7 +59,7 @@ export default async function handler(req, res) {
     });
 
     await newStaff.save();
-    res.status(201).json({ message: "Staff created", id: newStaff._id });
+    res.status(201).json({ message: "Staff created", id: newStaff._id, onboardingToken });
   } catch (err) {
     console.error("Error creating staff:", err);
     res.status(500).json({ message: "Server error." });

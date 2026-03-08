@@ -3,6 +3,7 @@ import Layout from "@/components/Layout";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import SalaryTable from "@/components/SalaryTable";
+import { Camera, Copy, CheckCircle, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 
 const LOCATIONS = ["Ibile 1", "Ibile 2"];
 
@@ -27,9 +28,19 @@ export default function ManageStaff() {
   const [downloading, setDownloading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const salaryMemoRef = useRef();
+  const staffPhotoRef = useRef(null);
   const router = useRouter();
 
   const [currentStaff, setCurrentStaff] = useState(null);
+
+  // Photo upload state
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [photoUrl, setPhotoUrl] = useState("");
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  // Onboarding / profile viewer
+  const [expandedProfile, setExpandedProfile] = useState(null);
+  const [copiedLink, setCopiedLink] = useState(null);
 
   // Penalty edit state
   const [editingPenalty, setEditingPenalty] = useState(null); // { staffId, index }
@@ -50,6 +61,7 @@ export default function ManageStaff() {
     reason: "",
     amount: "",
     salary: "",
+    photo: "",
   });
 
   const [editForm, setEditForm] = useState({
@@ -138,6 +150,39 @@ export default function ManageStaff() {
 
     setIsSending(false);
   };
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (ev) => setPhotoPreview(ev.target.result);
+    reader.readAsDataURL(file);
+
+    setUploadingPhoto(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/upload-image", { method: "POST", body: formData });
+      if (res.ok) {
+        const data = await res.json();
+        const url = data.links?.[0] || "";
+        setPhotoUrl(url);
+        setForm((prev) => ({ ...prev, photo: url }));
+      }
+    } catch (err) {
+      console.error("Photo upload failed:", err);
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const copyOnboardingLink = (staffMember) => {
+    const link = `${window.location.origin}/onboarding/${staffMember.onboardingToken}`;
+    navigator.clipboard.writeText(link);
+    setCopiedLink(staffMember._id);
+    setTimeout(() => setCopiedLink(null), 2000);
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -181,7 +226,7 @@ export default function ManageStaff() {
     const res = await fetch("/api/staff/create", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify({ ...form, photo: photoUrl }),
     });
 
     const data = await res.json();
@@ -201,7 +246,10 @@ export default function ManageStaff() {
         staffId: "",
         reason: "",
         amount: "",
+        photo: "",
       });
+      setPhotoPreview(null);
+      setPhotoUrl("");
       fetchStaff();
     } else {
       setMessage(data.message || "Error adding staff.");
@@ -417,6 +465,24 @@ export default function ManageStaff() {
             <h2 className="text-base sm:text-lg font-semibold mb-3 text-blue-700">
               Add New Staff
             </h2>
+
+            {/* Staff Photo Upload */}
+            <div className="flex items-center gap-4 mb-4">
+              <div
+                onClick={() => staffPhotoRef.current?.click()}
+                className="w-16 h-16 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition overflow-hidden shrink-0"
+              >
+                {uploadingPhoto ? (
+                  <Loader2 size={20} className="text-blue-400 animate-spin" />
+                ) : photoPreview ? (
+                  <img src={photoPreview} alt="Staff" className="w-full h-full object-cover" />
+                ) : (
+                  <Camera size={20} className="text-gray-400" />
+                )}
+              </div>
+              <input ref={staffPhotoRef} type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
+              <p className="text-xs text-gray-400">Upload staff passport photo (optional — can also be filled via onboarding form)</p>
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4">
               <input
@@ -635,42 +701,119 @@ export default function ManageStaff() {
                         </div>
                       </div>
                     ) : (
-                      <div className="flex items-start gap-4 w-full">
-                        <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-lg">
-                          {staff.name?.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="flex-1">
-                          <div className="text-lg font-semibold text-gray-800">
-                            {staff.name}
+                      <div className="w-full">
+                        <div className="flex items-start gap-4 w-full">
+                          {staff.photo ? (
+                            <img src={staff.photo} alt={staff.name} className="w-10 h-10 rounded-full object-cover shrink-0" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-lg shrink-0">
+                              {staff.name?.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="text-lg font-semibold text-gray-800">
+                              {staff.name}
+                            </div>
+                            <div className="text-sm text-gray-600 mb-1">
+                              📍 {staff.location}
+                            </div>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span
+                                className={`text-xs font-medium px-2 py-1 rounded-full inline-block
+                                  ${
+                                    staff.role === "admin" || staff.role === "Senior staff"
+                                      ? "bg-red-100 text-red-700"
+                                      : "bg-blue-100 text-blue-700"
+                                  }`}
+                              >
+                                {staff.role}
+                              </span>
+                              {staff.onboardingComplete ? (
+                                <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 flex items-center gap-1">
+                                  <CheckCircle size={10} /> Onboarded
+                                </span>
+                              ) : (
+                                <span className="text-xs px-2 py-1 rounded-full bg-yellow-100 text-yellow-700">
+                                  Pending Form
+                                </span>
+                              )}
+                            </div>
                           </div>
-                          <div className="text-sm text-gray-600 mb-1">
-                            📍 {staff.location}
+                          <div className="flex flex-col gap-2 shrink-0">
+                            <button
+                              onClick={() => startEdit(staff)}
+                              className="text-xs px-2 py-1 border border-blue-500 text-blue-600 rounded-full hover:bg-blue-500 hover:text-white transition"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => deleteStaff(staff._id)}
+                              className="text-xs px-2 py-1 border border-red-500 text-red-600 rounded-full hover:bg-red-500 hover:text-white transition"
+                            >
+                              Delete
+                            </button>
                           </div>
-                          <span
-                            className={`text-xs font-medium px-2 py-1 rounded-full inline-block
-                    ${
-                      staff.role === "admin" || staff.role === "Senior staff"
-                        ? "bg-red-100 text-red-700"
-                        : "bg-blue-100 text-blue-700"
-                    }`}
-                          >
-                            {staff.role}
-                          </span>
                         </div>
-                        <div className="flex flex-col gap-2">
-                          <button
-                            onClick={() => startEdit(staff)}
-                            className="text-xs px-2 py-1 border border-blue-500 text-blue-600 rounded-full hover:bg-blue-500 hover:text-white transition"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => deleteStaff(staff._id)}
-                            className="text-xs px-2 py-1 border border-red-500 text-red-600 rounded-full hover:bg-red-500 hover:text-white transition"
-                          >
-                            Delete
-                          </button>
+
+                        {/* Onboarding Link + Profile Toggle */}
+                        <div className="mt-3 pt-2 border-t border-gray-100 flex flex-wrap items-center gap-2">
+                          {staff.onboardingToken && (
+                            <button
+                              onClick={() => copyOnboardingLink(staff)}
+                              className="flex items-center gap-1 text-xs bg-indigo-50 text-indigo-600 px-2 py-1 rounded hover:bg-indigo-100 transition"
+                            >
+                              {copiedLink === staff._id ? <><CheckCircle size={12} /> Copied!</> : <><Copy size={12} /> Copy Onboarding Link</>}
+                            </button>
+                          )}
+                          {staff.onboardingComplete && (
+                            <button
+                              onClick={() => setExpandedProfile(expandedProfile === staff._id ? null : staff._id)}
+                              className="flex items-center gap-1 text-xs bg-gray-50 text-gray-600 px-2 py-1 rounded hover:bg-gray-100 transition"
+                            >
+                              {expandedProfile === staff._id ? <><ChevronUp size={12} /> Hide Profile</> : <><ChevronDown size={12} /> View Profile</>}
+                            </button>
+                          )}
                         </div>
+
+                        {/* Expanded Profile Details */}
+                        {expandedProfile === staff._id && staff.onboardingComplete && (
+                          <div className="mt-3 bg-gray-50 rounded-lg p-3 text-xs space-y-3">
+                            {staff.onboardingData && (
+                              <div>
+                                <h4 className="font-semibold text-blue-700 mb-1">📋 Personal Details</h4>
+                                <div className="grid grid-cols-2 gap-1">
+                                  {staff.onboardingData.fullName && <p><span className="text-gray-500">Name:</span> {staff.onboardingData.fullName}</p>}
+                                  {staff.onboardingData.phone && <p><span className="text-gray-500">Phone:</span> {staff.onboardingData.phone}</p>}
+                                  {staff.onboardingData.email && <p><span className="text-gray-500">Email:</span> {staff.onboardingData.email}</p>}
+                                  {staff.onboardingData.dateOfBirth && <p><span className="text-gray-500">DOB:</span> {staff.onboardingData.dateOfBirth}</p>}
+                                  {staff.onboardingData.stateOfOrigin && <p><span className="text-gray-500">State:</span> {staff.onboardingData.stateOfOrigin}</p>}
+                                  {staff.onboardingData.address && <p className="col-span-2"><span className="text-gray-500">Address:</span> {staff.onboardingData.address}</p>}
+                                  {staff.onboardingData.nextOfKin && <p><span className="text-gray-500">Next of Kin:</span> {staff.onboardingData.nextOfKin}</p>}
+                                  {staff.onboardingData.nextOfKinPhone && <p><span className="text-gray-500">NoK Phone:</span> {staff.onboardingData.nextOfKinPhone}</p>}
+                                </div>
+                                {staff.onboardingData.photo && (
+                                  <img src={staff.onboardingData.photo} alt="Staff passport" className="w-16 h-16 rounded-lg object-cover mt-2 border" />
+                                )}
+                              </div>
+                            )}
+                            {staff.guarantor && staff.guarantor.name && (
+                              <div>
+                                <h4 className="font-semibold text-blue-700 mb-1">🤝 Guarantor</h4>
+                                <div className="grid grid-cols-2 gap-1">
+                                  <p><span className="text-gray-500">Name:</span> {staff.guarantor.name}</p>
+                                  {staff.guarantor.phone && <p><span className="text-gray-500">Phone:</span> {staff.guarantor.phone}</p>}
+                                  {staff.guarantor.email && <p><span className="text-gray-500">Email:</span> {staff.guarantor.email}</p>}
+                                  {staff.guarantor.relationship && <p><span className="text-gray-500">Relationship:</span> {staff.guarantor.relationship}</p>}
+                                  {staff.guarantor.occupation && <p><span className="text-gray-500">Occupation:</span> {staff.guarantor.occupation}</p>}
+                                  {staff.guarantor.address && <p className="col-span-2"><span className="text-gray-500">Address:</span> {staff.guarantor.address}</p>}
+                                </div>
+                                {staff.guarantor.photo && (
+                                  <img src={staff.guarantor.photo} alt="Guarantor passport" className="w-16 h-16 rounded-lg object-cover mt-2 border" />
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

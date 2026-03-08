@@ -25,7 +25,7 @@ export default async function handler(req, res) {
       res.status(500).json({ message: "Server error" });
     }
   } else if (req.method === "PUT") {
-const { name, password, location, role, bank, salary } = req.body;
+const { name, password, location, role, bank, salary, photo } = req.body;
 
 
    const missingFields = [];
@@ -43,6 +43,7 @@ if (missingFields.length > 0) {
       location,
       role,
       ...(typeof salary !== "undefined" && salary !== null ? { salary } : {}),
+      ...(typeof photo === "string" ? { photo } : {}),
      ...(bank ? {
   bank: {
     accountName: bank?.accountName ?? "",

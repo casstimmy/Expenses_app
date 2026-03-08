@@ -75,6 +75,7 @@ export default function Nav() {
       { href: "/expenses/analysis", label: "Reports", icon: "📈" },
       { href: "/categories", label: "Categories", icon: "🏷️" },
       { href: "/expenses/Pay_Tracker", label: "Pay Tracker", icon: "💳" },
+      { href: "/expenses/assets", label: "Assets", icon: "📋" },
       { href: "/admin/staff", label: "Staff", icon: "👥" }
     );
   } else if (role === "account") {
