@@ -1,5 +1,6 @@
 import Head from 'next/head';
 import '@/styles/globals.css'
+import 'react-calendar/dist/Calendar.css';
 import { ToastProvider } from '@/context/ToastContext';
 
 export default function App({ Component, pageProps }) {

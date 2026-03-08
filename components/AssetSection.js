@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Camera, Plus, Edit2, Trash2, History, X, Search, Filter, Eye } from "lucide-react";
 
 const LOCATIONS = ["Ibile 1", "Ibile 2"];
@@ -27,8 +27,32 @@ const STATUS_COLORS = {
 function suggestNameFromFile(filename) {
   if (!filename) return "";
   const name = filename.replace(/\.[^/.]+$/, "");
+
+  // Detect camera/auto-generated patterns that produce meaningless names
+  const cameraPatterns = [
+    /^IMG[-_]\d{6,}/i,           // IMG_20240308_123456
+    /^DSC[-_]?\d{3,}/i,          // DSC_0001, DSC0001
+    /^DCIM[-_]?\d{2,}/i,         // DCIM_001
+    /^P\d{7,}/i,                 // P20240308
+    /^photo[-_]?\d{4,}/i,        // photo_2024..
+    /^image[-_]?\d{3,}/i,        // image_001
+    /^PXL[-_]\d{6,}/i,           // Google Pixel: PXL_20240308
+    /^Screenshot[-_]?\d{4,}/i,   // Screenshot_20240308
+    /^\d{8}[-_]\d{4,}/,          // 20240308_123456
+    /^[A-F0-9]{8,}$/i,           // hex hash names
+    /^[0-9a-f-]{32,}$/i,         // UUID-style names
+    /^Resized[-_]/i,             // Resized_IMG...
+    /^WhatsApp Image/i,          // WhatsApp Image 2024-...
+  ];
+
+  if (cameraPatterns.some((p) => p.test(name))) {
+    return ""; // Return empty so user types a real name
+  }
+
+  // Clean up a meaningful filename
   return name
-    .replace(/[-_\.]/g, " ")
+    .replace(/[-_\.]+/g, " ")
+    .replace(/\s+/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase())
     .trim();
 }
@@ -68,6 +92,22 @@ export default function AssetSection({ isLoggedIn }) {
   const [editImageFile, setEditImageFile] = useState(null);
   const [editImagePreview, setEditImagePreview] = useState(null);
   const editFileRef = useRef(null);
+
+  // Category management
+  const [customCategories, setCustomCategories] = useState([]);
+  const [addingNewCategory, setAddingNewCategory] = useState(false);
+  const [newCategoryInput, setNewCategoryInput] = useState("");
+  const [editAddingNewCategory, setEditAddingNewCategory] = useState(false);
+  const [editNewCategoryInput, setEditNewCategoryInput] = useState("");
+
+  // Derive all unique categories from assets + custom ones
+  const allCategories = useMemo(() => {
+    const cats = new Set(customCategories);
+    for (const a of assets) {
+      if (a.category?.trim()) cats.add(a.category.trim());
+    }
+    return [...cats].sort();
+  }, [assets, customCategories]);
 
   useEffect(() => {
     fetchAssets();
@@ -300,13 +340,56 @@ export default function AssetSection({ isLoggedIn }) {
               className="border p-2 rounded-lg w-full"
               required
             />
-            <input
-              type="text"
-              placeholder="Category (e.g. Furniture, Electronics)"
-              value={form.category}
-              onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))}
-              className="border p-2 rounded-lg w-full"
-            />
+            {addingNewCategory ? (
+              <div className="flex items-center gap-1">
+                <input
+                  type="text"
+                  placeholder="New category name..."
+                  value={newCategoryInput}
+                  onChange={(e) => setNewCategoryInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      if (newCategoryInput.trim()) {
+                        setCustomCategories(prev => [...new Set([...prev, newCategoryInput.trim()])]);
+                        setForm(p => ({ ...p, category: newCategoryInput.trim() }));
+                        setNewCategoryInput("");
+                        setAddingNewCategory(false);
+                      }
+                    }
+                  }}
+                  className="border p-2 rounded-lg flex-1"
+                  autoFocus
+                />
+                <button type="button" onClick={() => {
+                  if (newCategoryInput.trim()) {
+                    setCustomCategories(prev => [...new Set([...prev, newCategoryInput.trim()])]);
+                    setForm(p => ({ ...p, category: newCategoryInput.trim() }));
+                    setNewCategoryInput("");
+                  }
+                  setAddingNewCategory(false);
+                }} className="bg-green-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-green-700">Add</button>
+                <button type="button" onClick={() => { setAddingNewCategory(false); setNewCategoryInput(""); }} className="bg-gray-200 text-gray-600 px-3 py-2 rounded-lg text-sm hover:bg-gray-300">✕</button>
+              </div>
+            ) : (
+              <select
+                value={form.category}
+                onChange={(e) => {
+                  if (e.target.value === "__add_new__") {
+                    setAddingNewCategory(true);
+                  } else {
+                    setForm((p) => ({ ...p, category: e.target.value }));
+                  }
+                }}
+                className="border p-2 rounded-lg w-full"
+              >
+                <option value="">Select Category</option>
+                {allCategories.map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+                <option value="__add_new__">+ Add New Category...</option>
+              </select>
+            )}
             <select
               value={form.location}
               onChange={(e) => setForm((p) => ({ ...p, location: e.target.value }))}
@@ -597,13 +680,56 @@ export default function AssetSection({ isLoggedIn }) {
                 placeholder="Asset Name"
                 className="border p-2 rounded-lg w-full"
               />
-              <input
-                type="text"
-                value={editForm.category || ""}
-                onChange={(e) => setEditForm((p) => ({ ...p, category: e.target.value }))}
-                placeholder="Category"
-                className="border p-2 rounded-lg w-full"
-              />
+              {editAddingNewCategory ? (
+                <div className="flex items-center gap-1">
+                  <input
+                    type="text"
+                    placeholder="New category name..."
+                    value={editNewCategoryInput}
+                    onChange={(e) => setEditNewCategoryInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        if (editNewCategoryInput.trim()) {
+                          setCustomCategories(prev => [...new Set([...prev, editNewCategoryInput.trim()])]);
+                          setEditForm(p => ({ ...p, category: editNewCategoryInput.trim() }));
+                          setEditNewCategoryInput("");
+                          setEditAddingNewCategory(false);
+                        }
+                      }
+                    }}
+                    className="border p-2 rounded-lg flex-1"
+                    autoFocus
+                  />
+                  <button type="button" onClick={() => {
+                    if (editNewCategoryInput.trim()) {
+                      setCustomCategories(prev => [...new Set([...prev, editNewCategoryInput.trim()])]);
+                      setEditForm(p => ({ ...p, category: editNewCategoryInput.trim() }));
+                      setEditNewCategoryInput("");
+                    }
+                    setEditAddingNewCategory(false);
+                  }} className="bg-green-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-green-700">Add</button>
+                  <button type="button" onClick={() => { setEditAddingNewCategory(false); setEditNewCategoryInput(""); }} className="bg-gray-200 text-gray-600 px-3 py-2 rounded-lg text-sm hover:bg-gray-300">✕</button>
+                </div>
+              ) : (
+                <select
+                  value={editForm.category || ""}
+                  onChange={(e) => {
+                    if (e.target.value === "__add_new__") {
+                      setEditAddingNewCategory(true);
+                    } else {
+                      setEditForm((p) => ({ ...p, category: e.target.value }));
+                    }
+                  }}
+                  className="border p-2 rounded-lg w-full"
+                >
+                  <option value="">Select Category</option>
+                  {allCategories.map((cat) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                  <option value="__add_new__">+ Add New Category...</option>
+                </select>
+              )}
               <select
                 value={editForm.location || ""}
                 onChange={(e) => setEditForm((p) => ({ ...p, location: e.target.value }))}

@@ -1,23 +1,28 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Head from "next/head";
+import dynamic from "next/dynamic";
 import {
   Plus, X, ChevronDown, ChevronUp, Trash2, Edit2, GripVertical,
   CheckCircle, Clock, AlertCircle, Pause, List, BarChart3,
-  CheckSquare, LayoutGrid, Square, User,
+  CheckSquare, LayoutGrid, Square, User, Calendar as CalendarIcon,
+  Search, ChevronLeft, ChevronRight,
 } from "lucide-react";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import AssetSection from "../components/AssetSection";
+
+const ReactCalendar = dynamic(() => import("react-calendar"), { ssr: false });
 
 const TASK_STATUSES = ["not-started", "in-progress", "completed", "blocked", "on-hold"];
 const PROJECT_STATUSES = ["planning", "active", "completed", "on-hold"];
 
 const BOARD_COLUMNS = [
-  { key: "not-started", label: "TO DO", accent: "border-gray-300 bg-gray-50" },
-  { key: "in-progress", label: "IN PROGRESS", accent: "border-blue-400 bg-blue-50" },
-  { key: "completed", label: "DONE", accent: "border-green-400 bg-green-50" },
+  { key: "not-started", label: "TO DO", accent: "border-t-gray-400", bg: "bg-gray-50", count: "bg-gray-200 text-gray-700" },
+  { key: "in-progress", label: "IN PROGRESS", accent: "border-t-blue-500", bg: "bg-blue-50/30", count: "bg-blue-100 text-blue-700" },
+  { key: "completed", label: "DONE", accent: "border-t-green-500", bg: "bg-green-50/30", count: "bg-green-100 text-green-700" },
 ];
 
 const STATUS_CFG = {
-  "not-started": { label: "Not Started", color: "bg-gray-200 text-gray-700", bar: "bg-gray-300" },
+  "not-started": { label: "Not Started", color: "bg-gray-200 text-gray-700", bar: "bg-gray-400" },
   "in-progress": { label: "In Progress", color: "bg-blue-100 text-blue-700", bar: "bg-blue-500" },
   completed: { label: "Completed", color: "bg-green-100 text-green-700", bar: "bg-green-500" },
   blocked: { label: "Blocked", color: "bg-red-100 text-red-700", bar: "bg-red-500" },
@@ -33,7 +38,7 @@ const PROJ_STATUS_CFG = {
 
 const VIEW_TABS = [
   { key: "board", label: "Board", icon: LayoutGrid },
-  { key: "list", label: "List", icon: List },
+  { key: "list", label: "List & Calendar", icon: List },
   { key: "checklist", label: "Checklist", icon: CheckSquare },
   { key: "gantt", label: "Gantt", icon: BarChart3 },
 ];
@@ -53,148 +58,264 @@ function allTasks(project) {
   return tasks;
 }
 
-/* ── Board view (Kanban with drag-and-drop) ────────────────── */
+/* ── Board view (Kanban with @hello-pangea/dnd) ────────────── */
 function BoardView({ project, canEdit, onUpdateTask, onRemoveTask }) {
-  const dragItem = useRef(null);
+  const tasksByColumn = useMemo(() => {
+    const all = allTasks(project);
+    return {
+      "not-started": all.filter((t) => ["not-started", "blocked", "on-hold"].includes(t.status)),
+      "in-progress": all.filter((t) => t.status === "in-progress"),
+      completed: all.filter((t) => t.status === "completed"),
+    };
+  }, [project]);
+
+  const handleDragEnd = (result) => {
+    if (!result.destination || !canEdit) return;
+    const { draggableId, destination } = result;
+    const [catIdx, taskIdx] = draggableId.split("-").map(Number);
+    const newStatus = destination.droppableId;
+    onUpdateTask(project, catIdx, taskIdx, { status: newStatus });
+  };
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4">
-      {BOARD_COLUMNS.map((col) => {
-        const tasks = allTasks(project).filter((t) => {
-          if (col.key === "not-started") return ["not-started", "blocked", "on-hold"].includes(t.status);
-          return t.status === col.key;
-        });
-        return (
-          <div
-            key={col.key}
-            className={`rounded-xl border-2 ${col.accent} p-3 min-h-[200px]`}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => {
-              e.preventDefault();
-              if (dragItem.current) {
-                const newStatus = col.key === "not-started" ? "not-started" : col.key;
-                onUpdateTask(project, dragItem.current.catIdx, dragItem.current.taskIdx, { status: newStatus });
-                dragItem.current = null;
-              }
-            }}
-          >
-            <h4 className="text-xs font-bold text-gray-600 mb-3 tracking-wider">
-              {col.label} <span className="text-gray-400">({tasks.length})</span>
-            </h4>
-            <div className="space-y-2">
-              {tasks.map((task) => {
-                const sc = STATUS_CFG[task.status];
-                return (
-                  <div
-                    key={`${task.catIdx}-${task.taskIdx}`}
-                    draggable
-                    onDragStart={() => { dragItem.current = { catIdx: task.catIdx, taskIdx: task.taskIdx }; }}
-                    className="bg-white rounded-lg border border-gray-200 p-3 cursor-grab active:cursor-grabbing hover:shadow-md transition group"
-                  >
-                    <div className="flex items-start gap-2">
-                      <GripVertical size={14} className="text-gray-300 mt-0.5 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-medium ${task.status === "completed" ? "line-through text-gray-400" : "text-gray-800"}`}>{task.name}</p>
-                        <p className="text-[10px] text-gray-400 mt-0.5">{task.catName}</p>
-                        {task.assignee && <p className="text-[10px] text-blue-500 mt-0.5 flex items-center gap-0.5"><User size={8} />{task.assignee}</p>}
-                        {task.dueDate && <p className="text-[10px] text-gray-400 mt-0.5">Due: {new Date(task.dueDate).toLocaleDateString()}</p>}
-                        {task.checklist?.length > 0 && <p className="text-[10px] text-gray-400 mt-0.5">✓ {task.checklist.filter(c => c.checked).length}/{task.checklist.length}</p>}
-                      </div>
-                      <span className={`text-[9px] px-1.5 py-0.5 rounded-full flex-shrink-0 ${sc.color}`}>{sc.label}</span>
-                    </div>
-                    {canEdit && (
-                      <div className="flex gap-1 mt-2 opacity-0 group-hover:opacity-100 transition">
-                        {col.key !== "completed" && <button onClick={() => onUpdateTask(project, task.catIdx, task.taskIdx, { status: "in-progress" })} className="text-[10px] text-blue-500 hover:underline">→ Progress</button>}
-                        {col.key !== "completed" && <button onClick={() => onUpdateTask(project, task.catIdx, task.taskIdx, { status: "completed" })} className="text-[10px] text-green-500 hover:underline">→ Done</button>}
-                        {col.key === "completed" && <button onClick={() => onUpdateTask(project, task.catIdx, task.taskIdx, { status: "not-started" })} className="text-[10px] text-gray-500 hover:underline">← Reopen</button>}
-                        <button onClick={() => onRemoveTask(project, task.catIdx, task.taskIdx)} className="text-[10px] text-red-400 hover:underline ml-auto">Remove</button>
-                      </div>
+    <DragDropContext onDragEnd={handleDragEnd}>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4">
+        {BOARD_COLUMNS.map((col) => {
+          const tasks = tasksByColumn[col.key] || [];
+          return (
+            <Droppable droppableId={col.key} key={col.key}>
+              {(provided, snapshot) => (
+                <div
+                  ref={provided.innerRef}
+                  {...provided.droppableProps}
+                  className={`rounded-xl border border-gray-200 border-t-4 ${col.accent} ${snapshot.isDraggingOver ? "bg-blue-50/50 ring-2 ring-blue-200" : col.bg} p-3 min-h-[250px] transition-all`}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-xs font-bold text-gray-600 tracking-wider">{col.label}</h4>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${col.count}`}>{tasks.length}</span>
+                  </div>
+                  <div className="space-y-2">
+                    {tasks.map((task, index) => {
+                      const sc = STATUS_CFG[task.status];
+                      const dragId = `${task.catIdx}-${task.taskIdx}`;
+                      return (
+                        <Draggable draggableId={dragId} index={index} key={dragId} isDragDisabled={!canEdit}>
+                          {(prov, snap) => (
+                            <div
+                              ref={prov.innerRef}
+                              {...prov.draggableProps}
+                              {...prov.dragHandleProps}
+                              className={`bg-white rounded-lg border shadow-sm p-3 group transition-all ${snap.isDragging ? "shadow-lg ring-2 ring-blue-300 rotate-1" : "border-gray-200 hover:shadow-md"}`}
+                            >
+                              <div className="flex items-start gap-2">
+                                <GripVertical size={14} className="text-gray-300 mt-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition" />
+                                <div className="flex-1 min-w-0">
+                                  <p className={`text-sm font-medium ${task.status === "completed" ? "line-through text-gray-400" : "text-gray-800"}`}>{task.name}</p>
+                                  <p className="text-[10px] text-gray-400 mt-0.5">{task.catName}</p>
+                                  <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                                    {task.assignee && (
+                                      <span className="text-[10px] text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                                        <User size={8} />{task.assignee}
+                                      </span>
+                                    )}
+                                    {task.dueDate && (
+                                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-0.5 ${new Date(task.dueDate) < new Date() && task.status !== "completed" ? "bg-red-50 text-red-600" : "bg-gray-100 text-gray-500"}`}>
+                                        <CalendarIcon size={8} />{new Date(task.dueDate).toLocaleDateString()}
+                                      </span>
+                                    )}
+                                    {task.checklist?.length > 0 && (
+                                      <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">
+                                        ✓ {task.checklist.filter(c => c.checked).length}/{task.checklist.length}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              {canEdit && (
+                                <div className="flex gap-1.5 mt-2.5 pt-2 border-t border-gray-100 opacity-0 group-hover:opacity-100 transition">
+                                  {col.key !== "completed" && (
+                                    <button onClick={() => onUpdateTask(project, task.catIdx, task.taskIdx, { status: "completed" })} className="text-[10px] text-green-600 bg-green-50 px-2 py-0.5 rounded hover:bg-green-100">✓ Done</button>
+                                  )}
+                                  {col.key === "completed" && (
+                                    <button onClick={() => onUpdateTask(project, task.catIdx, task.taskIdx, { status: "not-started" })} className="text-[10px] text-gray-600 bg-gray-100 px-2 py-0.5 rounded hover:bg-gray-200">↩ Reopen</button>
+                                  )}
+                                  <button onClick={() => onRemoveTask(project, task.catIdx, task.taskIdx)} className="text-[10px] text-red-400 hover:text-red-600 ml-auto px-1">✕</button>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </Draggable>
+                      );
+                    })}
+                    {provided.placeholder}
+                    {tasks.length === 0 && !snapshot.isDraggingOver && (
+                      <p className="text-xs text-gray-400 text-center py-8">Drag tasks here</p>
                     )}
                   </div>
-                );
-              })}
-              {tasks.length === 0 && <p className="text-xs text-gray-400 text-center py-4">Drop tasks here</p>}
-            </div>
-          </div>
-        );
-      })}
-    </div>
+                </div>
+              )}
+            </Droppable>
+          );
+        })}
+      </div>
+    </DragDropContext>
   );
 }
 
-/* ── List & Calendar view ──────────────────────────────────── */
+/* ── List & Calendar view (react-calendar) ─────────────────── */
 function ListView({ project, canEdit, onUpdateTask, onRemoveTask }) {
   const tasks = allTasks(project);
   const today = new Date(); today.setHours(0, 0, 0, 0);
-  const sorted = [...tasks].sort((a, b) => {
-    if (a.dueDate && b.dueDate) return new Date(a.dueDate) - new Date(b.dueDate);
-    if (a.dueDate) return -1; if (b.dueDate) return 1;
-    return a.startDay - b.startDay;
-  });
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [searchFilter, setSearchFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
 
-  const [calMonth, setCalMonth] = useState(() => { const d = new Date(); return { y: d.getFullYear(), m: d.getMonth() }; });
-  const firstDay = new Date(calMonth.y, calMonth.m, 1);
-  const daysInMonth = new Date(calMonth.y, calMonth.m + 1, 0).getDate();
-  const startWeekday = firstDay.getDay();
-  const monthName = firstDay.toLocaleString("default", { month: "long", year: "numeric" });
+  const sorted = useMemo(() => {
+    let list = [...tasks];
+    if (searchFilter) list = list.filter(t => t.name.toLowerCase().includes(searchFilter.toLowerCase()));
+    if (statusFilter) list = list.filter(t => t.status === statusFilter);
+    return list.sort((a, b) => {
+      if (a.dueDate && b.dueDate) return new Date(a.dueDate) - new Date(b.dueDate);
+      if (a.dueDate) return -1; if (b.dueDate) return 1;
+      return a.startDay - b.startDay;
+    });
+  }, [tasks, searchFilter, statusFilter]);
 
-  const tasksByDate = {};
-  for (const t of tasks) {
-    if (t.dueDate) { const k = new Date(t.dueDate).toDateString(); (tasksByDate[k] ||= []).push(t); }
-  }
+  const tasksByDate = useMemo(() => {
+    const map = {};
+    for (const t of tasks) {
+      if (t.dueDate) { const k = new Date(t.dueDate).toDateString(); (map[k] ||= []).push(t); }
+    }
+    return map;
+  }, [tasks]);
+
+  const dayTasks = selectedDate ? (tasksByDate[selectedDate.toDateString()] || []) : [];
 
   return (
     <div className="p-4">
-      {/* Task List */}
-      <h4 className="text-sm font-semibold text-gray-700 mb-3">All Tasks</h4>
-      <div className="space-y-1 mb-6">
-        {sorted.length === 0 && <p className="text-xs text-gray-400">No tasks yet</p>}
-        {sorted.map((task) => {
-          const sc = STATUS_CFG[task.status];
-          const overdue = task.dueDate && new Date(task.dueDate) < today && task.status !== "completed";
-          return (
-            <div key={`${task.catIdx}-${task.taskIdx}`} className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm ${overdue ? "border-red-200 bg-red-50" : "border-gray-100 bg-white"} hover:shadow-sm transition`}>
-              {canEdit ? (
-                <select value={task.status} onChange={(e) => onUpdateTask(project, task.catIdx, task.taskIdx, { status: e.target.value })} className={`text-[10px] rounded-full px-1.5 py-0.5 border-0 ${sc.color} cursor-pointer`}>
-                  {TASK_STATUSES.map((s) => <option key={s} value={s}>{STATUS_CFG[s].label}</option>)}
-                </select>
-              ) : (
-                <span className={`text-[10px] rounded-full px-1.5 py-0.5 ${sc.color}`}>{sc.label}</span>
-              )}
-              <span className={`flex-1 ${task.status === "completed" ? "line-through text-gray-400" : "text-gray-800"}`}>{task.name}</span>
-              <span className="text-[10px] text-gray-400">{task.catName}</span>
-              {task.assignee && <span className="text-[10px] text-blue-500 flex items-center gap-0.5"><User size={8} />{task.assignee}</span>}
-              {task.dueDate && <span className={`text-[10px] ${overdue ? "text-red-500 font-semibold" : "text-gray-400"}`}>{new Date(task.dueDate).toLocaleDateString()}</span>}
-              {canEdit && <button onClick={() => onRemoveTask(project, task.catIdx, task.taskIdx)} className="text-red-300 hover:text-red-500"><Trash2 size={12} /></button>}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        {/* Task List (3 cols) */}
+        <div className="lg:col-span-3">
+          <div className="flex items-center gap-2 mb-3">
+            <h4 className="text-sm font-semibold text-gray-700 flex-1">All Tasks ({sorted.length})</h4>
+            <div className="relative">
+              <Search size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input type="text" placeholder="Search..." value={searchFilter} onChange={(e) => setSearchFilter(e.target.value)} className="border rounded-lg pl-7 pr-2 py-1.5 text-xs w-32 sm:w-44" />
             </div>
-          );
-        })}
-      </div>
-
-      {/* Calendar */}
-      <div className="flex items-center justify-between mb-2">
-        <h4 className="text-sm font-semibold text-gray-700">Calendar</h4>
-        <div className="flex gap-2">
-          <button onClick={() => setCalMonth(p => ({ y: p.m === 0 ? p.y - 1 : p.y, m: p.m === 0 ? 11 : p.m - 1 }))} className="text-xs text-gray-500 hover:text-blue-600">← Prev</button>
-          <span className="text-xs font-medium text-gray-600">{monthName}</span>
-          <button onClick={() => setCalMonth(p => ({ y: p.m === 11 ? p.y + 1 : p.y, m: p.m === 11 ? 0 : p.m + 1 }))} className="text-xs text-gray-500 hover:text-blue-600">Next →</button>
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="border rounded-lg px-2 py-1.5 text-xs">
+              <option value="">All</option>
+              {TASK_STATUSES.map(s => <option key={s} value={s}>{STATUS_CFG[s].label}</option>)}
+            </select>
+          </div>
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gray-50/80 border-b border-gray-100">
+                  <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-gray-500 uppercase">Task</th>
+                  <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-gray-500 uppercase hidden sm:table-cell">Category</th>
+                  <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-gray-500 uppercase">Status</th>
+                  <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-gray-500 uppercase hidden md:table-cell">Assignee</th>
+                  <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-gray-500 uppercase">Due</th>
+                  {canEdit && <th className="w-8" />}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {sorted.length === 0 && (
+                  <tr><td colSpan={6} className="px-3 py-8 text-center text-xs text-gray-400">No tasks found</td></tr>
+                )}
+                {sorted.map((task) => {
+                  const sc = STATUS_CFG[task.status];
+                  const overdue = task.dueDate && new Date(task.dueDate) < today && task.status !== "completed";
+                  return (
+                    <tr key={`${task.catIdx}-${task.taskIdx}`} className={`hover:bg-gray-50/50 transition ${overdue ? "bg-red-50/30" : ""}`}>
+                      <td className="px-3 py-2.5">
+                        <p className={`text-sm font-medium ${task.status === "completed" ? "line-through text-gray-400" : "text-gray-800"}`}>{task.name}</p>
+                      </td>
+                      <td className="px-3 py-2.5 hidden sm:table-cell">
+                        <span className="text-[10px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{task.catName}</span>
+                      </td>
+                      <td className="px-3 py-2.5">
+                        {canEdit ? (
+                          <select value={task.status} onChange={(e) => onUpdateTask(project, task.catIdx, task.taskIdx, { status: e.target.value })} className={`text-[10px] rounded-full px-2 py-0.5 border-0 ${sc.color} cursor-pointer font-medium`}>
+                            {TASK_STATUSES.map(s => <option key={s} value={s}>{STATUS_CFG[s].label}</option>)}
+                          </select>
+                        ) : (
+                          <span className={`text-[10px] rounded-full px-2 py-0.5 font-medium ${sc.color}`}>{sc.label}</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2.5 hidden md:table-cell">
+                        {task.assignee ? (
+                          <span className="text-[10px] text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full flex items-center gap-0.5 w-fit"><User size={8} />{task.assignee}</span>
+                        ) : <span className="text-[10px] text-gray-300">—</span>}
+                      </td>
+                      <td className="px-3 py-2.5">
+                        {task.dueDate ? (
+                          <span className={`text-[10px] font-medium ${overdue ? "text-red-600" : "text-gray-500"}`}>{new Date(task.dueDate).toLocaleDateString()}</span>
+                        ) : <span className="text-[10px] text-gray-300">—</span>}
+                      </td>
+                      {canEdit && (
+                        <td className="px-2 py-2.5">
+                          <button onClick={() => onRemoveTask(project, task.catIdx, task.taskIdx)} className="text-gray-300 hover:text-red-500 transition"><Trash2 size={12} /></button>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
-      <div className="grid grid-cols-7 gap-px bg-gray-200 rounded-lg overflow-hidden">
-        {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d => <div key={d} className="bg-gray-50 text-center text-[10px] text-gray-500 font-medium py-1">{d}</div>)}
-        {Array.from({ length: startWeekday }).map((_, i) => <div key={`e${i}`} className="bg-white h-16" />)}
-        {Array.from({ length: daysInMonth }).map((_, i) => {
-          const d = new Date(calMonth.y, calMonth.m, i + 1);
-          const dayTasks = tasksByDate[d.toDateString()] || [];
-          const isToday = d.toDateString() === new Date().toDateString();
-          return (
-            <div key={i} className={`bg-white h-16 p-1 ${isToday ? "ring-2 ring-blue-400 ring-inset" : ""}`}>
-              <p className={`text-[10px] ${isToday ? "text-blue-600 font-bold" : "text-gray-500"}`}>{i + 1}</p>
-              {dayTasks.slice(0, 2).map((t, ti) => <div key={ti} className={`text-[8px] truncate rounded px-0.5 mt-0.5 ${STATUS_CFG[t.status]?.bar || "bg-gray-300"} text-white`}>{t.name}</div>)}
-              {dayTasks.length > 2 && <p className="text-[8px] text-gray-400">+{dayTasks.length - 2}</p>}
-            </div>
-          );
-        })}
+
+        {/* Calendar (2 cols) */}
+        <div className="lg:col-span-2">
+          <h4 className="text-sm font-semibold text-gray-700 mb-3">Calendar</h4>
+          <div className="bg-white rounded-xl border border-gray-200 p-3">
+            <ReactCalendar
+              onChange={setSelectedDate}
+              value={selectedDate}
+              className="!w-full !border-0 project-calendar"
+              tileContent={({ date }) => {
+                const dt = tasksByDate[date.toDateString()];
+                if (!dt?.length) return null;
+                return (
+                  <div className="flex justify-center gap-0.5 mt-0.5">
+                    {dt.slice(0, 3).map((t, i) => (
+                      <div key={i} className={`w-1.5 h-1.5 rounded-full ${STATUS_CFG[t.status]?.bar || "bg-gray-300"}`} />
+                    ))}
+                  </div>
+                );
+              }}
+              tileClassName={({ date }) => {
+                const dt = tasksByDate[date.toDateString()];
+                return dt?.length ? "has-tasks" : "";
+              }}
+            />
+            {selectedDate && (
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                <p className="text-xs font-semibold text-gray-600 mb-2">
+                  {selectedDate.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
+                  {dayTasks.length > 0 && <span className="text-gray-400 font-normal ml-1">({dayTasks.length} task{dayTasks.length > 1 ? "s" : ""})</span>}
+                </p>
+                {dayTasks.length === 0 ? (
+                  <p className="text-[10px] text-gray-400">No tasks due on this day</p>
+                ) : (
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                    {dayTasks.map((t, i) => {
+                      const sc = STATUS_CFG[t.status];
+                      return (
+                        <div key={i} className="flex items-center gap-2 px-2 py-1.5 bg-gray-50 rounded-lg">
+                          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${sc.bar}`} />
+                          <span className={`text-xs flex-1 truncate ${t.status === "completed" ? "line-through text-gray-400" : "text-gray-700"}`}>{t.name}</span>
+                          {t.assignee && <span className="text-[9px] text-gray-400">{t.assignee}</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -281,83 +402,208 @@ function ChecklistView({ project, canEdit, onUpdateTask, onSaveProject }) {
   );
 }
 
-/* ── Gantt view ────────────────────────────────────────────── */
+/* ── Gantt view (date-based timeline with progress) ────────── */
 function GanttView({ project, canEdit, onUpdateTask, onRemoveTask, onRemoveCategory, editingTask, setEditingTask }) {
+  const [viewMode, setViewMode] = useState("week");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const tasks = useMemo(() => {
+    const all = allTasks(project);
+    let filtered = all;
+    if (statusFilter) filtered = filtered.filter(t => t.status === statusFilter);
+    if (searchTerm) filtered = filtered.filter(t => t.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    return filtered;
+  }, [project, statusFilter, searchTerm]);
+
+  const { startDate: projStart, columns, colWidth, getColIndex } = useMemo(() => {
+    const pStart = project.startDate ? new Date(project.startDate) : new Date();
+    pStart.setHours(0, 0, 0, 0);
+    const totalDays = project.totalDays || 7;
+    const pEnd = new Date(pStart); pEnd.setDate(pEnd.getDate() + totalDays - 1);
+
+    // Also consider task dueDates that may extend beyond
+    for (const t of allTasks(project)) {
+      if (t.dueDate) {
+        const dd = new Date(t.dueDate);
+        if (dd > pEnd) pEnd.setTime(dd.getTime());
+      }
+    }
+
+    const daysBetween = Math.ceil((pEnd - pStart) / 86400000) + 1;
+    const cols = [];
+
+    if (viewMode === "day") {
+      for (let i = 0; i < daysBetween; i++) {
+        const d = new Date(pStart); d.setDate(d.getDate() + i);
+        cols.push({ date: new Date(d), label: d.toLocaleDateString("en-US", { day: "numeric", month: "short" }) });
+      }
+      return { startDate: pStart, columns: cols, colWidth: 48, getColIndex: (d) => Math.floor((d - pStart) / 86400000) };
+    } else if (viewMode === "week") {
+      const weekStart = new Date(pStart);
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // go to Sunday
+      let current = new Date(weekStart);
+      while (current <= pEnd) {
+        const weekEnd = new Date(current); weekEnd.setDate(weekEnd.getDate() + 6);
+        cols.push({ date: new Date(current), label: `${current.toLocaleDateString("en-US", { month: "short", day: "numeric" })}` });
+        current.setDate(current.getDate() + 7);
+      }
+      return { startDate: weekStart, columns: cols, colWidth: 80, getColIndex: (d) => Math.floor((d - weekStart) / (7 * 86400000)) };
+    } else {
+      // month
+      let current = new Date(pStart.getFullYear(), pStart.getMonth(), 1);
+      while (current <= pEnd) {
+        cols.push({ date: new Date(current), label: current.toLocaleDateString("en-US", { month: "short", year: "2-digit" }) });
+        current.setMonth(current.getMonth() + 1);
+      }
+      return {
+        startDate: new Date(pStart.getFullYear(), pStart.getMonth(), 1),
+        columns: cols, colWidth: 100,
+        getColIndex: (d) => (d.getFullYear() - pStart.getFullYear()) * 12 + d.getMonth() - pStart.getMonth(),
+      };
+    }
+  }, [project, viewMode]);
+
+  const todayIdx = getColIndex(new Date());
+
+  const getTaskBarStyle = (task) => {
+    const pStart = project.startDate ? new Date(project.startDate) : new Date();
+    pStart.setHours(0, 0, 0, 0);
+
+    // Calculate start and end based on startDay/endDay relative to project start
+    const taskStart = new Date(pStart);
+    taskStart.setDate(taskStart.getDate() + (task.startDay || 1) - 1);
+    const taskEnd = new Date(pStart);
+    taskEnd.setDate(taskEnd.getDate() + (task.endDay || task.startDay || 1) - 1);
+
+    const startIdx = getColIndex(taskStart);
+    const endIdx = getColIndex(taskEnd);
+
+    const left = startIdx * colWidth;
+    const width = Math.max((endIdx - startIdx + 1) * colWidth - 4, colWidth * 0.5);
+
+    return { left: Math.max(left, 0), width };
+  };
+
+  // Calculate progress for each task
+  const getTaskProgress = (task) => {
+    if (task.status === "completed") return 100;
+    if (task.status === "not-started") return 0;
+    if (task.checklist?.length > 0) {
+      return Math.round((task.checklist.filter(c => c.checked).length / task.checklist.length) * 100);
+    }
+    if (task.status === "in-progress") return 50;
+    if (task.status === "blocked") return 25;
+    return 0;
+  };
+
   return (
-    <div className="p-4 overflow-x-auto">
-      <table className="w-full border-collapse text-xs min-w-[600px]">
-        <thead>
-          <tr>
-            <th className="text-left py-2 px-2 border-b border-gray-200 text-gray-500 font-medium w-36">Category</th>
-            <th className="text-left py-2 px-2 border-b border-gray-200 text-gray-500 font-medium w-44">Task</th>
-            <th className="text-left py-2 px-2 border-b border-gray-200 text-gray-500 font-medium w-20">Status</th>
-            {Array.from({ length: project.totalDays }, (_, i) => (
-              <th key={i} className="text-center py-2 px-1 border-b border-gray-200 text-gray-500 font-medium w-10">D{i + 1}</th>
-            ))}
-            {canEdit && <th className="w-14 border-b border-gray-200" />}
-          </tr>
-        </thead>
-        <tbody>
-          {(project.categories || []).map((cat, catIdx) => (
-            <React.Fragment key={catIdx}>
-              {cat.tasks.length === 0 ? (
-                <tr className="border-b border-gray-100">
-                  <td className="py-2 px-2 font-semibold text-gray-700 bg-gray-50">{cat.name}</td>
-                  <td colSpan={project.totalDays + 2 + (canEdit ? 1 : 0)} className="py-2 px-2 text-gray-400 italic">
-                    No tasks
-                    {canEdit && <button onClick={() => onRemoveCategory(project, catIdx)} className="ml-2 text-red-400 hover:text-red-600"><Trash2 size={10} className="inline" /></button>}
-                  </td>
-                </tr>
-              ) : (
-                cat.tasks.map((task, taskIdx) => {
-                  const sc = STATUS_CFG[task.status] || STATUS_CFG["not-started"];
-                  const isEditing = editingTask?.projId === project._id && editingTask?.catIdx === catIdx && editingTask?.taskIdx === taskIdx;
-                  return (
-                    <tr key={taskIdx} className="border-b border-gray-100 hover:bg-gray-50/50">
-                      {taskIdx === 0 && (
-                        <td rowSpan={cat.tasks.length} className="py-2 px-2 font-semibold text-gray-700 align-top bg-gray-50 border-r border-gray-100">
-                          {cat.name}
-                          {canEdit && <button onClick={() => onRemoveCategory(project, catIdx)} className="block mt-1 text-red-400 hover:text-red-600"><Trash2 size={10} /></button>}
-                        </td>
-                      )}
-                      <td className="py-1.5 px-2 text-gray-700">
-                        {isEditing ? (
-                          <input type="text" defaultValue={task.name} onBlur={(e) => { onUpdateTask(project, catIdx, taskIdx, { name: e.target.value }); setEditingTask(null); }} className="border rounded px-1 py-0.5 w-full text-xs" autoFocus />
-                        ) : (
-                          <span className={task.status === "completed" ? "line-through text-gray-400" : ""}>{task.name}</span>
-                        )}
-                        {task.assignee && <span className="block text-gray-400 text-[10px]">→ {task.assignee}</span>}
-                      </td>
-                      <td className="py-1.5 px-2">
-                        {canEdit ? (
-                          <select value={task.status} onChange={(e) => onUpdateTask(project, catIdx, taskIdx, { status: e.target.value })} className={`text-[10px] rounded-full px-1.5 py-0.5 border-0 ${sc.color} cursor-pointer`}>
-                            {TASK_STATUSES.map((s) => <option key={s} value={s}>{STATUS_CFG[s].label}</option>)}
-                          </select>
-                        ) : (
-                          <span className={`text-[10px] rounded-full px-1.5 py-0.5 ${sc.color}`}>{sc.label}</span>
-                        )}
-                      </td>
-                      {Array.from({ length: project.totalDays }, (_, dayIdx) => {
-                        const day = dayIdx + 1;
-                        const inRange = day >= task.startDay && day <= task.endDay;
-                        return <td key={dayIdx} className="py-1.5 px-0.5 text-center">{inRange && <div className={`h-5 rounded ${sc.bar} opacity-80`} />}</td>;
-                      })}
-                      {canEdit && (
-                        <td className="py-1.5 px-1 text-center">
-                          <div className="flex gap-1 justify-center">
-                            <button onClick={() => setEditingTask({ projId: project._id, catIdx, taskIdx })} className="text-gray-400 hover:text-blue-500"><Edit2 size={10} /></button>
-                            <button onClick={() => onRemoveTask(project, catIdx, taskIdx)} className="text-gray-400 hover:text-red-500"><Trash2 size={10} /></button>
-                          </div>
-                        </td>
-                      )}
-                    </tr>
-                  );
-                })
-              )}
-            </React.Fragment>
+    <div className="p-4">
+      {/* Controls */}
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <div className="flex bg-gray-100 rounded-lg p-0.5">
+          {[{ k: "day", l: "Day" }, { k: "week", l: "Week" }, { k: "month", l: "Month" }].map(({ k, l }) => (
+            <button key={k} onClick={() => setViewMode(k)} className={`px-3 py-1 rounded-md text-xs font-medium transition ${viewMode === k ? "bg-white text-blue-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>{l}</button>
           ))}
-        </tbody>
-      </table>
+        </div>
+        <div className="relative">
+          <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input type="text" placeholder="Search tasks..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="border rounded-lg text-xs pl-6 pr-2 py-1.5 w-36" />
+        </div>
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="border rounded-lg text-xs px-2 py-1.5">
+          <option value="">All Status</option>
+          {TASK_STATUSES.map(s => <option key={s} value={s}>{STATUS_CFG[s].label}</option>)}
+        </select>
+      </div>
+
+      {/* Gantt Chart */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="flex">
+          {/* Left panel: task info */}
+          <div className="flex-shrink-0 w-64 border-r border-gray-200">
+            <div className="h-10 bg-gray-50 border-b border-gray-200 px-3 flex items-center">
+              <span className="text-[10px] font-semibold text-gray-500 uppercase">Task</span>
+            </div>
+            {tasks.map((task) => {
+              const sc = STATUS_CFG[task.status];
+              const progress = getTaskProgress(task);
+              return (
+                <div key={`${task.catIdx}-${task.taskIdx}`} className="h-12 px-3 flex items-center border-b border-gray-50 hover:bg-gray-50/50 group">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${sc.bar}`} />
+                      <p className={`text-xs font-medium truncate ${task.status === "completed" ? "line-through text-gray-400" : "text-gray-800"}`}>{task.name}</p>
+                    </div>
+                    <div className="flex items-center gap-2 ml-3.5">
+                      {task.assignee && <span className="text-[9px] text-gray-400">{task.assignee}</span>}
+                      <span className="text-[9px] text-gray-300">{progress}%</span>
+                    </div>
+                  </div>
+                  {canEdit && (
+                    <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition">
+                      <button onClick={() => setEditingTask({ projId: project._id, catIdx: task.catIdx, taskIdx: task.taskIdx })} className="text-gray-400 hover:text-blue-500 p-0.5"><Edit2 size={10} /></button>
+                      <button onClick={() => onRemoveTask(project, task.catIdx, task.taskIdx)} className="text-gray-400 hover:text-red-500 p-0.5"><Trash2 size={10} /></button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {tasks.length === 0 && <div className="h-12 px-3 flex items-center text-xs text-gray-400">No tasks</div>}
+          </div>
+
+          {/* Right panel: timeline */}
+          <div className="flex-1 overflow-x-auto">
+            {/* Column headers */}
+            <div className="flex h-10 bg-gray-50 border-b border-gray-200">
+              {columns.map((col, i) => (
+                <div key={i} className={`flex-shrink-0 flex items-center justify-center text-[10px] font-medium border-r border-gray-100 ${i === todayIdx ? "bg-blue-50 text-blue-700 font-bold" : "text-gray-500"}`} style={{ width: colWidth }}>
+                  {col.label}
+                </div>
+              ))}
+            </div>
+
+            {/* Task bars */}
+            {tasks.map((task) => {
+              const sc = STATUS_CFG[task.status];
+              const bar = getTaskBarStyle(task);
+              const progress = getTaskProgress(task);
+              return (
+                <div key={`${task.catIdx}-${task.taskIdx}`} className="relative h-12 border-b border-gray-50" style={{ minWidth: columns.length * colWidth }}>
+                  {/* Grid lines */}
+                  <div className="absolute inset-0 flex">
+                    {columns.map((_, i) => (
+                      <div key={i} className={`flex-shrink-0 border-r border-gray-50 ${i === todayIdx ? "bg-blue-50/30" : ""}`} style={{ width: colWidth }} />
+                    ))}
+                  </div>
+                  {/* Bar */}
+                  <div
+                    className="absolute top-2 h-8 rounded-md shadow-sm flex items-center overflow-hidden cursor-default"
+                    style={{ left: bar.left + 2, width: bar.width }}
+                    title={`${task.name} (${progress}%)`}
+                  >
+                    {/* Background */}
+                    <div className={`absolute inset-0 ${sc.bar} opacity-20 rounded-md`} />
+                    {/* Progress fill */}
+                    <div className={`absolute inset-y-0 left-0 ${sc.bar} opacity-60 rounded-md`} style={{ width: `${progress}%` }} />
+                    {/* Label */}
+                    <span className="relative z-10 text-[10px] font-medium text-gray-800 px-2 truncate">{task.name}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Legend */}
+      <div className="flex flex-wrap gap-3 mt-3">
+        {TASK_STATUSES.map(s => (
+          <div key={s} className="flex items-center gap-1.5">
+            <div className={`w-2.5 h-2.5 rounded ${STATUS_CFG[s].bar}`} />
+            <span className="text-[10px] text-gray-500">{STATUS_CFG[s].label}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

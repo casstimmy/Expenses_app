@@ -94,3 +94,65 @@ html, body {
   scrollbar-width: none;     /* Firefox */
   scroll-behavior: smooth;
 }
+
+/* react-calendar styles for project page */
+.project-calendar .react-calendar__navigation {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.project-calendar .react-calendar__navigation button {
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.project-calendar .react-calendar__navigation button:hover {
+  background: #f3f4f6;
+}
+.project-calendar .react-calendar__navigation button:disabled {
+  color: #d1d5db;
+}
+.project-calendar .react-calendar__month-view__weekdays {
+  font-size: 10px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  text-align: center;
+}
+.project-calendar .react-calendar__month-view__weekdays abbr {
+  text-decoration: none;
+}
+.project-calendar .react-calendar__tile {
+  font-size: 12px;
+  padding: 6px 2px;
+  text-align: center;
+  border-radius: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  position: relative;
+}
+.project-calendar .react-calendar__tile:hover {
+  background: #f3f4f6;
+}
+.project-calendar .react-calendar__tile--now {
+  background: #eff6ff !important;
+  color: #2563eb;
+  font-weight: 700;
+}
+.project-calendar .react-calendar__tile--active {
+  background: #2563eb !important;
+  color: white !important;
+  font-weight: 600;
+}
+.project-calendar .react-calendar__tile.has-tasks {
+  font-weight: 600;
+}
+.project-calendar .react-calendar__month-view__days__day--neighboringMonth {
+  color: #d1d5db;
+}
