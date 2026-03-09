@@ -1,7 +1,8 @@
 import { Inter } from "next/font/google";
 import { useRouter } from "next/router";
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import Nav from "@/components/Nav";
+import Sidebar from "@/components/Sidebar";
 import { useToast } from "@/context/ToastContext";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -14,9 +15,18 @@ export default function Layout({ children }) {
   const { addToast } = useToast();
   const addToastRef = useRef(addToast);
   const routerRef = useRef(router);
+  const [contentMaxWidth, setContentMaxWidth] = useState("max-w-7xl");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => { addToastRef.current = addToast; }, [addToast]);
   useEffect(() => { routerRef.current = router; }, [router]);
+
+  // Check login for sidebar visibility
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const staff = localStorage.getItem("staff");
+    setIsLoggedIn(!!staff);
+  }, [router.pathname]);
 
   // Redirect unauthenticated users away from protected pages
   useEffect(() => {
@@ -60,8 +70,11 @@ export default function Layout({ children }) {
   return (
     <div className={`${inter.variable} font-sans`}>
       <Nav />
-      <main className="px-2 sm:px-4 md:px-8 lg:px-16 bg-gray-50 min-h-screen">
-        {children}
+      {isLoggedIn && <Sidebar onScaleChange={setContentMaxWidth} />}
+      <main className={`transition-all duration-300 bg-gray-50 min-h-screen ${isLoggedIn ? "ml-12" : ""} px-2 sm:px-4 md:px-8 lg:px-12`}>
+        <div className={`${contentMaxWidth} mx-auto transition-all duration-300`}>
+          {children}
+        </div>
       </main>
     </div>
   );
