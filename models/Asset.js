@@ -8,6 +8,7 @@ const AssetSchema = new mongoose.Schema(
     description: { type: String, trim: true, default: "" },
     location: { type: String, trim: true },
     category: { type: String, trim: true, default: "" },
+    value: { type: Number, default: 0 },
     status: { type: String, default: "Active", trim: true },
     statusHistory: [
       {

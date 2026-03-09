@@ -74,6 +74,7 @@ export default function AssetSection({ isLoggedIn }) {
     description: "",
     location: LOCATIONS[0],
     category: "",
+    value: "",
     status: "Active",
   });
 
@@ -183,7 +184,7 @@ export default function AssetSection({ isLoggedIn }) {
       });
       if (res.ok) {
         setMessage("Asset added successfully!");
-        setForm({ name: "", description: "", location: LOCATIONS[0], category: "", status: "Active" });
+        setForm({ name: "", description: "", location: LOCATIONS[0], category: "", value: "", status: "Active" });
         setImageFile(null);
         setImagePreview(null);
         setShowForm(false);
@@ -237,6 +238,7 @@ export default function AssetSection({ isLoggedIn }) {
       description: asset.description || "",
       location: asset.location || "",
       category: asset.category || "",
+      value: asset.value || "",
     });
     setEditImagePreview(asset.image || null);
     setEditImageFile(null);
@@ -424,6 +426,15 @@ export default function AssetSection({ isLoggedIn }) {
                 <option key={loc} value={loc}>{loc}</option>
               ))}
             </select>
+            <input
+              type="number"
+              placeholder="Asset Value (₦)"
+              value={form.value}
+              onChange={(e) => setForm((p) => ({ ...p, value: e.target.value }))}
+              className="border p-2 rounded-lg w-full"
+              min="0"
+              step="0.01"
+            />
             <select
               value={form.status}
               onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}
@@ -509,6 +520,12 @@ export default function AssetSection({ isLoggedIn }) {
             {assets.filter((a) => a.status === "Disposed" || a.status === "Lost").length}
           </p>
         </div>
+        <div className="bg-white p-3 rounded-lg shadow-sm border col-span-2 sm:col-span-4">
+          <p className="text-xs text-gray-500">Total Asset Value</p>
+          <p className="text-xl font-bold text-blue-800">
+            ₦{assets.reduce((sum, a) => sum + Number(a.value || 0), 0).toLocaleString()}
+          </p>
+        </div>
       </div>
 
       {/* Asset Grid */}
@@ -538,6 +555,9 @@ export default function AssetSection({ isLoggedIn }) {
               </div>
               <div className="p-2">
                 <h3 className="font-medium text-gray-800 text-xs truncate">{asset.name}</h3>
+                {asset.value > 0 && (
+                  <p className="text-xs font-semibold text-green-700 mt-0.5">₦{Number(asset.value).toLocaleString()}</p>
+                )}
                 <div className="flex items-center justify-between mt-1">
                   <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${STATUS_COLORS[asset.status] || "bg-gray-100 text-gray-600"}`}>
                     {asset.status}
@@ -631,6 +651,7 @@ export default function AssetSection({ isLoggedIn }) {
                   {detailModal.status}
                 </span>
               </div>
+              {detailModal.value > 0 && <p className="text-sm font-semibold text-green-700 mb-1">💰 Value: ₦{Number(detailModal.value).toLocaleString()}</p>}
               {detailModal.category && <p className="text-sm text-gray-600 mb-1">🏷️ {detailModal.category}</p>}
               {detailModal.location && <p className="text-sm text-gray-600 mb-1">📍 {detailModal.location}</p>}
               {detailModal.description && <p className="text-sm text-gray-500 mt-2">{detailModal.description}</p>}
@@ -764,6 +785,15 @@ export default function AssetSection({ isLoggedIn }) {
                   <option key={l} value={l}>{l}</option>
                 ))}
               </select>
+              <input
+                type="number"
+                value={editForm.value || ""}
+                onChange={(e) => setEditForm((p) => ({ ...p, value: e.target.value }))}
+                placeholder="Asset Value (₦)"
+                className="border p-2 rounded-lg w-full"
+                min="0"
+                step="0.01"
+              />
               <textarea
                 value={editForm.description || ""}
                 onChange={(e) => setEditForm((p) => ({ ...p, description: e.target.value }))}

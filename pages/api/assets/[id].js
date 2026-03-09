@@ -22,7 +22,7 @@ export default async function handler(req, res) {
   if (!staff) return;
 
   if (req.method === "PUT") {
-    const { name, image, thumbnail, description, location, category, status, statusNote } = req.body;
+    const { name, image, thumbnail, description, location, category, value, status, statusNote } = req.body;
 
     try {
       const asset = await Asset.findById(id);
@@ -34,6 +34,7 @@ export default async function handler(req, res) {
       if (description !== undefined) asset.description = description;
       if (location) asset.location = location;
       if (category !== undefined) asset.category = category;
+      if (value !== undefined) asset.value = Number(value) || 0;
 
       if (status && status !== asset.status) {
         asset.statusHistory.push({

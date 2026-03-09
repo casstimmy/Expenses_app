@@ -21,7 +21,7 @@ export default async function handler(req, res) {
   if (!staff) return;
 
   if (req.method === "POST") {
-    const { name, image, thumbnail, description, location, category, status } = req.body;
+    const { name, image, thumbnail, description, location, category, value, status } = req.body;
 
     if (!name) {
       return res.status(400).json({ message: "Asset name is required" });
@@ -35,6 +35,7 @@ export default async function handler(req, res) {
         description,
         location,
         category,
+        value: Number(value) || 0,
         status: status || "Active",
         statusHistory: [{ status: status || "Active", note: "Asset created" }],
         addedBy: staff.name,
