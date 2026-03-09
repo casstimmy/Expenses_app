@@ -63,13 +63,11 @@ html, body {
 }
 
 @media print {
-  body, body * {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+  body * {
     visibility: hidden;
   }
   #print-section, #print-section * {
     visibility: visible;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
   }
   #print-section {
     position: absolute;
@@ -82,22 +80,6 @@ html, body {
   --tw-bg-opacity: 1;
   background-color: rgb(255, 255, 255);
   color: black;
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-}
-
-/* POS Assistant slide-up animation */
-@keyframes slide-up {
-  from {
-    opacity: 0;
-    transform: translateY(20px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-.animate-slide-up {
-  animation: slide-up 0.25s ease-out forwards;
 }
 
 
