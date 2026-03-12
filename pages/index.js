@@ -70,7 +70,11 @@ export default function Home({ staffList, locations }) {
       if (res.ok) {
         const data = await res.json();
         localStorage.setItem("staff", JSON.stringify({ ...data, location }));
-        router.push("/expenses/expenses");
+        if (data?.role === "account") {
+          router.push("/expenses/Pay_Tracker");
+        } else {
+          router.push("/expenses/expenses");
+        }
       } else {
         const err = await res.json();
         setError(err.message || "Login failed");

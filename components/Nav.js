@@ -64,25 +64,31 @@ export default function Nav() {
     router.push("/");
   }, [router, addToast]);
 
-  let navLinks = [
-    { href: "/expenses/expenses", label: "Expenses", icon: "📊" },
-    { href: "/expenses/Stock_Order", label: "Vendors", icon: "📦" },
-    { href: "/expenses/Web_Products", label: "Web Products", icon: "🌐" },
-    { href: "/projects", label: "Projects", icon: "📋" },
-  ];
+  let navLinks = [];
 
   if (role === "admin" || role === "Senior staff") {
-    navLinks.push(
+    navLinks = [
+      { href: "/expenses/expenses", label: "Expenses", icon: "📊" },
+      { href: "/expenses/Stock_Order", label: "Vendors", icon: "📦" },
+      { href: "/expenses/Web_Products", label: "Web Products", icon: "🌐" },
+      { href: "/projects", label: "Projects", icon: "📋" },
       { href: "/expenses/analysis", label: "Reports", icon: "📈" },
       { href: "/categories", label: "Categories", icon: "🏷️" },
       { href: "/expenses/Pay_Tracker", label: "Pay Tracker", icon: "💳" },
-      { href: "/admin/staff", label: "Staff", icon: "👥" }
-    );
+      { href: "/admin/staff", label: "Staff", icon: "👥" },
+    ];
   } else if (role === "account") {
-    navLinks.push(
+    navLinks = [
       { href: "/expenses/Pay_Tracker", label: "Pay Tracker", icon: "💳" },
-      { href: "/admin/staff", label: "Staff", icon: "👥" }
-    );
+      { href: "/admin/staff", label: "Staff", icon: "👥" },
+    ];
+  } else {
+    navLinks = [
+      { href: "/expenses/expenses", label: "Expenses", icon: "📊" },
+      { href: "/expenses/Stock_Order", label: "Vendors", icon: "📦" },
+      { href: "/expenses/Web_Products", label: "Web Products", icon: "🌐" },
+      { href: "/projects", label: "Projects", icon: "📋" },
+    ];
   }
 
   const isActive = (href) => pathname.startsWith(href);

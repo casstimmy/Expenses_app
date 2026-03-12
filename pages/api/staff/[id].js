@@ -1,19 +1,16 @@
 import { mongooseConnect } from "@/lib/mongoose";
 import { Staff } from "@/models/Staff";
-import { requireAuth } from "@/lib/auth";
+import { getAuthStaff, requireAuth } from "@/lib/auth";
 import bcrypt from "bcrypt";
 
 export default async function handler(req, res) {
   const { id } = req.query;
 
-  // Admin only for PUT/DELETE, any auth for GET
-  const roles = req.method === "GET" ? null : ["admin"];
-  const authStaff = await requireAuth(req, res, roles);
-  if (!authStaff) return;
-
   await mongooseConnect();
 
   if (req.method === "GET") {
+    const authStaff = await requireAuth(req, res);
+    if (!authStaff) return;
     try {
       const staffData = await Staff.findById(id);
       if (!staffData) {
@@ -25,7 +22,14 @@ export default async function handler(req, res) {
       res.status(500).json({ message: "Server error" });
     }
   } else if (req.method === "PUT") {
-const { name, password, location, role, bank, salary, photo } = req.body;
+    const authStaff = await getAuthStaff(req);
+    if (!authStaff) {
+      return res.status(401).json({ message: "Unauthorized. Please log in." });
+    }
+    if (authStaff.role !== "admin") {
+      return res.status(403).json({ message: "You dont have the permission to edit." });
+    }
+	const { name, password, location, role, bank, salary, photo } = req.body;
 
 
    const missingFields = [];
@@ -67,6 +71,13 @@ if (missingFields.length > 0) {
       res.status(500).json({ message: "Server error" });
     }
   } else if (req.method === "DELETE") {
+    const authStaff = await getAuthStaff(req);
+    if (!authStaff) {
+      return res.status(401).json({ message: "Unauthorized. Please log in." });
+    }
+    if (authStaff.role !== "admin") {
+      return res.status(403).json({ message: "You dont have the permission to delete." });
+    }
     try {
       await Staff.findByIdAndDelete(id);
       res.status(200).json({ message: "Staff deleted" });

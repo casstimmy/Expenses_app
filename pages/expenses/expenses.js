@@ -346,7 +346,12 @@ export default function ManageExpenses() {
       router.replace("/login");
       return;
     }
-    setStaffData(JSON.parse(stored));
+    const parsed = JSON.parse(stored);
+    if (parsed?.role === "account") {
+      router.replace("/expenses/Pay_Tracker");
+      return;
+    }
+    setStaffData(parsed);
     setLoading(true);
     Promise.all([fetchExpenses(), fetchCashEntries(), fetchCategories()]).finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
