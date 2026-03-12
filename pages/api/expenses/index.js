@@ -4,8 +4,8 @@ import ExpenseCategory from "@/models/ExpenseCategory";
 import { requireAuth } from "@/lib/auth";
 
 export default async function handler(req, res) {
-  const staff = await requireAuth(req, res);
-  if (!staff) return;
+  const authStaff = await requireAuth(req, res);
+  if (!authStaff) return;
 
   await mongooseConnect();
 
@@ -29,7 +29,6 @@ if (req.method === "POST") {
     category,
     description,
     location,
-    staff,
     date,
   } = req.body;
 
@@ -41,16 +40,20 @@ if (req.method === "POST") {
   normalizedDate.setHours(0, 0, 0, 0);
 
   try {
-    const expense = await Expense.create({
-      title: title.trim(),
-      amount: Number(amount),
-      category,
-      description: description || "",
-      location,
-      staff: staff || null,
-      date: normalizedDate,
-      createdAt: normalizedDate, // VERY IMPORTANT
-    });
+      const expense = await Expense.create({
+        title: title.trim(),
+        amount: Number(amount),
+        category,
+        description: description || "",
+        location,
+        staff: {
+          _id: authStaff._id,
+          name: authStaff.name,
+          role: authStaff.role,
+        },
+        date: normalizedDate,
+        createdAt: normalizedDate, // VERY IMPORTANT
+      });
 
     const populated = await Expense.findById(expense._id).populate(
       "category",

@@ -1,4 +1,5 @@
 import { mongooseConnect } from "@/lib/mongoose";
+import { getAuthStaff } from "@/lib/auth";
 import nodemailer from "nodemailer";
 import path from "path";
 import fs from "fs";
@@ -17,7 +18,15 @@ export default async function handler(req, res) {
     const keyMatch = key && key === process.env.CRON_SECRET;
     const bearerMatch = auth === `Bearer ${process.env.CRON_SECRET}`;
 
+    let sessionAuth = false;
     if (!keyMatch && !bearerMatch && !isVercelCron) {
+      const staff = await getAuthStaff(req);
+      if (staff && staff.role === "admin") {
+        sessionAuth = true;
+      }
+    }
+
+    if (!keyMatch && !bearerMatch && !isVercelCron && !sessionAuth) {
       return res.status(401).json({ error: "Unauthorized" });
     }
   }
@@ -30,12 +39,12 @@ export default async function handler(req, res) {
   // 3. Check schedule
   const forceSend = req.query.force === "true";
   const today = new Date();
-  const isTargetDate = today.getDate() === 11 && today.getHours() === 12;
+  const isTargetDate = today.getDate() === 28 && today.getHours() === 12;
 
   if (!forceSend && !isTargetDate) {
     return res.status(200).json({
       message: "Not the scheduled date/time, skipping email.",
-      nextRun: `11th of month at 12:00 (or use ?force=true to send now)`,
+      nextRun: `28th of month at 12:00 (or use ?force=true to send now)`,
     });
   }
 

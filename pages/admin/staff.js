@@ -132,13 +132,10 @@ export default function ManageStaff() {
   const handleSendingMail = async () => {
     setIsSending(true);
     try {
-      // Step 2: Send the salary mail using Authorization header (secure, not in URL)
-    const mailRes = await fetch("/api/staff/salary-mail/cron?force=true", {
-  method: "POST",
-  headers: {
-    Authorization: "Bearer 009CJuqL8lhX/j0M9sd6s/NHeA1bTwHMoAmUxB83X5k=",
-  },
-});
+      // Step 2: Send the salary mail using session auth
+      const mailRes = await fetch("/api/staff/salary-mail/cron?force=true", {
+        method: "POST",
+      });
 
 
       const mailData = await mailRes.json();
@@ -564,6 +561,7 @@ export default function ManageStaff() {
                 className="border p-2 rounded w-full"
               >
                 <option value="staff">Staff</option>
+                <option value="account">Account</option>
                 <option value="Senior staff">Manager</option>
                 <option value="admin">Admin</option>
                 <option value="junior staff">Junior Staff</option>
@@ -681,6 +679,7 @@ export default function ManageStaff() {
                           className="border p-2 rounded w-full"
                         >
                           <option value="staff">Staff</option>
+                          <option value="account">Account</option>
                           <option value="Senior staff">Manager</option>
                           <option value="admin">Admin</option>
                           <option value="junior staff">Junior Staff</option>

@@ -1,11 +1,11 @@
 {
   "crons": [
     {
-      "path": "/api/stock-orders/cron?key=009CJuqL8lhX%2Fj0M9sd6s%2FNHeA1bTwHMoAmUxB83X5k%3D",
+      "path": "/api/stock-orders/cron",
       "schedule": "0 10 * * *"
     },
     {
-      "path": "/api/staff/salary-mail/cron?force=true&key=009CJuqL8lhX%2Fj0M9sd6s%2FNHeA1bTwHMoAmUxB83X5k%3D",
+      "path": "/api/staff/salary-mail/cron",
       "schedule": "0 12 28 * *"
     }
   ]
