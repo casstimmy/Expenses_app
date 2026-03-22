@@ -218,7 +218,7 @@ const PrintMemo = forwardRef(
                 </span>
               </p>
               <p style={{ fontWeight: "bold", paddingTop: "3.5em" }}>
-                Catherine Ashenuga-Farrer
+                Paul Farrer
               </p>
               <p style={{ fontWeight: "bold" }}>Director</p>
             </div>
