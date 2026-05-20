@@ -3,7 +3,11 @@ import {
   PETTY_CASH_TERMS_VERSION,
   PETTY_CASH_VENDOR_TYPE,
 } from "@/lib/petty-cash";
-import { buildVendorFields } from "@/lib/vendor-utils";
+import {
+  buildPettyCashOnboardingProducts,
+  buildVendorFields,
+  resolveVendorProducts,
+} from "@/lib/vendor-utils";
 import Vendor from "@/models/Vendor";
 
 const REQUIRED_ONBOARDING_FIELDS = [
@@ -28,7 +32,7 @@ export default async function handler(req, res) {
   const vendor = await Vendor.findOne({
     onboardingToken: token,
     vendorType: PETTY_CASH_VENDOR_TYPE,
-  });
+  }).populate("products.product");
 
   if (!vendor) {
     return res.status(404).json({ message: "Invalid or expired link" });
@@ -45,6 +49,13 @@ export default async function handler(req, res) {
       businessCategory: vendor.businessCategory || "",
       serviceDescription: vendor.serviceDescription || "",
       paymentTerms: vendor.paymentTerms || "",
+      products: Array.isArray(vendor.products)
+        ? vendor.products.map((entry) => ({
+            name: entry.product?.name || "",
+            category: entry.product?.category || "",
+            price: entry.price || "",
+          }))
+        : [],
       bankName: vendor.bankName || "",
       accountName: vendor.accountName || "",
       accountNumber: vendor.accountNumber || "",
@@ -60,6 +71,17 @@ export default async function handler(req, res) {
         { ...req.body, vendorType: PETTY_CASH_VENDOR_TYPE },
         PETTY_CASH_VENDOR_TYPE
       );
+      const { products: onboardingProducts, hasIncompleteRows } =
+        buildPettyCashOnboardingProducts(
+          req.body?.products,
+          vendorFields.businessCategory || vendorFields.mainProduct || "Petty Cash"
+        );
+
+      if (hasIncompleteRows) {
+        return res.status(400).json({
+          message: "Please provide both product name and price for each product row.",
+        });
+      }
 
       const missingFields = REQUIRED_ONBOARDING_FIELDS.filter(
         (field) => !vendorFields[field]
@@ -79,8 +101,13 @@ export default async function handler(req, res) {
         });
       }
 
+      const productRefs = await resolveVendorProducts(onboardingProducts);
+
       vendor.set({
         ...vendorFields,
+        mainProduct:
+          vendorFields.mainProduct || onboardingProducts[0]?.name || vendor.mainProduct || "",
+        products: productRefs,
         vendorType: PETTY_CASH_VENDOR_TYPE,
         onboardingComplete: true,
         onboardingSubmittedAt: new Date(),

@@ -37,12 +37,17 @@ const BANK_FIELDS = [
   ["accountNumber", "Account Number"],
 ];
 
+const createEmptyProduct = () => ({ name: "", price: "" });
+
 export default function PettyCashVendorOnboarding() {
   const router = useRouter();
   const { token } = router.query;
 
   const [vendorInfo, setVendorInfo] = useState(null);
-  const [form, setForm] = useState(EMPTY_FORM);
+  const [form, setForm] = useState(() => ({
+    ...EMPTY_FORM,
+    products: [createEmptyProduct()],
+  }));
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -81,6 +86,13 @@ export default function PettyCashVendorOnboarding() {
           mainProduct: data.mainProduct || "",
           businessCategory: data.businessCategory || "",
           serviceDescription: data.serviceDescription || "",
+          products:
+            Array.isArray(data.products) && data.products.length > 0
+              ? data.products.map((product) => ({
+                  name: product.name || "",
+                  price: product.price || "",
+                }))
+              : [createEmptyProduct()],
           bankName: data.bankName || "",
           accountName: data.accountName || "",
           accountNumber: data.accountNumber || "",
@@ -103,6 +115,33 @@ export default function PettyCashVendorOnboarding() {
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
+  };
+
+  const handleProductChange = (index, field, value) => {
+    setForm((prev) => ({
+      ...prev,
+      products: prev.products.map((product, productIndex) =>
+        productIndex === index ? { ...product, [field]: value } : product
+      ),
+    }));
+  };
+
+  const addProductRow = () => {
+    setForm((prev) => ({
+      ...prev,
+      products: [...(prev.products || []), createEmptyProduct()],
+    }));
+  };
+
+  const removeProductRow = (index) => {
+    setForm((prev) => {
+      const nextProducts = prev.products.filter((_, productIndex) => productIndex !== index);
+
+      return {
+        ...prev,
+        products: nextProducts.length ? nextProducts : [createEmptyProduct()],
+      };
+    });
   };
 
   const handleSubmit = async (event) => {
@@ -255,6 +294,76 @@ export default function PettyCashVendorOnboarding() {
                     placeholder="Describe the goods or services you provide for petty cash requests."
                   />
                 </label>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 space-y-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold text-slate-900">Products and Prices</h2>
+                    <p className="text-sm text-slate-600 mt-1">
+                      Add the products you sell and the current price for each item.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={addProductRow}
+                    className="w-full sm:w-auto rounded-xl border border-blue-200 bg-white px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50 transition"
+                  >
+                    + Add Product
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  {form.products.map((product, index) => (
+                    <div
+                      key={`product-row-${index}`}
+                      className="rounded-2xl border border-slate-200 bg-white p-4"
+                    >
+                      <div className="mb-4 flex items-start justify-between gap-3">
+                        <p className="text-sm font-medium text-slate-900">Product {index + 1}</p>
+                        {form.products.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeProductRow(index)}
+                            className="text-sm font-medium text-red-500 hover:text-red-600"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-[1.4fr_0.8fr] gap-4">
+                        <label className="space-y-2 text-sm text-slate-700">
+                          <span className="font-medium">Product Name</span>
+                          <input
+                            type="text"
+                            value={product.name}
+                            onChange={(event) =>
+                              handleProductChange(index, "name", event.target.value)
+                            }
+                            className="w-full rounded-xl border border-slate-200 px-4 py-3 bg-white focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                            placeholder="e.g. Soft drinks, printer paper"
+                          />
+                        </label>
+
+                        <label className="space-y-2 text-sm text-slate-700">
+                          <span className="font-medium">Price (N)</span>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={product.price}
+                            onChange={(event) =>
+                              handleProductChange(index, "price", event.target.value)
+                            }
+                            className="w-full rounded-xl border border-slate-200 px-4 py-3 bg-white focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                            placeholder="0.00"
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 space-y-4">

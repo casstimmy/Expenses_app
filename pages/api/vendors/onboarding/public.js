@@ -4,8 +4,10 @@ import {
   PETTY_CASH_VENDOR_TYPE,
 } from "@/lib/petty-cash";
 import {
+  buildPettyCashOnboardingProducts,
   buildVendorFields,
   createVendorOnboardingToken,
+  resolveVendorProducts,
 } from "@/lib/vendor-utils";
 import Vendor from "@/models/Vendor";
 
@@ -54,6 +56,17 @@ export default async function handler(req, res) {
       { ...req.body, vendorType: PETTY_CASH_VENDOR_TYPE },
       PETTY_CASH_VENDOR_TYPE
     );
+    const { products: onboardingProducts, hasIncompleteRows } =
+      buildPettyCashOnboardingProducts(
+        req.body?.products,
+        vendorFields.businessCategory || vendorFields.mainProduct || "Petty Cash"
+      );
+
+    if (hasIncompleteRows) {
+      return res.status(400).json({
+        message: "Please provide both product name and price for each product row.",
+      });
+    }
 
     const missingFields = REQUIRED_ONBOARDING_FIELDS.filter(
       (field) => !vendorFields[field]
@@ -85,8 +98,12 @@ export default async function handler(req, res) {
       }
     }
 
+    const productRefs = await resolveVendorProducts(onboardingProducts);
+
     const vendor = await Vendor.create({
       ...vendorFields,
+      mainProduct: vendorFields.mainProduct || onboardingProducts[0]?.name || "",
+      products: productRefs,
       vendorType: PETTY_CASH_VENDOR_TYPE,
       onboardingToken: createVendorOnboardingToken(),
       onboardingComplete: true,

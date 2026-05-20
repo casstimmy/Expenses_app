@@ -76,6 +76,22 @@ export default function PettyCashVendorList({
                       <strong>Service:</strong>{" "}
                       {vendor.serviceDescription || "Waiting for onboarding details"}
                     </p>
+                    {Array.isArray(vendor.products) && vendor.products.length > 0 && (
+                      <p>
+                        <strong>Products:</strong>{" "}
+                        {vendor.products
+                          .slice(0, 3)
+                          .map((entry) => {
+                            const name = entry.product?.name || "Product";
+                            const price = Number(entry.price || 0).toLocaleString("en-NG");
+                            return `${name} (N${price})`;
+                          })
+                          .join(", ")}
+                        {vendor.products.length > 3
+                          ? ` +${vendor.products.length - 3} more`
+                          : ""}
+                      </p>
+                    )}
                     <p>
                       <strong>Terms Accepted:</strong>{" "}
                       {vendor.termsAccepted ? "Yes" : "No"}
