@@ -11,8 +11,6 @@ const REQUIRED_ONBOARDING_FIELDS = [
   "vendorRep",
   "repPhone",
   "email",
-  "address",
-  "businessCategory",
   "serviceDescription",
   "bankName",
   "accountName",

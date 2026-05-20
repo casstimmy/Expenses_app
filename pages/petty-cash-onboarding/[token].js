@@ -1,4 +1,5 @@
 import Head from "next/head";
+import Image from "next/image";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import {
@@ -15,12 +16,26 @@ const EMPTY_FORM = {
   mainProduct: "",
   businessCategory: "",
   serviceDescription: "",
-  paymentTerms: "",
   bankName: "",
   accountName: "",
   accountNumber: "",
   termsAccepted: false,
 };
+
+const BASIC_FIELDS = [
+  ["companyName", "Business Name", "text", true],
+  ["vendorRep", "Representative Name", "text", true],
+  ["repPhone", "Phone Number", "tel", true],
+  ["email", "Email Address", "email", true],
+  ["mainProduct", "Primary Item or Service", "text", false],
+  ["businessCategory", "Business Category (Optional)", "text", false],
+];
+
+const BANK_FIELDS = [
+  ["bankName", "Bank Name"],
+  ["accountName", "Account Name"],
+  ["accountNumber", "Account Number"],
+];
 
 export default function PettyCashVendorOnboarding() {
   const router = useRouter();
@@ -55,7 +70,6 @@ export default function PettyCashVendorOnboarding() {
           mainProduct: data.mainProduct || "",
           businessCategory: data.businessCategory || "",
           serviceDescription: data.serviceDescription || "",
-          paymentTerms: data.paymentTerms || "",
           bankName: data.bankName || "",
           accountName: data.accountName || "",
           accountNumber: data.accountNumber || "",
@@ -108,17 +122,19 @@ export default function PettyCashVendorOnboarding() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#fff7ed,_#e0f2fe_55%,_#f8fafc)] flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#dbeafe,_#eff6ff_55%,_#f8fafc)] flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   if (error && !vendorInfo) {
     return (
-      <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#fff7ed,_#e0f2fe_55%,_#f8fafc)] flex items-center justify-center px-4">
-        <div className="max-w-md rounded-3xl bg-white border border-amber-200 shadow-xl p-8 text-center">
-          <p className="text-sm uppercase tracking-[0.3em] text-amber-600">Petty Cash Vendor</p>
+      <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#dbeafe,_#eff6ff_55%,_#f8fafc)] flex items-center justify-center px-4">
+        <div className="max-w-md rounded-3xl bg-white border border-blue-200 shadow-xl p-8 text-center">
+          <p className="text-sm uppercase tracking-[0.3em] text-blue-600">
+            Petty Cash Vendor
+          </p>
           <h1 className="text-2xl font-bold text-slate-900 mt-3">Link Invalid</h1>
           <p className="text-sm text-slate-600 mt-3">{error}</p>
         </div>
@@ -128,13 +144,15 @@ export default function PettyCashVendorOnboarding() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#ecfccb,_#dcfce7_45%,_#f8fafc)] flex items-center justify-center px-4">
-        <div className="max-w-xl rounded-3xl bg-white border border-emerald-200 shadow-xl p-8 text-center space-y-3">
-          <p className="text-sm uppercase tracking-[0.3em] text-emerald-600">Submission Complete</p>
+      <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#ecfeff,_#dbeafe_45%,_#f8fafc)] flex items-center justify-center px-4">
+        <div className="max-w-xl rounded-3xl bg-white border border-blue-200 shadow-xl p-8 text-center space-y-3">
+          <p className="text-sm uppercase tracking-[0.3em] text-blue-600">
+            Submission Complete
+          </p>
           <h1 className="text-3xl font-bold text-slate-900">Thank you</h1>
           <p className="text-sm text-slate-600">
             Your petty cash vendor onboarding form has been submitted successfully.
-            BizSuits will review the details you provided and contact you if any
+            Ibile will review the details you provided and contact you if any
             clarification is needed.
           </p>
         </div>
@@ -145,29 +163,38 @@ export default function PettyCashVendorOnboarding() {
   return (
     <>
       <Head>
-        <title>Petty Cash Vendor Onboarding</title>
+        <title>Ibile Petty Cash Vendor Onboarding</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
-      <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#fff7ed,_#e0f2fe_55%,_#f8fafc)] py-10 px-4">
+      <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#dbeafe,_#eff6ff_55%,_#f8fafc)] py-10 px-4">
         <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr] gap-6">
           <section className="rounded-[28px] bg-white/95 border border-white shadow-[0_24px_80px_rgba(15,23,42,0.12)] p-6 sm:p-8">
             <div className="space-y-3 mb-8">
-              <p className="text-xs uppercase tracking-[0.3em] text-amber-700">
-                BizSuits Vendor Network
-              </p>
+              <div className="flex items-center gap-3">
+                <Image
+                  src="/image/Logo.png"
+                  alt="Ibile logo"
+                  width={52}
+                  height={52}
+                  className="h-12 w-12 object-contain"
+                />
+                <p className="text-xs uppercase tracking-[0.3em] text-blue-700">
+                  Ibile Vendor Network
+                </p>
+              </div>
               <h1 className="text-3xl sm:text-4xl font-semibold text-slate-900">
                 Petty Cash Vendor Onboarding
               </h1>
               <p className="text-sm sm:text-base text-slate-600 max-w-2xl">
-                Complete this form to join the BizSuits petty cash vendor database.
+                Complete this form to join the Ibile petty cash vendor database.
                 The information you submit will be used for vendor registration,
                 contact verification, payment processing, and internal audit records.
               </p>
             </div>
 
             {vendorInfo?.onboardingComplete && (
-              <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <div className="mb-6 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
                 This onboarding form has already been submitted. You may review and
                 update the existing details below if a correction is required.
               </div>
@@ -175,14 +202,7 @@ export default function PettyCashVendorOnboarding() {
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {[
-                  ["companyName", "Business Name", "text", true],
-                  ["vendorRep", "Representative Name", "text", true],
-                  ["repPhone", "Phone Number", "tel", true],
-                  ["email", "Email Address", "email", true],
-                  ["mainProduct", "Primary Item or Service", "text", false],
-                  ["businessCategory", "Business Category", "text", true],
-                ].map(([name, label, type, required]) => (
+                {BASIC_FIELDS.map(([name, label, type, required]) => (
                   <label key={name} className="space-y-2 text-sm text-slate-700">
                     <span className="font-medium">{label}</span>
                     <input
@@ -191,19 +211,19 @@ export default function PettyCashVendorOnboarding() {
                       value={form[name]}
                       onChange={handleChange}
                       required={required}
-                      className="w-full rounded-xl border border-slate-200 px-4 py-3 bg-white focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-200"
+                      className="w-full rounded-xl border border-slate-200 px-4 py-3 bg-white focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
                     />
                   </label>
                 ))}
 
                 <label className="space-y-2 text-sm text-slate-700 sm:col-span-2">
-                  <span className="font-medium">Business Address</span>
+                  <span className="font-medium">Business Address (Optional)</span>
                   <textarea
                     name="address"
                     value={form.address}
                     onChange={handleChange}
-                    required
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 min-h-24 bg-white focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-200"
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3 min-h-24 bg-white focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    placeholder="Optional"
                   />
                 </label>
 
@@ -214,19 +234,8 @@ export default function PettyCashVendorOnboarding() {
                     value={form.serviceDescription}
                     onChange={handleChange}
                     required
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 min-h-28 bg-white focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-200"
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3 min-h-28 bg-white focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
                     placeholder="Describe the goods or services you provide for petty cash requests."
-                  />
-                </label>
-
-                <label className="space-y-2 text-sm text-slate-700 sm:col-span-2">
-                  <span className="font-medium">Payment Terms</span>
-                  <textarea
-                    name="paymentTerms"
-                    value={form.paymentTerms}
-                    onChange={handleChange}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 min-h-24 bg-white focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-200"
-                    placeholder="State expected payment timing, delivery conditions, or invoice notes if applicable."
                   />
                 </label>
               </div>
@@ -236,17 +245,10 @@ export default function PettyCashVendorOnboarding() {
                   <h2 className="text-lg font-semibold text-slate-900">
                     Bank Details
                   </h2>
-                  <p className="text-sm text-slate-600 mt-1">
-                    Payment will only be made into the account registered here.
-                  </p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {[
-                    ["bankName", "Bank Name"],
-                    ["accountName", "Account Name"],
-                    ["accountNumber", "Account Number"],
-                  ].map(([name, label]) => (
+                  {BANK_FIELDS.map(([name, label]) => (
                     <label key={name} className="space-y-2 text-sm text-slate-700">
                       <span className="font-medium">{label}</span>
                       <input
@@ -255,7 +257,7 @@ export default function PettyCashVendorOnboarding() {
                         value={form[name]}
                         onChange={handleChange}
                         required
-                        className="w-full rounded-xl border border-slate-200 px-4 py-3 bg-white focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-200"
+                        className="w-full rounded-xl border border-slate-200 px-4 py-3 bg-white focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
                       />
                     </label>
                   ))}
@@ -268,7 +270,7 @@ export default function PettyCashVendorOnboarding() {
                 </div>
               )}
 
-              <label className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-slate-700">
+              <label className="flex items-start gap-3 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-4 text-sm text-slate-700">
                 <input
                   type="checkbox"
                   name="termsAccepted"
@@ -277,15 +279,15 @@ export default function PettyCashVendorOnboarding() {
                   className="mt-1"
                 />
                 <span>
-                  I have read and accept the BizSuits petty cash vendor terms and
-                  conditions stated on this page, including version {vendorInfo?.termsVersion || PETTY_CASH_TERMS_VERSION}.
+                  I have read and accept the Ibile petty cash vendor terms and
+                  conditions stated on this page, including version {PETTY_CASH_TERMS_VERSION}.
                 </span>
               </label>
 
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full rounded-2xl bg-slate-900 text-white py-3.5 font-semibold hover:bg-slate-800 disabled:opacity-60 transition"
+                className="w-full rounded-2xl bg-blue-700 text-white py-3.5 font-semibold hover:bg-blue-800 disabled:opacity-60 transition"
               >
                 {submitting ? "Submitting..." : "Submit Onboarding Form"}
               </button>
@@ -293,13 +295,17 @@ export default function PettyCashVendorOnboarding() {
           </section>
 
           <aside className="space-y-6">
-            <section className="rounded-[28px] bg-[#0f172a] text-white p-6 shadow-[0_24px_80px_rgba(15,23,42,0.18)]">
-              <p className="text-xs uppercase tracking-[0.3em] text-amber-300">Why this form matters</p>
-              <h2 className="text-2xl font-semibold mt-3">Clear vendor records reduce payment delays.</h2>
-              <p className="text-sm text-slate-300 mt-4 leading-6">
-                BizSuits uses this form to confirm who it is paying, what goods or
-                services are being supplied, and which bank account should be used
-                for approved petty cash disbursements.
+            <section className="rounded-[28px] bg-gradient-to-br from-blue-700 to-sky-600 text-white p-6 shadow-[0_24px_80px_rgba(37,99,235,0.24)]">
+              <p className="text-xs uppercase tracking-[0.3em] text-blue-100">
+                Why this form matters
+              </p>
+              <h2 className="text-2xl font-semibold mt-3">
+                Welcome to the Ibile vendor network.
+              </h2>
+              <p className="text-sm text-blue-50 mt-4 leading-6">
+                This form helps Ibile keep accurate vendor records for
+                communication, order processing, internal review, and operational
+                documentation.
               </p>
             </section>
 
@@ -319,7 +325,9 @@ export default function PettyCashVendorOnboarding() {
                     key={term.title}
                     className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"
                   >
-                    <h3 className="text-sm font-semibold text-slate-900">{term.title}</h3>
+                    <h3 className="text-sm font-semibold text-slate-900">
+                      {term.title}
+                    </h3>
                     <p className="text-sm text-slate-600 mt-1 leading-6">
                       {term.description}
                     </p>

@@ -132,7 +132,7 @@ export default async function handler(req, res) {
           });
 
           await sendMail({
-            from: process.env.EMAIL_FROM || `"BizSuits" <${process.env.EMAIL_USER}>`,
+            from: process.env.EMAIL_FROM || `"Ibile" <${process.env.EMAIL_USER}>`,
             to: vendor.email,
             subject: mail.subject,
             text: mail.text,
