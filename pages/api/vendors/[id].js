@@ -1,8 +1,7 @@
 import { mongooseConnect } from "@/lib/mongoose";
 import Vendor from "@/models/Vendor";
-import Product from "@/models/Product";
-import mongoose from "mongoose";
 import { requireAuth } from "@/lib/auth";
+import { buildVendorFields, resolveVendorProducts } from "@/lib/vendor-utils";
 
 export default async function handler(req, res) {
   const staff = await requireAuth(req, res);
@@ -13,95 +12,29 @@ export default async function handler(req, res) {
   const { id } = req.query;
 
   if (req.method === "PUT") {
-
-    const normalizeCategory = (category) => {
-  const found = productCategories.find((c) => c.toLowerCase() === category.toLowerCase());
-  return found || category;
-};
-
     try {
-      const {
-        companyName,
-        vendorRep,
-        repPhone,
-        email,
-        address,
-        mainProduct,
-        bankName,
-        accountName,
-        accountNumber,
-        products,
-      } = req.body;
+      const vendorFields = buildVendorFields(req.body, req.body.vendorType);
+      if (!vendorFields.companyName) {
+        return res.status(400).json({ error: "Company name is required" });
+      }
 
-     const productRefs = await Promise.all(
-products.map(async (prod) => {
-  let productId;
-
-  const { product, name, category, price, quantity, costPrice, total, isPack, unitsPerPack } = prod;
-
-  if (product && product !== "custom") {
-    if (
-      typeof product === "string" &&
-      mongoose.Types.ObjectId.isValid(product)
-    ) {
-      productId = new mongoose.Types.ObjectId(product);
-      // Update pack info on existing product
-      await Product.findByIdAndUpdate(productId, {
-        isPack: !!isPack,
-        unitsPerPack: isPack ? (Number(unitsPerPack) || 1) : 1,
-      });
-    } else {
-      throw new Error(`Invalid product ID: ${product}`);
-    }
-  } else {
-    // Custom product: validate input
-    if (!name || !category) {
-      throw new Error("Product name and category are required for custom product");
-    }
-
-    const newProduct = await Product.create({
-      name: name.trim(),
-      category: category.trim(),
-      price: price || 0,
-      isPack: !!isPack,
-      unitsPerPack: isPack ? (Number(unitsPerPack) || 1) : 1,
-    });
-
-    productId = newProduct._id;
-  }
-
-  return {
-    product: productId,
-    name,
-    quantity,
-    price,
-    total,
-  };
-})
-
-);
+      const productRefs = await resolveVendorProducts(req.body.products);
 
 
       const updated = await Vendor.findByIdAndUpdate(
         id,
         {
-          companyName,
-          vendorRep,
-          repPhone,
-          email,
-          address,
-          mainProduct,
-          bankName,
-          accountName,
-          accountNumber,
+          ...vendorFields,
           products: productRefs,
         },
-        { new: true }
+        { new: true, runValidators: true }
       );
 
       if (!updated) {
         return res.status(404).json({ error: "Vendor not found" });
       }
+
+      await updated.populate("products.product");
 
       res.status(200).json(updated);
     } catch (err) {

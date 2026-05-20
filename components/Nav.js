@@ -70,6 +70,7 @@ export default function Nav() {
     navLinks = [
       { href: "/expenses/expenses", label: "Expenses", icon: "📊" },
       { href: "/expenses/Stock_Order", label: "Vendors", icon: "📦" },
+      { href: "/expenses/Petty_Cash_Vendors", label: "Petty Cash", icon: "🧾" },
       { href: "/expenses/Web_Products", label: "Web Products", icon: "🌐" },
       { href: "/projects", label: "Projects", icon: "📋" },
       { href: "/expenses/analysis", label: "Reports", icon: "📈" },
@@ -79,6 +80,7 @@ export default function Nav() {
     ];
   } else if (role === "account") {
     navLinks = [
+      { href: "/expenses/Petty_Cash_Vendors", label: "Petty Cash", icon: "🧾" },
       { href: "/expenses/Pay_Tracker", label: "Pay Tracker", icon: "💳" },
       { href: "/admin/staff", label: "Staff", icon: "👥" },
     ];
@@ -86,6 +88,7 @@ export default function Nav() {
     navLinks = [
       { href: "/expenses/expenses", label: "Expenses", icon: "📊" },
       { href: "/expenses/Stock_Order", label: "Vendors", icon: "📦" },
+      { href: "/expenses/Petty_Cash_Vendors", label: "Petty Cash", icon: "🧾" },
       { href: "/expenses/Web_Products", label: "Web Products", icon: "🌐" },
       { href: "/projects", label: "Projects", icon: "📋" },
     ];

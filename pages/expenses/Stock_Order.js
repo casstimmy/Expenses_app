@@ -42,7 +42,7 @@ export default function StockOrder() {
   const [productSearch, setProductSearch] = useState("");
 
   // ====== Constants ======
-  const CACHE_KEY = "vendors_cache";
+  const CACHE_KEY = "stock_vendors_cache";
   const CACHE_DURATION = 10 * 60 * 1000; // 10 mins
 
   // ====== Helpers ======
@@ -85,7 +85,7 @@ export default function StockOrder() {
     }
 
     if (!useCache) {
-      const res = await fetch("/api/vendors");
+      const res = await fetch("/api/vendors?type=stock");
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const data = await res.json();
       setVendors(data);

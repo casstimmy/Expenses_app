@@ -1,8 +1,11 @@
 import { mongooseConnect } from "@/lib/mongoose";
 import Vendor from "@/models/Vendor";
-import Product from "@/models/Product";
-import mongoose from "mongoose";
 import { requireAuth } from "@/lib/auth";
+import {
+  buildVendorFields,
+  getVendorTypeFilter,
+  resolveVendorProducts,
+} from "@/lib/vendor-utils";
 
 export default async function handler(req, res) {
   const staff = await requireAuth(req, res);
@@ -12,7 +15,9 @@ export default async function handler(req, res) {
 
   if (req.method === "GET") {
     try {
-      const vendors = await Vendor.find().populate("products.product");
+      const vendors = await Vendor.find(getVendorTypeFilter(req.query.type))
+        .populate("products.product")
+        .sort({ companyName: 1 });
       return res.status(200).json(vendors);
     } catch (error) {
       return res.status(500).json({ error: "Failed to fetch vendors" });
@@ -21,75 +26,16 @@ export default async function handler(req, res) {
 
   if (req.method === "POST") {
     try {
-      const {
-        companyName,
-        vendorRep,
-        repPhone,
-        email,
-        address,
-        mainProduct,
-        bankName,
-        accountName,
-        accountNumber,
-        products,
-      } = req.body;
-
-     const productRefs = await Promise.all(
-  products.map(async (prod) => {
-    let productId;
-
-    // Destructure all expected fields from prod
-    const { product, name, category, price, quantity, costPrice, total, isPack, unitsPerPack } = prod;
-
-    if (product && product !== "custom") {
-      if (typeof product === "string" && mongoose.Types.ObjectId.isValid(product)) {
-        productId = new mongoose.Types.ObjectId(product);
-        // Update pack info on existing product
-        await Product.findByIdAndUpdate(productId, {
-          isPack: !!isPack,
-          unitsPerPack: isPack ? (Number(unitsPerPack) || 1) : 1,
-        });
-      } else {
-        throw new Error(`Invalid product ID: ${product}`);
-      }
-    } else {
-      // Custom product
-      if (!name || !category) {
-        throw new Error("Product name and category are required for custom product");
+      const vendorFields = buildVendorFields(req.body);
+      if (!vendorFields.companyName) {
+        return res.status(400).json({ success: false, error: "Company name is required" });
       }
 
-      const newProduct = await Product.create({
-        name: name.trim(),
-        category: category.trim(),
-        price: price || 0,
-        isPack: !!isPack,
-        unitsPerPack: isPack ? (Number(unitsPerPack) || 1) : 1,
-      });
-
-      productId = newProduct._id;
-    }
-
-    return {
-      product: productId,
-      name,
-      quantity,
-      price,
-      total,
-    };
-  })
-);
+      const productRefs = await resolveVendorProducts(req.body.products);
 
 
       const vendor = await Vendor.create({
-        companyName,
-        vendorRep,
-        repPhone,
-        email,
-        address,
-        mainProduct,
-        bankName,
-        accountName,
-        accountNumber,
+        ...vendorFields,
         products: productRefs,
       });
 
