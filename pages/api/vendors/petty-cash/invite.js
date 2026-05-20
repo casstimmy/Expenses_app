@@ -1,5 +1,6 @@
 import { requireAuth } from "@/lib/auth";
 import { sendMail } from "@/lib/mailer";
+import { sendSmsMessage, sendWhatsAppMessage } from "@/lib/messaging";
 import { mongooseConnect } from "@/lib/mongoose";
 import {
   PETTY_CASH_TERMS_VERSION,
@@ -7,12 +8,15 @@ import {
 } from "@/lib/petty-cash";
 import {
   buildPettyCashInvitationEmail,
+  buildPettyCashInvitationMessage,
   buildPettyCashOnboardingLink,
   buildVendorFields,
   createVendorOnboardingToken,
   getRequestBaseUrl,
 } from "@/lib/vendor-utils";
 import Vendor from "@/models/Vendor";
+
+const DELIVERY_CHANNELS = ["email", "sms", "whatsapp"];
 
 const INVITE_FIELDS = [
   "companyName",
@@ -45,6 +49,15 @@ export default async function handler(req, res) {
     const vendorFields = buildVendorFields(
       { ...req.body, vendorType: PETTY_CASH_VENDOR_TYPE },
       PETTY_CASH_VENDOR_TYPE
+    );
+    const channels = Array.from(
+      new Set(
+        Array.isArray(req.body?.channels) && req.body.channels.length > 0
+          ? req.body.channels.filter((channel) => DELIVERY_CHANNELS.includes(channel))
+          : sendEmail
+          ? ["email"]
+          : []
+      )
     );
 
     let vendor;
@@ -87,14 +100,29 @@ export default async function handler(req, res) {
       vendor.onboardingToken
     );
 
-    let emailSent = false;
-    let emailError = "";
+    const invitationMessage = buildPettyCashInvitationMessage({
+      companyName: vendor.companyName,
+      vendorRep: vendor.vendorRep,
+      onboardingLink,
+    });
 
-    if (sendEmail) {
+    const delivery = {
+      email: { requested: channels.includes("email"), sent: false, error: "" },
+      sms: { requested: channels.includes("sms"), sent: false, error: "" },
+      whatsapp: {
+        requested: channels.includes("whatsapp"),
+        sent: false,
+        error: "",
+      },
+    };
+
+    if (delivery.email.requested) {
       if (!vendor.email) {
-        emailError = "Vendor email is missing, so the onboarding link was not emailed.";
+        delivery.email.error =
+          "Vendor email is missing, so the onboarding link was not emailed.";
       } else if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-        emailError = "Email delivery is not configured. Copy the onboarding link manually.";
+        delivery.email.error =
+          "Email delivery is not configured. Copy the onboarding link manually.";
       } else {
         try {
           const mail = buildPettyCashInvitationEmail({
@@ -110,10 +138,48 @@ export default async function handler(req, res) {
             text: mail.text,
             html: mail.html,
           });
-          emailSent = true;
+          delivery.email.sent = true;
         } catch (error) {
           console.error("Petty cash invite mail error:", error);
-          emailError = error.message || "Failed to send onboarding email.";
+          delivery.email.error =
+            error.message || "Failed to send onboarding email.";
+        }
+      }
+    }
+
+    if (delivery.sms.requested) {
+      if (!vendor.repPhone) {
+        delivery.sms.error =
+          "Vendor phone number is missing, so the SMS invite was not sent.";
+      } else {
+        try {
+          await sendSmsMessage({
+            to: vendor.repPhone,
+            body: invitationMessage,
+          });
+          delivery.sms.sent = true;
+        } catch (error) {
+          console.error("Petty cash invite SMS error:", error);
+          delivery.sms.error = error.message || "Failed to send SMS invite.";
+        }
+      }
+    }
+
+    if (delivery.whatsapp.requested) {
+      if (!vendor.repPhone) {
+        delivery.whatsapp.error =
+          "Vendor phone number is missing, so the WhatsApp invite was not sent.";
+      } else {
+        try {
+          await sendWhatsAppMessage({
+            to: vendor.repPhone,
+            body: invitationMessage,
+          });
+          delivery.whatsapp.sent = true;
+        } catch (error) {
+          console.error("Petty cash invite WhatsApp error:", error);
+          delivery.whatsapp.error =
+            error.message || "Failed to send WhatsApp invite.";
         }
       }
     }
@@ -122,8 +188,9 @@ export default async function handler(req, res) {
       success: true,
       vendor,
       onboardingLink,
-      emailSent,
-      emailError,
+      delivery,
+      emailSent: delivery.email.sent,
+      emailError: delivery.email.error,
     });
   } catch (error) {
     console.error("Petty cash vendor invite error:", error);

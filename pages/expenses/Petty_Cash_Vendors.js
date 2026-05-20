@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Layout from "@/components/Layout";
+import PettyCashTransactionPanel from "@/components/PettyCashTransactionPanel";
 import PettyCashVendorForm from "@/components/PettyCashVendorForm";
 import PettyCashVendorList from "@/components/PettyCashVendorList";
 
@@ -32,7 +33,7 @@ export default function PettyCashVendorsPage() {
   const [showVendorForm, setShowVendorForm] = useState(false);
   const [editingVendor, setEditingVendor] = useState(null);
   const [copiedVendorId, setCopiedVendorId] = useState(null);
-  const [sendingVendorId, setSendingVendorId] = useState(null);
+  const [sendingInviteKey, setSendingInviteKey] = useState("");
   const [inviteResult, setInviteResult] = useState(null);
 
   const loadVendors = async ({ ignoreCache = false } = {}) => {
@@ -108,14 +109,19 @@ export default function PettyCashVendorsPage() {
     await navigator.clipboard.writeText(text);
   };
 
-  const requestInvite = async ({ payload, sendEmail, copyAfter = false }) => {
-    setSendingVendorId(payload.vendorId || "new");
+  const requestInvite = async ({ payload, channels = [], copyAfter = false }) => {
+    const inviteKey = `${payload.vendorId || "new"}:${channels[0] || "copy"}`;
+    setSendingInviteKey(inviteKey);
 
     try {
       const response = await fetch("/api/vendors/petty-cash/invite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...payload, sendEmail }),
+        body: JSON.stringify({
+          ...payload,
+          channels,
+          sendEmail: channels.includes("email"),
+        }),
       });
 
       const data = await response.json();
@@ -127,8 +133,10 @@ export default function PettyCashVendorsPage() {
       await loadVendors({ ignoreCache: true });
 
       setInviteResult({
+        vendorId: data.vendor?._id || payload.vendorId || "",
         companyName: data.vendor?.companyName || payload.companyName,
         onboardingLink: data.onboardingLink,
+        delivery: data.delivery || null,
         emailSent: data.emailSent,
         emailError: data.emailError,
       });
@@ -139,14 +147,18 @@ export default function PettyCashVendorsPage() {
         setTimeout(() => setCopiedVendorId(null), 2000);
       }
 
-      if (sendEmail && data.emailError) {
-        alert(data.emailError);
+      const channelErrors = Object.values(data.delivery || {})
+        .map((entry) => entry?.error)
+        .filter(Boolean);
+
+      if (channelErrors.length > 0) {
+        alert(channelErrors.join("\n"));
       }
     } catch (error) {
       console.error("Petty cash invite request failed:", error);
       alert(error.message || "Unable to send onboarding link.");
     } finally {
-      setSendingVendorId(null);
+      setSendingInviteKey("");
     }
   };
 
@@ -155,8 +167,10 @@ export default function PettyCashVendorsPage() {
       const onboardingLink = `${window.location.origin}/petty-cash-onboarding/${vendor.onboardingToken}`;
       await copyText(onboardingLink);
       setInviteResult({
+        vendorId: vendor._id,
         companyName: vendor.companyName,
         onboardingLink,
+        delivery: null,
         emailSent: false,
         emailError: "",
       });
@@ -167,16 +181,38 @@ export default function PettyCashVendorsPage() {
 
     await requestInvite({
       payload: buildInvitePayload(vendor),
-      sendEmail: false,
+      channels: [],
       copyAfter: true,
     });
   };
 
-  const handleSendLink = async (vendor) => {
+  const handleSendInvite = async (vendor, channel) => {
     await requestInvite({
       payload: buildInvitePayload(vendor),
-      sendEmail: true,
+      channels: [channel],
     });
+  };
+
+  const renderDeliveryMessage = () => {
+    if (!inviteResult?.delivery) {
+      return "Share the link manually if email delivery is not available.";
+    }
+
+    const labels = {
+      email: "Email",
+      sms: "SMS",
+      whatsapp: "WhatsApp",
+    };
+
+    const messages = Object.entries(inviteResult.delivery)
+      .filter(([, entry]) => entry?.requested)
+      .map(([channel, entry]) =>
+        entry.sent
+          ? `${labels[channel]} sent successfully.`
+          : entry.error || `${labels[channel]} was not sent.`
+      );
+
+    return messages.join(" ") || "Onboarding link is ready to share.";
   };
 
   return (
@@ -239,10 +275,7 @@ export default function PettyCashVendorsPage() {
                   Copy Link
                 </button>
                 <p className="text-xs text-gray-500">
-                  {inviteResult.emailSent
-                    ? "Invitation email sent successfully."
-                    : inviteResult.emailError ||
-                      "Share the link manually if email delivery is not available."}
+                  {renderDeliveryMessage()}
                 </p>
               </div>
             </div>
@@ -297,12 +330,14 @@ export default function PettyCashVendorsPage() {
                   setEditingVendor(vendor);
                   setShowVendorForm(true);
                 }}
-                onSendLink={handleSendLink}
+                onSendInvite={handleSendInvite}
                 copiedVendorId={copiedVendorId}
-                sendingVendorId={sendingVendorId}
+                sendingInviteKey={sendingInviteKey}
               />
             </div>
           </section>
+
+          <PettyCashTransactionPanel vendors={vendors} staff={staff} />
 
           {showVendorForm && (
             <div className="fixed inset-0 backdrop-blur-md bg-white/30 flex items-center justify-center z-50">
@@ -330,8 +365,10 @@ export default function PettyCashVendorsPage() {
                     setEditingVendor(null);
                     if (data.onboardingLink) {
                       setInviteResult({
+                        vendorId: data.vendor?._id || "",
                         companyName: data.vendor?.companyName,
                         onboardingLink: data.onboardingLink,
+                        delivery: data.delivery || null,
                         emailSent: data.emailSent,
                         emailError: data.emailError,
                       });

@@ -22,12 +22,16 @@ export default function PettyCashVendorForm({
 }) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [loading, setLoading] = useState(false);
-  const [sendEmail, setSendEmail] = useState(true);
+  const [channels, setChannels] = useState({
+    email: true,
+    sms: false,
+    whatsapp: false,
+  });
 
   useEffect(() => {
     if (!editingVendor) {
       setForm(EMPTY_FORM);
-      setSendEmail(true);
+      setChannels({ email: true, sms: false, whatsapp: false });
       return;
     }
 
@@ -45,12 +49,16 @@ export default function PettyCashVendorForm({
       accountName: editingVendor.accountName || "",
       accountNumber: editingVendor.accountNumber || "",
     });
-    setSendEmail(false);
+    setChannels({ email: false, sms: false, whatsapp: false });
   }, [editingVendor]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const toggleChannel = (channel) => {
+    setChannels((prev) => ({ ...prev, [channel]: !prev[channel] }));
   };
 
   const handleSubmit = async (event) => {
@@ -70,7 +78,16 @@ export default function PettyCashVendorForm({
         body: JSON.stringify({
           ...form,
           vendorType: PETTY_CASH_VENDOR_TYPE,
-          sendEmail: !isEditing && sendEmail && Boolean(form.email.trim()),
+          channels: !isEditing
+            ? Object.entries(channels)
+                .filter(([channel, enabled]) => {
+                  if (!enabled) return false;
+                  if (channel === "email") return Boolean(form.email.trim());
+                  return Boolean(form.repPhone.trim());
+                })
+                .map(([channel]) => channel)
+            : [],
+          sendEmail: !isEditing && channels.email && Boolean(form.email.trim()),
         }),
       });
 
@@ -214,19 +231,47 @@ export default function PettyCashVendorForm({
 
       {!editingVendor && (
         <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 space-y-2">
-          <label className="flex items-start gap-3 text-sm text-blue-900 font-medium">
-            <input
-              type="checkbox"
-              className="mt-1"
-              checked={sendEmail}
-              onChange={(event) => setSendEmail(event.target.checked)}
-              disabled={!form.email.trim()}
-            />
-            Send the onboarding email immediately after creating this vendor.
-          </label>
+          <p className="text-sm text-blue-900 font-medium">
+            Send onboarding link immediately after creating this vendor.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {[
+              ["email", "Email", Boolean(form.email.trim())],
+              ["sms", "SMS", Boolean(form.repPhone.trim())],
+              ["whatsapp", "WhatsApp", Boolean(form.repPhone.trim())],
+            ].map(([channel, label, enabled]) => (
+              <label
+                key={channel}
+                className={`flex items-start gap-3 text-sm rounded-lg border px-3 py-3 ${
+                  enabled
+                    ? "border-blue-200 bg-white text-blue-900"
+                    : "border-gray-200 bg-gray-100 text-gray-400"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={channels[channel]}
+                  onChange={() => toggleChannel(channel)}
+                  disabled={!enabled}
+                />
+                <span>
+                  <span className="font-medium block">{label}</span>
+                  <span className="text-xs">
+                    {channel === "email"
+                      ? enabled
+                        ? "Uses vendor email address"
+                        : "Add an email address to enable"
+                      : enabled
+                      ? "Uses vendor phone number"
+                      : "Add a phone number to enable"}
+                  </span>
+                </span>
+              </label>
+            ))}
+          </div>
           <p className="text-xs text-blue-800">
-            If no email address is available yet, create the vendor anyway and copy
-            the generated onboarding link manually.
+            You can still create the vendor without sending any channel now and copy the generated onboarding link manually afterward.
           </p>
         </div>
       )}

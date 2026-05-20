@@ -15,9 +15,9 @@ export default function PettyCashVendorList({
   vendors,
   onCopyLink,
   onEdit,
-  onSendLink,
+  onSendInvite,
   copiedVendorId,
-  sendingVendorId,
+  sendingInviteKey,
 }) {
   const [expandedIndex, setExpandedIndex] = useState(null);
 
@@ -26,7 +26,6 @@ export default function PettyCashVendorList({
       {vendors.length ? (
         vendors.map((vendor, index) => {
           const isExpanded = expandedIndex === index;
-          const isSending = sendingVendorId === vendor._id;
           const statusLabel = vendor.onboardingComplete ? "Onboarded" : "Pending";
 
           return (
@@ -99,21 +98,32 @@ export default function PettyCashVendorList({
                       >
                         {copiedVendorId === vendor._id ? "Copied" : "Copy Link"}
                       </button>
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          onSendLink(vendor);
-                        }}
-                        disabled={isSending}
-                        className={`text-xs px-3 py-1 border rounded-full font-medium transition ${
-                          isSending
-                            ? "border-gray-300 text-gray-400 cursor-not-allowed"
-                            : "border-amber-500 text-amber-600 hover:bg-amber-500 hover:text-white"
-                        }`}
-                      >
-                        {isSending ? "Sending..." : "Send Link"}
-                      </button>
+                      {[
+                        ["email", "Send Email", "border-amber-500 text-amber-600 hover:bg-amber-500 hover:text-white"],
+                        ["sms", "Send SMS", "border-slate-500 text-slate-600 hover:bg-slate-600 hover:text-white"],
+                        ["whatsapp", "WhatsApp", "border-green-600 text-green-600 hover:bg-green-600 hover:text-white"],
+                      ].map(([channel, label, className]) => {
+                        const isSending = sendingInviteKey === `${vendor._id}:${channel}`;
+
+                        return (
+                          <button
+                            key={channel}
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              onSendInvite(vendor, channel);
+                            }}
+                            disabled={isSending}
+                            className={`text-xs px-3 py-1 border rounded-full font-medium transition ${
+                              isSending
+                                ? "border-gray-300 text-gray-400 cursor-not-allowed"
+                                : className
+                            }`}
+                          >
+                            {isSending ? "Sending..." : label}
+                          </button>
+                        );
+                      })}
                       <button
                         type="button"
                         onClick={(event) => {

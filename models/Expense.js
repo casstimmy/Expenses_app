@@ -19,12 +19,19 @@ const ExpenseSchema = new mongoose.Schema(
     description: { type: String, trim: true },
     date: { type: Date, default: Date.now },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    sourceType: { type: String, trim: true, default: "" },
+    sourceId: { type: String, trim: true, default: "" },
+    vendor: {
+      _id: { type: mongoose.Schema.Types.ObjectId, ref: "Vendor", default: null },
+      companyName: { type: String, trim: true, default: "" },
+    },
   },
   { timestamps: true }
 );
 
 ExpenseSchema.index({ date: -1 }); // improves sorting performance
 ExpenseSchema.index({ location: 1, category: 1 });
+ExpenseSchema.index({ sourceType: 1, sourceId: 1 });
 
 export default mongoose.models.Expense ||
   mongoose.model("Expense", ExpenseSchema);
