@@ -50,6 +50,82 @@ function getActionLabel(action) {
   }
 }
 
+function buildBreakdownRows(items, getLabel) {
+  const grouped = new Map();
+
+  items.forEach((item) => {
+    const label = getLabel(item) || "Not set";
+    const amount = Number(item.amount || 0);
+
+    if (!grouped.has(label)) {
+      grouped.set(label, {
+        label,
+        count: 0,
+        totalAmount: 0,
+        paidAmount: 0,
+        openAmount: 0,
+      });
+    }
+
+    const row = grouped.get(label);
+    row.count += 1;
+    row.totalAmount += amount;
+
+    if (item.status === "Paid") {
+      row.paidAmount += amount;
+    }
+
+    if (["Pending Approval", "Approved"].includes(item.status)) {
+      row.openAmount += amount;
+    }
+  });
+
+  return Array.from(grouped.values()).sort(
+    (left, right) =>
+      right.totalAmount - left.totalAmount || left.label.localeCompare(right.label)
+  );
+}
+
+function BreakdownTable({ title, subtitle, rows }) {
+  return (
+    <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="mb-4">
+        <h3 className="text-base font-semibold text-gray-800">{title}</h3>
+        <p className="text-xs text-gray-500 mt-1">{subtitle}</p>
+      </div>
+
+      {rows.length ? (
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-200 text-left text-xs uppercase tracking-wide text-gray-400">
+                <th className="py-2 pr-3 font-medium">Group</th>
+                <th className="py-2 pr-3 font-medium">Requests</th>
+                <th className="py-2 pr-3 font-medium">Total</th>
+                <th className="py-2 pr-3 font-medium">Paid</th>
+                <th className="py-2 font-medium">Open</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.label} className="border-b border-gray-100 last:border-b-0">
+                  <td className="py-3 pr-3 font-medium text-gray-800">{row.label}</td>
+                  <td className="py-3 pr-3 text-gray-600">{row.count}</td>
+                  <td className="py-3 pr-3 text-gray-600">{formatCurrency(row.totalAmount)}</td>
+                  <td className="py-3 pr-3 text-gray-600">{formatCurrency(row.paidAmount)}</td>
+                  <td className="py-3 text-gray-600">{formatCurrency(row.openAmount)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="text-sm text-gray-400">No totals available yet.</p>
+      )}
+    </div>
+  );
+}
+
 export default function PettyCashTransactionPanel({ vendors, staff }) {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -120,6 +196,57 @@ export default function PettyCashTransactionPanel({ vendors, staff }) {
       { totalAmount: 0, pending: 0, approved: 0, paid: 0 }
     );
   }, [filteredTransactions]);
+
+  const dashboardTotals = useMemo(() => {
+    return transactions.reduce(
+      (summary, transaction) => {
+        const amount = Number(transaction.amount || 0);
+        summary.totalAmount += amount;
+
+        if (transaction.status === "Paid") {
+          summary.paidAmount += amount;
+        }
+
+        if (["Pending Approval", "Approved"].includes(transaction.status)) {
+          summary.openAmount += amount;
+        }
+
+        summary.locations.add(transaction.location || "Not set");
+        summary.vendors.add(
+          transaction.vendorName || transaction.vendor?.companyName || "Unknown vendor"
+        );
+
+        return summary;
+      },
+      {
+        totalAmount: 0,
+        paidAmount: 0,
+        openAmount: 0,
+        locations: new Set(),
+        vendors: new Set(),
+      }
+    );
+  }, [transactions]);
+
+  const locationBreakdown = useMemo(
+    () => buildBreakdownRows(transactions, (transaction) => transaction.location || "Not set"),
+    [transactions]
+  );
+
+  const vendorBreakdown = useMemo(
+    () =>
+      buildBreakdownRows(
+        transactions,
+        (transaction) =>
+          transaction.vendorName || transaction.vendor?.companyName || "Unknown vendor"
+      ),
+    [transactions]
+  );
+
+  const statusBreakdown = useMemo(
+    () => buildBreakdownRows(transactions, (transaction) => transaction.status || "Unknown"),
+    [transactions]
+  );
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -258,6 +385,52 @@ export default function PettyCashTransactionPanel({ vendors, staff }) {
             <p className="text-2xl font-bold text-gray-900 mt-2">{value}</p>
           </div>
         ))}
+      </div>
+
+      <div className="rounded-2xl border border-gray-200 bg-slate-50 p-4 sm:p-5 space-y-5">
+        <div className="space-y-1">
+          <h3 className="text-lg font-semibold text-gray-800">Approval Dashboard</h3>
+          <p className="text-sm text-gray-600 max-w-3xl">
+            Overall petty cash totals across all recorded requests, grouped by location,
+            vendor, and status.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+          {[
+            ["Total Requested", formatCurrency(dashboardTotals.totalAmount), "bg-white border-gray-200"],
+            ["Total Paid", formatCurrency(dashboardTotals.paidAmount), "bg-green-50 border-green-200"],
+            ["Open Value", formatCurrency(dashboardTotals.openAmount), "bg-amber-50 border-amber-200"],
+            [
+              "Coverage",
+              `${dashboardTotals.locations.size} Locations / ${dashboardTotals.vendors.size} Vendors`,
+              "bg-blue-50 border-blue-200",
+            ],
+          ].map(([label, value, className]) => (
+            <div key={label} className={`rounded-xl border p-4 shadow-sm ${className}`}>
+              <p className="text-xs uppercase tracking-wide text-gray-500">{label}</p>
+              <p className="text-2xl font-bold text-gray-900 mt-2 break-words">{value}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+          <BreakdownTable
+            title="Totals by Location"
+            subtitle="Compare petty cash demand and paid value across each location."
+            rows={locationBreakdown}
+          />
+          <BreakdownTable
+            title="Totals by Vendor"
+            subtitle="See which petty cash vendors account for the highest request values."
+            rows={vendorBreakdown}
+          />
+          <BreakdownTable
+            title="Totals by Status"
+            subtitle="Track how much value is pending, approved, paid, rejected, or cancelled."
+            rows={statusBreakdown}
+          />
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:p-5 space-y-4">

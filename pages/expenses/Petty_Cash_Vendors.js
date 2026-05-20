@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { PETTY_CASH_ONBOARDING_PATH } from "@/lib/petty-cash";
 import Layout from "@/components/Layout";
 import PettyCashTransactionPanel from "@/components/PettyCashTransactionPanel";
 import PettyCashVendorForm from "@/components/PettyCashVendorForm";
@@ -136,6 +137,7 @@ export default function PettyCashVendorsPage() {
         vendorId: data.vendor?._id || payload.vendorId || "",
         companyName: data.vendor?.companyName || payload.companyName,
         onboardingLink: data.onboardingLink,
+        linkType: "vendor-invite",
         delivery: data.delivery || null,
         emailSent: data.emailSent,
         emailError: data.emailError,
@@ -170,6 +172,7 @@ export default function PettyCashVendorsPage() {
         vendorId: vendor._id,
         companyName: vendor.companyName,
         onboardingLink,
+        linkType: "vendor-invite",
         delivery: null,
         emailSent: false,
         emailError: "",
@@ -193,7 +196,25 @@ export default function PettyCashVendorsPage() {
     });
   };
 
+  const handleCopyPublicFormLink = async () => {
+    const publicFormLink = `${window.location.origin}${PETTY_CASH_ONBOARDING_PATH}`;
+    await copyText(publicFormLink);
+    setInviteResult({
+      vendorId: "",
+      companyName: "Public Vendor Form",
+      onboardingLink: publicFormLink,
+      linkType: "public-form",
+      delivery: null,
+      emailSent: false,
+      emailError: "",
+    });
+  };
+
   const renderDeliveryMessage = () => {
+    if (inviteResult?.linkType === "public-form") {
+      return "Share this form link with a vendor. When they open it on their phone and submit it, the petty cash vendor record will be created automatically.";
+    }
+
     if (!inviteResult?.delivery) {
       return "Share the link manually if email delivery is not available.";
     }
@@ -256,11 +277,14 @@ export default function PettyCashVendorsPage() {
             <div className="rounded-xl border border-blue-200 bg-white p-4 shadow-sm space-y-3">
               <div>
                 <h2 className="text-base font-semibold text-blue-800">
-                  Onboarding Link Ready
+                  {inviteResult.linkType === "public-form"
+                    ? "Public Vendor Form Ready"
+                    : "Onboarding Link Ready"}
                 </h2>
                 <p className="text-sm text-gray-600 mt-1">
-                  {inviteResult.companyName || "Vendor"} can complete onboarding with
-                  the link below.
+                  {inviteResult.linkType === "public-form"
+                    ? "Share this link with any petty cash vendor so they can register directly from their phone."
+                    : `${inviteResult.companyName || "Vendor"} can complete onboarding with the link below.`}
                 </p>
               </div>
               <div className="rounded-lg bg-gray-50 border border-gray-200 px-3 py-2 text-sm break-all text-gray-700">
@@ -304,16 +328,25 @@ export default function PettyCashVendorsPage() {
               <h2 className="text-xl font-semibold text-gray-800">
                 Vendor Directory
               </h2>
-              <button
-                type="button"
-                onClick={() => {
-                  setEditingVendor(null);
-                  setShowVendorForm(true);
-                }}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
-              >
-                + Invite Vendor
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleCopyPublicFormLink}
+                  className="border border-blue-300 text-blue-700 bg-blue-50 px-4 py-2 rounded hover:bg-blue-100 text-sm"
+                >
+                  Copy Form Link
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingVendor(null);
+                    setShowVendorForm(true);
+                  }}
+                  className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
+                >
+                  + Invite Vendor
+                </button>
+              </div>
             </div>
 
             <div className="relative">
@@ -368,6 +401,7 @@ export default function PettyCashVendorsPage() {
                         vendorId: data.vendor?._id || "",
                         companyName: data.vendor?.companyName,
                         onboardingLink: data.onboardingLink,
+                        linkType: "vendor-invite",
                         delivery: data.delivery || null,
                         emailSent: data.emailSent,
                         emailError: data.emailError,
