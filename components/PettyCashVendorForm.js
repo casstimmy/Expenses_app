@@ -109,10 +109,10 @@ export default function PettyCashVendorForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-8 p-6 bg-white rounded-xl border border-gray-200 shadow-md max-h-[80vh] overflow-y-auto"
+      className="space-y-6 sm:space-y-8 p-4 sm:p-6 bg-white rounded-xl border border-gray-200 shadow-md max-h-[calc(92vh-5rem)] overflow-y-auto"
     >
       <div>
-        <h2 className="text-xl font-semibold text-blue-700 mb-4">
+        <h2 className="text-lg sm:text-xl font-semibold text-blue-700 mb-4">
           Vendor Contact Information
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -151,7 +151,7 @@ export default function PettyCashVendorForm({
       </div>
 
       <div>
-        <h2 className="text-xl font-semibold text-blue-700 mb-4">
+        <h2 className="text-lg sm:text-xl font-semibold text-blue-700 mb-4">
           Petty Cash Profile
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -181,7 +181,7 @@ export default function PettyCashVendorForm({
           </div>
           <div className="md:col-span-2">
             <label className="text-sm text-gray-700 mb-1 block">
-              Service Description
+              Service Description / Discussion (Optional)
             </label>
             <textarea
               name="serviceDescription"
@@ -207,7 +207,7 @@ export default function PettyCashVendorForm({
       </div>
 
       <div>
-        <h2 className="text-xl font-semibold text-blue-700 mb-4">
+        <h2 className="text-lg sm:text-xl font-semibold text-blue-700 mb-4">
           Bank Details
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -276,11 +276,11 @@ export default function PettyCashVendorForm({
         </div>
       )}
 
-      <div className="flex justify-end pt-2">
+      <div className="flex justify-stretch sm:justify-end pt-2">
         <button
           type="submit"
           disabled={loading}
-          className={`px-6 py-2 font-medium rounded transition ${
+          className={`w-full sm:w-auto px-6 py-3 sm:py-2 font-medium rounded transition ${
             loading
               ? "bg-blue-400 cursor-not-allowed text-white"
               : "bg-blue-600 hover:bg-blue-700 text-white"

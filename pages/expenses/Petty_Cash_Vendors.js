@@ -238,7 +238,7 @@ export default function PettyCashVendorsPage() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-100 p-3 sm:p-6">
+      <div className="min-h-screen bg-gray-100 p-2 sm:p-6">
         <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
           <div className="flex flex-col gap-2">
             <h1 className="text-2xl sm:text-3xl font-bold text-blue-800">
@@ -290,11 +290,11 @@ export default function PettyCashVendorsPage() {
               <div className="rounded-lg bg-gray-50 border border-gray-200 px-3 py-2 text-sm break-all text-gray-700">
                 {inviteResult.onboardingLink}
               </div>
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
                 <button
                   type="button"
                   onClick={() => copyText(inviteResult.onboardingLink)}
-                  className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
+                  className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
                 >
                   Copy Link
                 </button>
@@ -324,15 +324,15 @@ export default function PettyCashVendorsPage() {
               />
             </div>
 
-            <div className="flex justify-between items-center gap-3">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
               <h2 className="text-xl font-semibold text-gray-800">
                 Vendor Directory
               </h2>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 w-full sm:w-auto">
                 <button
                   type="button"
                   onClick={handleCopyPublicFormLink}
-                  className="border border-blue-300 text-blue-700 bg-blue-50 px-4 py-2 rounded hover:bg-blue-100 text-sm"
+                  className="w-full sm:w-auto border border-blue-300 text-blue-700 bg-blue-50 px-4 py-2 rounded hover:bg-blue-100 text-sm"
                 >
                   Copy Form Link
                 </button>
@@ -342,7 +342,7 @@ export default function PettyCashVendorsPage() {
                     setEditingVendor(null);
                     setShowVendorForm(true);
                   }}
-                  className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
+                  className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
                 >
                   + Invite Vendor
                 </button>
@@ -373,9 +373,9 @@ export default function PettyCashVendorsPage() {
           <PettyCashTransactionPanel vendors={vendors} staff={staff} />
 
           {showVendorForm && (
-            <div className="fixed inset-0 backdrop-blur-md bg-white/30 flex items-center justify-center z-50">
-              <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl p-4 sm:p-6 mx-3 sm:mx-0 relative">
-                <div className="flex justify-between items-center border-b pb-2 mb-4">
+            <div className="fixed inset-0 backdrop-blur-md bg-white/30 flex items-end sm:items-center justify-center z-50 overflow-y-auto px-0 sm:px-4">
+              <div className="bg-white rounded-t-3xl sm:rounded-lg shadow-lg w-full max-w-2xl mt-auto sm:mt-0 mx-0 sm:mx-auto relative max-h-[92vh] overflow-hidden">
+                <div className="flex justify-between items-center border-b px-4 sm:px-6 pt-4 sm:pt-6 pb-3">
                   <h2 className="text-lg font-semibold text-gray-800">
                     {editingVendor ? "Edit Petty Cash Vendor" : "Invite Petty Cash Vendor"}
                   </h2>

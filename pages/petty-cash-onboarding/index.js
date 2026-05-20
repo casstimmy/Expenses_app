@@ -1,6 +1,6 @@
 import Head from "next/head";
 import Image from "next/image";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import {
   PETTY_CASH_TERMS,
   PETTY_CASH_TERMS_VERSION,
@@ -42,6 +42,17 @@ export default function PublicPettyCashVendorOnboarding() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
+  const handleCloseWindow = useCallback(() => {
+    if (typeof window === "undefined") return;
+
+    window.open("", "_self");
+    window.close();
+
+    window.setTimeout(() => {
+      window.location.replace("/");
+    }, 150);
+  }, []);
+
   const handleChange = (event) => {
     const { name, value, type, checked } = event.target;
     setForm((prev) => ({
@@ -78,17 +89,24 @@ export default function PublicPettyCashVendorOnboarding() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#ecfeff,_#dbeafe_45%,_#f8fafc)] flex items-center justify-center px-4">
-        <div className="max-w-xl rounded-3xl bg-white border border-blue-200 shadow-xl p-8 text-center space-y-3">
+      <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#ecfeff,_#dbeafe_45%,_#f8fafc)] flex items-center justify-center px-4 py-8">
+        <div className="w-full max-w-lg rounded-[28px] bg-white border border-blue-200 shadow-xl p-5 sm:p-8 text-center space-y-4">
           <p className="text-sm uppercase tracking-[0.3em] text-blue-600">
             Submission Complete
           </p>
           <h1 className="text-3xl font-bold text-slate-900">Thank you</h1>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm sm:text-base text-slate-600 leading-7">
             Your petty cash vendor onboarding form has been submitted successfully.
             A petty cash vendor record has been created and Ibile will review the
             details you provided.
           </p>
+          <button
+            type="button"
+            onClick={handleCloseWindow}
+            className="w-full rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-100"
+          >
+            Close Window
+          </button>
         </div>
       </div>
     );
@@ -101,11 +119,11 @@ export default function PublicPettyCashVendorOnboarding() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
-      <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#dbeafe,_#eff6ff_55%,_#f8fafc)] py-10 px-4">
-        <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr] gap-6">
-          <section className="rounded-[28px] bg-white/95 border border-white shadow-[0_24px_80px_rgba(15,23,42,0.12)] p-6 sm:p-8">
-            <div className="space-y-3 mb-8">
-              <div className="flex items-center gap-3">
+      <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#dbeafe,_#eff6ff_55%,_#f8fafc)] py-6 sm:py-10 px-3 sm:px-4">
+        <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr] gap-4 sm:gap-6">
+          <section className="rounded-[28px] bg-white/95 border border-white shadow-[0_24px_80px_rgba(15,23,42,0.12)] p-4 sm:p-8">
+            <div className="space-y-3 mb-6 sm:mb-8">
+              <div className="flex flex-wrap items-center gap-3">
                 <Image
                   src="/image/Logo.png"
                   alt="Ibile logo"
@@ -117,7 +135,7 @@ export default function PublicPettyCashVendorOnboarding() {
                   Ibile Vendor Network
                 </p>
               </div>
-              <h1 className="text-3xl sm:text-4xl font-semibold text-slate-900">
+              <h1 className="text-2xl sm:text-4xl font-semibold text-slate-900 leading-tight">
                 Petty Cash Vendor Onboarding
               </h1>
               <p className="text-sm sm:text-base text-slate-600 max-w-2xl">
@@ -127,7 +145,7 @@ export default function PublicPettyCashVendorOnboarding() {
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {BASIC_FIELDS.map(([name, label, type, required]) => (
                   <label key={name} className="space-y-2 text-sm text-slate-700">
@@ -155,12 +173,11 @@ export default function PublicPettyCashVendorOnboarding() {
                 </label>
 
                 <label className="space-y-2 text-sm text-slate-700 sm:col-span-2">
-                  <span className="font-medium">Service Description</span>
+                  <span className="font-medium">Discussion / Service Description (Optional)</span>
                   <textarea
                     name="serviceDescription"
                     value={form.serviceDescription}
                     onChange={handleChange}
-                    required
                     className="w-full rounded-xl border border-slate-200 px-4 py-3 min-h-28 bg-white focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
                     placeholder="Describe the goods or services you provide for petty cash requests."
                   />
@@ -220,7 +237,7 @@ export default function PublicPettyCashVendorOnboarding() {
           </section>
 
           <aside className="space-y-6">
-            <section className="rounded-[28px] bg-gradient-to-br from-blue-700 to-sky-600 text-white p-6 shadow-[0_24px_80px_rgba(37,99,235,0.24)]">
+            <section className="rounded-[28px] bg-gradient-to-br from-blue-700 to-sky-600 text-white p-5 sm:p-6 shadow-[0_24px_80px_rgba(37,99,235,0.24)]">
               <p className="text-xs uppercase tracking-[0.3em] text-blue-100">
                 Why this form matters
               </p>
@@ -234,7 +251,7 @@ export default function PublicPettyCashVendorOnboarding() {
               </p>
             </section>
 
-            <section className="rounded-[28px] bg-white/95 border border-white shadow-[0_24px_80px_rgba(15,23,42,0.12)] p-6">
+            <section className="rounded-[28px] bg-white/95 border border-white shadow-[0_24px_80px_rgba(15,23,42,0.12)] p-5 sm:p-6">
               <div className="space-y-2 mb-5">
                 <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
                   Terms and Conditions

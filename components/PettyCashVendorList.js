@@ -22,7 +22,7 @@ export default function PettyCashVendorList({
   const [expandedIndex, setExpandedIndex] = useState(null);
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 w-full">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 w-full">
       {vendors.length ? (
         vendors.map((vendor, index) => {
           const isExpanded = expandedIndex === index;
@@ -36,12 +36,12 @@ export default function PettyCashVendorList({
                 setExpandedIndex((current) => (current === index ? null : index))
               }
               transition={{ layout: { duration: 0.3, type: "spring" } }}
-              className={`group cursor-pointer border border-gray-300 rounded-sm sm:rounded-xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-all ${
-                isExpanded ? "p-4 rounded-sm" : "px-3 py-1"
+              className={`group cursor-pointer border border-gray-300 rounded-xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-all ${
+                isExpanded ? "p-4" : "p-3 sm:p-4"
               }`}
             >
-              <div className="flex items-center justify-between space-x-2">
-                <div className="flex-1 truncate text-xs font-medium text-gray-700">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0 truncate text-sm font-medium text-gray-700">
                   {vendor.companyName}
                 </div>
                 <motion.span
@@ -63,7 +63,7 @@ export default function PettyCashVendorList({
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
-                    className="mt-3 space-y-1 text-xs text-gray-600"
+                    className="mt-3 space-y-2 text-xs sm:text-sm text-gray-600 break-words"
                   >
                     <p><strong>Rep:</strong> {vendor.vendorRep || "Not set"}</p>
                     <p><strong>Phone:</strong> {vendor.repPhone || "Not set"}</p>
@@ -87,14 +87,14 @@ export default function PettyCashVendorList({
                       <strong>Submitted:</strong> {formatDate(vendor.onboardingSubmittedAt)}
                     </p>
 
-                    <div className="flex flex-wrap gap-2 pt-2">
+                    <div className="grid grid-cols-2 gap-2 pt-3">
                       <button
                         type="button"
                         onClick={(event) => {
                           event.stopPropagation();
                           onCopyLink(vendor);
                         }}
-                        className="text-xs px-3 py-1 border border-green-600 text-green-600 rounded-full font-medium hover:bg-green-600 hover:text-white transition"
+                        className="w-full text-xs px-3 py-2 border border-green-600 text-green-600 rounded-full font-medium hover:bg-green-600 hover:text-white transition"
                       >
                         {copiedVendorId === vendor._id ? "Copied" : "Copy Link"}
                       </button>
@@ -114,7 +114,7 @@ export default function PettyCashVendorList({
                               onSendInvite(vendor, channel);
                             }}
                             disabled={isSending}
-                            className={`text-xs px-3 py-1 border rounded-full font-medium transition ${
+                            className={`w-full text-xs px-3 py-2 border rounded-full font-medium transition ${
                               isSending
                                 ? "border-gray-300 text-gray-400 cursor-not-allowed"
                                 : className
@@ -130,7 +130,7 @@ export default function PettyCashVendorList({
                           event.stopPropagation();
                           onEdit(vendor);
                         }}
-                        className="text-xs px-3 py-1 border border-blue-600 text-blue-600 rounded-full font-medium hover:bg-blue-600 hover:text-white transition"
+                        className="w-full text-xs px-3 py-2 border border-blue-600 text-blue-600 rounded-full font-medium hover:bg-blue-600 hover:text-white transition col-span-2"
                       >
                         Edit
                       </button>

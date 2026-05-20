@@ -95,30 +95,53 @@ function BreakdownTable({ title, subtitle, rows }) {
       </div>
 
       {rows.length ? (
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 text-left text-xs uppercase tracking-wide text-gray-400">
-                <th className="py-2 pr-3 font-medium">Group</th>
-                <th className="py-2 pr-3 font-medium">Requests</th>
-                <th className="py-2 pr-3 font-medium">Total</th>
-                <th className="py-2 pr-3 font-medium">Paid</th>
-                <th className="py-2 font-medium">Open</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.label} className="border-b border-gray-100 last:border-b-0">
-                  <td className="py-3 pr-3 font-medium text-gray-800">{row.label}</td>
-                  <td className="py-3 pr-3 text-gray-600">{row.count}</td>
-                  <td className="py-3 pr-3 text-gray-600">{formatCurrency(row.totalAmount)}</td>
-                  <td className="py-3 pr-3 text-gray-600">{formatCurrency(row.paidAmount)}</td>
-                  <td className="py-3 text-gray-600">{formatCurrency(row.openAmount)}</td>
+        <>
+          <div className="space-y-3 sm:hidden">
+            {rows.map((row) => (
+              <div
+                key={row.label}
+                className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-3"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <p className="font-medium text-gray-800 break-words">{row.label}</p>
+                  <span className="text-xs text-gray-500 whitespace-nowrap">
+                    {row.count} request{row.count === 1 ? "" : "s"}
+                  </span>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-600">
+                  <p>Total: <span className="font-medium text-gray-800">{formatCurrency(row.totalAmount)}</span></p>
+                  <p>Paid: <span className="font-medium text-gray-800">{formatCurrency(row.paidAmount)}</span></p>
+                  <p className="col-span-2">Open: <span className="font-medium text-gray-800">{formatCurrency(row.openAmount)}</span></p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="hidden sm:block overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200 text-left text-xs uppercase tracking-wide text-gray-400">
+                  <th className="py-2 pr-3 font-medium">Group</th>
+                  <th className="py-2 pr-3 font-medium">Requests</th>
+                  <th className="py-2 pr-3 font-medium">Total</th>
+                  <th className="py-2 pr-3 font-medium">Paid</th>
+                  <th className="py-2 font-medium">Open</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr key={row.label} className="border-b border-gray-100 last:border-b-0">
+                    <td className="py-3 pr-3 font-medium text-gray-800">{row.label}</td>
+                    <td className="py-3 pr-3 text-gray-600">{row.count}</td>
+                    <td className="py-3 pr-3 text-gray-600">{formatCurrency(row.totalAmount)}</td>
+                    <td className="py-3 pr-3 text-gray-600">{formatCurrency(row.paidAmount)}</td>
+                    <td className="py-3 text-gray-600">{formatCurrency(row.openAmount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       ) : (
         <p className="text-sm text-gray-400">No totals available yet.</p>
       )}
@@ -434,7 +457,7 @@ export default function PettyCashTransactionPanel({ vendors, staff }) {
       </div>
 
       <form onSubmit={handleSubmit} className="rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:p-5 space-y-4">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
           <h3 className="text-lg font-semibold text-gray-800">Create Request</h3>
           <p className="text-xs text-gray-500">New requests start as pending approval.</p>
         </div>
@@ -521,7 +544,7 @@ export default function PettyCashTransactionPanel({ vendors, staff }) {
           </label>
 
           <label className="text-sm text-gray-700 space-y-1 md:col-span-2 xl:col-span-2">
-            <span>Description</span>
+            <span>Description / Discussion (Optional)</span>
             <textarea
               name="description"
               value={form.description}
@@ -532,11 +555,11 @@ export default function PettyCashTransactionPanel({ vendors, staff }) {
           </label>
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex justify-stretch sm:justify-end">
           <button
             type="submit"
             disabled={saving}
-            className={`px-5 py-2.5 rounded text-white font-medium transition ${
+            className={`w-full sm:w-auto px-5 py-2.5 rounded text-white font-medium transition ${
               saving ? "bg-blue-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
             }`}
           >
@@ -668,14 +691,14 @@ export default function PettyCashTransactionPanel({ vendors, staff }) {
                 </div>
 
                 {canApprove && (
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2">
                     {transaction.status === "Pending Approval" && (
                       <>
                         <button
                           type="button"
                           onClick={() => runAction(transaction, "approve")}
                           disabled={isBusy}
-                          className="px-3 py-1.5 rounded-full text-xs font-medium border border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white transition disabled:opacity-50"
+                          className="w-full sm:w-auto px-3 py-1.5 rounded-full text-xs font-medium border border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white transition disabled:opacity-50"
                         >
                           {isBusy ? "Working..." : "Approve"}
                         </button>
@@ -683,7 +706,7 @@ export default function PettyCashTransactionPanel({ vendors, staff }) {
                           type="button"
                           onClick={() => runAction(transaction, "reject")}
                           disabled={isBusy}
-                          className="px-3 py-1.5 rounded-full text-xs font-medium border border-red-600 text-red-600 hover:bg-red-600 hover:text-white transition disabled:opacity-50"
+                          className="w-full sm:w-auto px-3 py-1.5 rounded-full text-xs font-medium border border-red-600 text-red-600 hover:bg-red-600 hover:text-white transition disabled:opacity-50"
                         >
                           Reject
                         </button>
@@ -691,7 +714,7 @@ export default function PettyCashTransactionPanel({ vendors, staff }) {
                           type="button"
                           onClick={() => runAction(transaction, "cancel")}
                           disabled={isBusy}
-                          className="px-3 py-1.5 rounded-full text-xs font-medium border border-gray-500 text-gray-600 hover:bg-gray-600 hover:text-white transition disabled:opacity-50"
+                          className="w-full sm:w-auto px-3 py-1.5 rounded-full text-xs font-medium border border-gray-500 text-gray-600 hover:bg-gray-600 hover:text-white transition disabled:opacity-50"
                         >
                           Cancel
                         </button>
@@ -704,7 +727,7 @@ export default function PettyCashTransactionPanel({ vendors, staff }) {
                           type="button"
                           onClick={() => runAction(transaction, "mark-paid")}
                           disabled={isBusy}
-                          className="px-3 py-1.5 rounded-full text-xs font-medium border border-green-600 text-green-600 hover:bg-green-600 hover:text-white transition disabled:opacity-50"
+                          className="w-full sm:w-auto px-3 py-1.5 rounded-full text-xs font-medium border border-green-600 text-green-600 hover:bg-green-600 hover:text-white transition disabled:opacity-50"
                         >
                           {isBusy ? "Working..." : "Mark Paid"}
                         </button>
@@ -712,7 +735,7 @@ export default function PettyCashTransactionPanel({ vendors, staff }) {
                           type="button"
                           onClick={() => runAction(transaction, "reject")}
                           disabled={isBusy}
-                          className="px-3 py-1.5 rounded-full text-xs font-medium border border-red-600 text-red-600 hover:bg-red-600 hover:text-white transition disabled:opacity-50"
+                          className="w-full sm:w-auto px-3 py-1.5 rounded-full text-xs font-medium border border-red-600 text-red-600 hover:bg-red-600 hover:text-white transition disabled:opacity-50"
                         >
                           Reject
                         </button>
@@ -724,7 +747,7 @@ export default function PettyCashTransactionPanel({ vendors, staff }) {
                         type="button"
                         onClick={() => runAction(transaction, "reopen")}
                         disabled={isBusy}
-                        className="px-3 py-1.5 rounded-full text-xs font-medium border border-amber-500 text-amber-600 hover:bg-amber-500 hover:text-white transition disabled:opacity-50"
+                        className="w-full sm:w-auto px-3 py-1.5 rounded-full text-xs font-medium border border-amber-500 text-amber-600 hover:bg-amber-500 hover:text-white transition disabled:opacity-50"
                       >
                         {isBusy ? "Working..." : "Reopen"}
                       </button>

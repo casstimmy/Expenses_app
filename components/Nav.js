@@ -104,16 +104,16 @@ export default function Nav() {
             {/* Logo */}
             <Link
               href="/"
-              className="flex items-center gap-3 text-3xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-500 bg-clip-text text-transparent drop-shadow-lg transition-all duration-300 ease-in-out hover:scale-105 hover:brightness-110"
+              className="flex min-w-0 items-center gap-2 sm:gap-3 text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-500 bg-clip-text text-transparent drop-shadow-lg transition-all duration-300 ease-in-out hover:scale-105 hover:brightness-110"
             >
               <Image
                 src="/image/Logo.png"
                 alt="BizSuits Logo"
                 width={40}
                 height={40}
-                className="w-10 h-10 object-contain"
+                className="h-8 w-8 sm:h-10 sm:w-10 object-contain"
               />
-              <span className="select-none">BizSuits™</span>
+              <span className="select-none truncate">BizSuits™</span>
             </Link>
 
             {/* Desktop Nav */}
@@ -154,9 +154,9 @@ export default function Nav() {
             </nav>
 
             {/* Mobile Button */}
-            <div className="md:hidden flex items-center gap-2">
+            <div className="md:hidden flex min-w-0 items-center gap-2">
               {isLoggedIn && staffName && (
-                <span className="text-xs text-gray-500 font-medium max-w-[80px] truncate">
+                <span className="text-xs text-gray-500 font-medium max-w-[96px] truncate">
                   {staffName}
                 </span>
               )}
@@ -176,7 +176,7 @@ export default function Nav() {
             isMobileMenuOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
           }`}
         >
-          <div className="bg-white/95 shadow-inner border-t border-gray-200 px-4 py-3 space-y-1">
+          <div className="max-h-[calc(100vh-4rem)] overflow-y-auto bg-white/95 shadow-inner border-t border-gray-200 px-4 py-3 space-y-1">
             {isLoggedIn &&
               navLinks.map((link) => (
                 <Link
