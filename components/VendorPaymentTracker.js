@@ -334,7 +334,7 @@ export function VendorPaymentTracker({
   return (
     <div className="space-y-4">
       {/* Vendor filter + messages */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <label className="text-sm font-medium mr-2">Vendor:</label>
           <select
@@ -370,7 +370,7 @@ export function VendorPaymentTracker({
       </div>
 
       {/* Desktop Table */}
-      <div className="hidden md:block bg-white rounded-xl shadow overflow-x-auto">
+      <div className="hidden lg:block bg-white rounded-xl shadow overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-300 text-sm select-none">
           <thead className="bg-blue-50 text-gray-700 font-semibold uppercase tracking-wide">
             <tr>
@@ -615,7 +615,7 @@ export function VendorPaymentTracker({
       </div>
 
       {/* Mobile view */}
-      <div className="md:hidden space-y-5">
+      <div className="lg:hidden space-y-5">
         {paginatedOrders.map((order, idx) => (
           <div
             key={order._id ?? `${order.supplier ?? "unk"}-${idx}-${order.date ?? ""}`}
@@ -676,7 +676,7 @@ export function VendorPaymentTracker({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-sm text-gray-700 border-t border-gray-100 pt-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-700 border-t border-gray-100 pt-3">
               <div>
                 <strong>Total:</strong>
                 {editIndex === idx ? (
@@ -729,7 +729,7 @@ export function VendorPaymentTracker({
                 <div className="flex flex-wrap items-center gap-2 mt-2">
                   <input
                     type="number"
-                    className="border border-gray-300 px-3 py-1 rounded w-28 text-sm"
+                    className="border border-gray-300 px-3 py-1 rounded w-full sm:w-28 text-sm"
                     value={editedPayment}
                     onChange={(e) => setEditedPayment(e.target.value)}
                   />
@@ -775,7 +775,7 @@ export function VendorPaymentTracker({
 
         {/* Mobile Pagination */}
         {totalPages > 1 && (
-          <div className="flex justify-center items-center gap-2 mt-4">
+          <div className="flex flex-wrap justify-center items-center gap-2 mt-4">
             <button
               onClick={() => goToPage(currentPage - 1)}
               disabled={currentPage === 1}
@@ -805,7 +805,7 @@ export function VendorPaymentTracker({
 
       {/* Quick Check Summary Card */}
       {checkedIds.size > 0 && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-white border border-blue-200 rounded-2xl shadow-2xl px-5 py-4 flex flex-wrap items-center gap-4 sm:gap-6 animate-slide-up max-w-[95vw]">
+        <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-50 bg-white border border-blue-200 rounded-2xl shadow-2xl px-4 sm:px-5 py-4 flex flex-wrap items-center gap-3 sm:gap-6 animate-slide-up w-[calc(100vw-1rem)] sm:w-auto max-w-[95vw]">
           <div className="text-sm font-medium text-gray-600">
             <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-semibold mr-1">{checkedIds.size}</span>
             selected

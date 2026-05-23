@@ -487,14 +487,14 @@ export default function PayTracker() {
                   </div>
                   <div className="space-y-2">
                     {creditOrders.map((order, i) => (
-                      <div key={order._id ?? i} className="flex flex-wrap items-center justify-between gap-2 text-xs sm:text-sm bg-white px-3 py-2 rounded-lg border border-blue-100">
+                      <div key={order._id ?? i} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs sm:text-sm bg-white px-3 py-2 rounded-lg border border-blue-100">
                         <div>
                           <span className="font-medium">{order.supplier || "Unknown"}</span>
                           <span className="text-gray-400 ml-2">
                             {order.date ? new Date(order.date).toLocaleDateString() : ""}
                           </span>
                         </div>
-                        <div className="flex gap-3">
+                        <div className="flex flex-wrap gap-2 sm:gap-3">
                           <span className="text-gray-600">Total: ₦{toNumber(order.grandTotal).toLocaleString()}</span>
                           <span className="text-green-700 font-medium">Paid: ₦{toNumber(order.paymentMade).toLocaleString()}</span>
                           <span className="text-blue-700 font-bold">Credit: ₦{Math.abs(toNumber(order.balance)).toLocaleString()}</span>
@@ -533,7 +533,7 @@ export default function PayTracker() {
                 />
 
                 {paidFilter === "period" && (
-                  <div className="flex flex-col sm:gap-2 md:gap-0 mt-2 items-center">
+                  <div className="mt-2 grid w-full max-w-md grid-cols-1 sm:grid-cols-[1fr_auto_1fr] items-center gap-2">
                     <DatePicker
                       selected={customRange.start ? new Date(customRange.start) : null}
                       onChange={(date) => setCustomRange((prev) => ({ ...prev, start: date }))}
@@ -541,9 +541,9 @@ export default function PayTracker() {
                       startDate={customRange.start}
                       endDate={customRange.end}
                       placeholderText="Start Date"
-                      className="border p-2 rounded"
+                      className="border p-2 rounded w-full"
                     />
-                    <span>-</span>
+                    <span className="hidden sm:inline text-center">-</span>
                     <DatePicker
                       selected={customRange.end ? new Date(customRange.end) : null}
                       onChange={(date) => setCustomRange((prev) => ({ ...prev, end: date }))}
@@ -552,7 +552,7 @@ export default function PayTracker() {
                       endDate={customRange.end}
                       minDate={customRange.start}
                       placeholderText="End Date"
-                      className="border p-2 rounded"
+                      className="border p-2 rounded w-full"
                     />
                   </div>
                 )}

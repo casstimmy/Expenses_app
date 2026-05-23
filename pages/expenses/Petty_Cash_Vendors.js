@@ -204,7 +204,7 @@ export default function PettyCashVendorsPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {[
               ["Total Vendors", vendors.length, "bg-white border-gray-200"],
               ["Onboarded", onboardedCount, "bg-green-50 border-green-200"],

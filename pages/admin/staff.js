@@ -830,7 +830,7 @@ export default function ManageStaff() {
                             {staff.onboardingData && (
                               <div>
                                 <h4 className="font-semibold text-blue-700 mb-1">📋 Personal Details</h4>
-                                <div className="grid grid-cols-2 gap-1">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
                                   {staff.onboardingData.fullName && <p><span className="text-gray-500">Name:</span> {staff.onboardingData.fullName}</p>}
                                   {staff.onboardingData.phone && <p><span className="text-gray-500">Phone:</span> {staff.onboardingData.phone}</p>}
                                   {staff.onboardingData.email && <p><span className="text-gray-500">Email:</span> {staff.onboardingData.email}</p>}
@@ -848,7 +848,7 @@ export default function ManageStaff() {
                             {staff.guarantor && staff.guarantor.name && (
                               <div>
                                 <h4 className="font-semibold text-blue-700 mb-1">🤝 Guarantor</h4>
-                                <div className="grid grid-cols-2 gap-1">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
                                   <p><span className="text-gray-500">Name:</span> {staff.guarantor.name}</p>
                                   {staff.guarantor.phone && <p><span className="text-gray-500">Phone:</span> {staff.guarantor.phone}</p>}
                                   {staff.guarantor.email && <p><span className="text-gray-500">Email:</span> {staff.guarantor.email}</p>}
@@ -881,7 +881,8 @@ export default function ManageStaff() {
             </h2>
 
             {/* Tab Pills */}
-            <div className="flex space-x-2 sm:space-x-4 mb-4">
+            <div className="mb-4 overflow-x-auto scrollbar-hide">
+              <div className="inline-flex min-w-max gap-2 sm:gap-4">
               <button
                 className={`px-3 sm:px-4 py-2 rounded-full text-sm ${
                   activeTab === "list"
@@ -903,6 +904,7 @@ export default function ManageStaff() {
               >
                 Add Penalty
               </button>
+              </div>
             </div>
 
             {/* Penalty List */}
@@ -956,7 +958,7 @@ export default function ManageStaff() {
                                 <button onClick={() => setEditingPenalty(null)} className="bg-gray-300 text-gray-700 text-xs px-2 py-1 rounded hover:bg-gray-400">Cancel</button>
                               </div>
                             ) : (
-                              <div className="flex items-center justify-between gap-2">
+                              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                                 <span>
                                   <span className="font-medium text-red-700">₦{p.amount}</span>
                                   {" – "}<span className="italic">{p.reason}</span>{" "}

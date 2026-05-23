@@ -39,13 +39,13 @@ export default function OrderList({
 
 
   return (
-    <section className="bg-white p-6 rounded shadow">
+    <section className="bg-white p-3 sm:p-6 rounded shadow">
       <h2 className="text-lg font-semibold text-gray-800 mb-4">
         Submitted Stock Orders
       </h2>
 
       {/* ✅ Card View for Mobile */}
-      <div className="md:hidden space-y-4">
+      <div className="lg:hidden space-y-4">
         {filteredOrders.length > 0 ? (
           filteredOrders.map((order, idx) => (
             <div
@@ -109,7 +109,7 @@ export default function OrderList({
       </div>
 
       {/* ✅ Table View for Desktop */}
-      <div className="hidden md:block overflow-x-auto">
+      <div className="hidden lg:block overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-gray-200">
             <tr>

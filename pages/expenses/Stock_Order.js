@@ -326,13 +326,13 @@ const mergeOrders = async () => {
                     />
                   </div>
 
-                  <div className="flex justify-between items-center mb-4">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
                     <h2 className="text-xl font-semibold text-gray-800">
                       Vendors
                     </h2>
                     <button
                       onClick={() => setShowVendorForm(true)}
-                      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
+                      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm w-full sm:w-auto"
                     >
                       + Add Vendor
                     </button>
@@ -514,7 +514,7 @@ const mergeOrders = async () => {
                     <div className="text-right">
                       <button
                         type="submit"
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full sm:w-auto"
                       >
                         Add Order
                       </button>
@@ -628,7 +628,7 @@ const mergeOrders = async () => {
                             setEditingOrder(false);
                             setForm((prev) => ({ ...prev, products: [] }));
                           }}
-                          className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-all shadow-sm"
+                          className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-all shadow-sm w-full sm:w-auto"
                         >
                           Cancel Edit
                         </button>
@@ -640,7 +640,7 @@ const mergeOrders = async () => {
                             setEditingOrder(false);
                             alert("Changes saved successfully.");
                           }}
-                          className="px-5 py-2 text-sm font-semibold bg-yellow-500 text-white rounded-sm hover:bg-yellow-600 transition-all shadow-sm"
+                          className="px-5 py-2 text-sm font-semibold bg-yellow-500 text-white rounded-sm hover:bg-yellow-600 transition-all shadow-sm w-full sm:w-auto"
                           disabled={submitting}
                         >
                           💾 Save Edit
@@ -651,7 +651,7 @@ const mergeOrders = async () => {
                             setEditingOrder(true);
                             window.scrollTo({ top: 700, behavior: "smooth" });
                           }}
-                          className="px-5 py-2 text-sm font-semibold border border-red-600 text-red-600 hover:bg-red-600 hover:text-white rounded-sm transition-all shadow-sm"
+                          className="px-5 py-2 text-sm font-semibold border border-red-600 text-red-600 hover:bg-red-600 hover:text-white rounded-sm transition-all shadow-sm w-full sm:w-auto"
                           disabled={submitting}
                         >
                           ✏️ Edit Order
@@ -661,7 +661,7 @@ const mergeOrders = async () => {
                       {!editingOrder && (
                         <button
                           onClick={handleStockOrderSubmit}
-                          className="px-6 py-3 text-sm font-semibold bg-green-600 text-white rounded-sm hover:bg-green-700 transition-all shadow-sm"
+                          className="px-6 py-3 text-sm font-semibold bg-green-600 text-white rounded-sm hover:bg-green-700 transition-all shadow-sm w-full sm:w-auto"
                           disabled={submitting}
                         >
                           {submitting
@@ -677,7 +677,7 @@ const mergeOrders = async () => {
                   <div className="text-right mt-4">
                     <button
                       onClick={mergeOrders}
-                      className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
+                      className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 w-full sm:w-auto"
                       disabled={merging}
                     >
                       {merging
