@@ -13,11 +13,10 @@ function formatDate(value) {
 
 export default function PettyCashVendorList({
   vendors,
-  onCopyLink,
   onEdit,
-  onSendInvite,
-  copiedVendorId,
-  sendingInviteKey,
+  onDelete,
+  onPlaceOrder,
+  deletingVendorId,
 }) {
   const [expandedIndex, setExpandedIndex] = useState(null);
 
@@ -108,47 +107,36 @@ export default function PettyCashVendorList({
                         type="button"
                         onClick={(event) => {
                           event.stopPropagation();
-                          onCopyLink(vendor);
+                          onPlaceOrder(vendor);
                         }}
-                        className="w-full text-xs px-3 py-2 border border-green-600 text-green-600 rounded-full font-medium hover:bg-green-600 hover:text-white transition"
+                        className="w-full col-span-2 text-xs px-3 py-2 border border-blue-600 text-blue-600 rounded-full font-medium hover:bg-blue-600 hover:text-white transition"
                       >
-                        {copiedVendorId === vendor._id ? "Copied" : "Copy Link"}
+                        Place Order
                       </button>
-                      {[
-                        ["email", "Send Email", "border-amber-500 text-amber-600 hover:bg-amber-500 hover:text-white"],
-                        ["sms", "Send SMS", "border-slate-500 text-slate-600 hover:bg-slate-600 hover:text-white"],
-                        ["whatsapp", "WhatsApp", "border-green-600 text-green-600 hover:bg-green-600 hover:text-white"],
-                      ].map(([channel, label, className]) => {
-                        const isSending = sendingInviteKey === `${vendor._id}:${channel}`;
-
-                        return (
-                          <button
-                            key={channel}
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              onSendInvite(vendor, channel);
-                            }}
-                            disabled={isSending}
-                            className={`w-full text-xs px-3 py-2 border rounded-full font-medium transition ${
-                              isSending
-                                ? "border-gray-300 text-gray-400 cursor-not-allowed"
-                                : className
-                            }`}
-                          >
-                            {isSending ? "Sending..." : label}
-                          </button>
-                        );
-                      })}
                       <button
                         type="button"
                         onClick={(event) => {
                           event.stopPropagation();
                           onEdit(vendor);
                         }}
-                        className="w-full text-xs px-3 py-2 border border-blue-600 text-blue-600 rounded-full font-medium hover:bg-blue-600 hover:text-white transition col-span-2"
+                        className="w-full text-xs px-3 py-2 border border-blue-600 text-blue-600 rounded-full font-medium hover:bg-blue-600 hover:text-white transition"
                       >
                         Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onDelete(vendor);
+                        }}
+                        disabled={deletingVendorId === vendor._id}
+                        className={`w-full text-xs px-3 py-2 border rounded-full font-medium transition ${
+                          deletingVendorId === vendor._id
+                            ? "border-gray-300 text-gray-400 cursor-not-allowed"
+                            : "border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
+                        }`}
+                      >
+                        {deletingVendorId === vendor._id ? "Deleting..." : "Delete"}
                       </button>
                     </div>
                   </motion.div>

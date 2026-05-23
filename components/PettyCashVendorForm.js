@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { PETTY_CASH_VENDOR_TYPE } from "@/lib/petty-cash";
 
+const createEmptyProduct = (fallbackCategory = "") => ({
+  product: "custom",
+  name: "",
+  category: fallbackCategory,
+  price: "",
+});
+
 const EMPTY_FORM = {
   companyName: "",
   vendorRep: "",
@@ -14,6 +21,7 @@ const EMPTY_FORM = {
   bankName: "",
   accountName: "",
   accountNumber: "",
+  products: [createEmptyProduct()],
 };
 
 export default function PettyCashVendorForm({
@@ -48,6 +56,16 @@ export default function PettyCashVendorForm({
       bankName: editingVendor.bankName || "",
       accountName: editingVendor.accountName || "",
       accountNumber: editingVendor.accountNumber || "",
+      products:
+        Array.isArray(editingVendor.products) && editingVendor.products.length > 0
+          ? editingVendor.products.map((entry) => ({
+              product: entry.product?._id || "custom",
+              name: entry.product?.name || "",
+              category:
+                entry.product?.category || editingVendor.businessCategory || "Petty Cash",
+              price: entry.price ? String(entry.price) : "",
+            }))
+          : [createEmptyProduct(editingVendor.businessCategory || "")],
     });
     setChannels({ email: false, sms: false, whatsapp: false });
   }, [editingVendor]);
@@ -55,6 +73,33 @@ export default function PettyCashVendorForm({
   const handleChange = (event) => {
     const { name, value } = event.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleProductChange = (index, field, value) => {
+    setForm((prev) => ({
+      ...prev,
+      products: prev.products.map((product, productIndex) =>
+        productIndex === index ? { ...product, [field]: value } : product
+      ),
+    }));
+  };
+
+  const addProductRow = () => {
+    setForm((prev) => ({
+      ...prev,
+      products: [...prev.products, createEmptyProduct(prev.businessCategory || "Petty Cash")],
+    }));
+  };
+
+  const removeProductRow = (index) => {
+    setForm((prev) => {
+      const nextProducts = prev.products.filter((_, productIndex) => productIndex !== index);
+
+      return {
+        ...prev,
+        products: nextProducts.length ? nextProducts : [createEmptyProduct(prev.businessCategory || "")],
+      };
+    });
   };
 
   const toggleChannel = (channel) => {
@@ -71,12 +116,38 @@ export default function PettyCashVendorForm({
       : "/api/vendors/petty-cash/invite";
     const method = isEditing ? "PUT" : "POST";
 
+    const hasIncompleteProduct = form.products.some((product) => {
+      const hasAnyValue =
+        Boolean(String(product.name || "").trim()) ||
+        Boolean(String(product.price ?? "").trim());
+
+      return hasAnyValue && (!String(product.name || "").trim() || Number(product.price) <= 0);
+    });
+
+    if (hasIncompleteProduct) {
+      alert("Please provide both product name and a valid price for each product row.");
+      setLoading(false);
+      return;
+    }
+
+    const formattedProducts = form.products
+      .map((product) => ({
+        product: "custom",
+        name: String(product.name || "").trim(),
+        category:
+          String(product.category || form.businessCategory || "Petty Cash").trim() ||
+          "Petty Cash",
+        price: Number(product.price) || 0,
+      }))
+      .filter((product) => product.name && product.price > 0);
+
     try {
       const response = await fetch(endpoint, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
+          products: formattedProducts,
           vendorType: PETTY_CASH_VENDOR_TYPE,
           channels: !isEditing
             ? Object.entries(channels)
@@ -147,6 +218,72 @@ export default function PettyCashVendorForm({
               placeholder="Registered address or operating address"
             />
           </div>
+        </div>
+      </div>
+
+      <div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+          <h2 className="text-lg sm:text-xl font-semibold text-blue-700">
+            Products and Prices
+          </h2>
+          <button
+            type="button"
+            onClick={addProductRow}
+            className="w-full sm:w-auto rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 transition"
+          >
+            + Add Product
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          {form.products.map((product, index) => (
+            <div
+              key={`vendor-product-${index}`}
+              className="rounded-xl border border-gray-200 bg-gray-50 p-4"
+            >
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <h3 className="text-sm font-medium text-gray-700">Product {index + 1}</h3>
+                {form.products.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeProductRow(index)}
+                    className="text-sm font-medium text-red-500 hover:text-red-600"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="md:col-span-2">
+                  <label className="text-sm text-gray-700 mb-1 block">Product Name</label>
+                  <input
+                    value={product.name}
+                    onChange={(event) =>
+                      handleProductChange(index, "name", event.target.value)
+                    }
+                    className="border p-3 rounded w-full"
+                    placeholder="e.g. Cleaning supplies, office stationery"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm text-gray-700 mb-1 block">Price (N)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={product.price}
+                    onChange={(event) =>
+                      handleProductChange(index, "price", event.target.value)
+                    }
+                    className="border p-3 rounded w-full"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 

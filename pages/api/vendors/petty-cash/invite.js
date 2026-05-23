@@ -13,6 +13,7 @@ import {
   buildVendorFields,
   createVendorOnboardingToken,
   getRequestBaseUrl,
+  resolveVendorProducts,
 } from "@/lib/vendor-utils";
 import Vendor from "@/models/Vendor";
 
@@ -50,6 +51,18 @@ export default async function handler(req, res) {
       { ...req.body, vendorType: PETTY_CASH_VENDOR_TYPE },
       PETTY_CASH_VENDOR_TYPE
     );
+    const hasProductsPayload = Object.prototype.hasOwnProperty.call(
+      req.body || {},
+      "products"
+    );
+    const productRefs = hasProductsPayload
+      ? await resolveVendorProducts(req.body?.products)
+      : null;
+    const fallbackMainProduct = Array.isArray(req.body?.products)
+      ?
+          req.body.products.find((product) => typeof product?.name === "string" && product.name.trim())
+            ?.name?.trim() || ""
+      : "";
     const channels = Array.from(
       new Set(
         Array.isArray(req.body?.channels) && req.body.channels.length > 0
@@ -74,6 +87,15 @@ export default async function handler(req, res) {
           vendor[field] = vendorFields[field];
         }
       });
+
+      if (hasProductsPayload) {
+        vendor.products = productRefs;
+      }
+
+      if (!vendor.mainProduct && fallbackMainProduct) {
+        vendor.mainProduct = fallbackMainProduct;
+      }
+
       vendor.vendorType = PETTY_CASH_VENDOR_TYPE;
     } else {
       if (!vendorFields.companyName) {
@@ -82,6 +104,8 @@ export default async function handler(req, res) {
 
       vendor = new Vendor({
         ...vendorFields,
+        mainProduct: vendorFields.mainProduct || fallbackMainProduct,
+        products: productRefs || [],
         vendorType: PETTY_CASH_VENDOR_TYPE,
       });
     }

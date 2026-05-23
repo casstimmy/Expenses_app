@@ -58,9 +58,9 @@ export default function Layout({ children }) {
   }, []);
 
   return (
-    <div className={`${inter.variable} font-sans min-h-screen overflow-x-hidden`}>
+    <div className={`${inter.variable} font-sans min-h-screen bg-gray-50 overflow-x-clip`}>
       <Nav />
-      <main className="min-h-screen overflow-x-hidden bg-gray-50 px-2 sm:px-4 md:px-6 lg:px-8 xl:px-10 pb-4 sm:pb-6">
+      <main className="mx-auto w-full max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 pb-6 sm:pb-8 min-h-screen">
         {children}
       </main>
     </div>

@@ -8,24 +8,6 @@ import PettyCashVendorList from "@/components/PettyCashVendorList";
 const CACHE_KEY = "petty_cash_vendors_cache";
 const CACHE_DURATION = 10 * 60 * 1000;
 
-function buildInvitePayload(vendor) {
-  return {
-    vendorId: vendor._id,
-    companyName: vendor.companyName || "",
-    vendorRep: vendor.vendorRep || "",
-    repPhone: vendor.repPhone || "",
-    email: vendor.email || "",
-    address: vendor.address || "",
-    mainProduct: vendor.mainProduct || "",
-    businessCategory: vendor.businessCategory || "",
-    serviceDescription: vendor.serviceDescription || "",
-    paymentTerms: vendor.paymentTerms || "",
-    bankName: vendor.bankName || "",
-    accountName: vendor.accountName || "",
-    accountNumber: vendor.accountNumber || "",
-  };
-}
-
 export default function PettyCashVendorsPage() {
   const [staff, setStaff] = useState(null);
   const [vendors, setVendors] = useState([]);
@@ -33,9 +15,9 @@ export default function PettyCashVendorsPage() {
   const [search, setSearch] = useState("");
   const [showVendorForm, setShowVendorForm] = useState(false);
   const [editingVendor, setEditingVendor] = useState(null);
-  const [copiedVendorId, setCopiedVendorId] = useState(null);
-  const [sendingInviteKey, setSendingInviteKey] = useState("");
   const [inviteResult, setInviteResult] = useState(null);
+  const [orderPrefill, setOrderPrefill] = useState(null);
+  const [deletingVendorId, setDeletingVendorId] = useState("");
 
   const loadVendors = async ({ ignoreCache = false } = {}) => {
     setLoadingVendors(true);
@@ -97,6 +79,7 @@ export default function PettyCashVendorsPage() {
         vendor.email,
         vendor.businessCategory,
         vendor.mainProduct,
+        ...(vendor.products || []).map((entry) => entry.product?.name || ""),
       ]
         .filter(Boolean)
         .some((value) => value.toLowerCase().includes(query))
@@ -108,92 +91,6 @@ export default function PettyCashVendorsPage() {
 
   const copyText = async (text) => {
     await navigator.clipboard.writeText(text);
-  };
-
-  const requestInvite = async ({ payload, channels = [], copyAfter = false }) => {
-    const inviteKey = `${payload.vendorId || "new"}:${channels[0] || "copy"}`;
-    setSendingInviteKey(inviteKey);
-
-    try {
-      const response = await fetch("/api/vendors/petty-cash/invite", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...payload,
-          channels,
-          sendEmail: channels.includes("email"),
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Unable to send onboarding link");
-      }
-
-      await loadVendors({ ignoreCache: true });
-
-      setInviteResult({
-        vendorId: data.vendor?._id || payload.vendorId || "",
-        companyName: data.vendor?.companyName || payload.companyName,
-        onboardingLink: data.onboardingLink,
-        linkType: "vendor-invite",
-        delivery: data.delivery || null,
-        emailSent: data.emailSent,
-        emailError: data.emailError,
-      });
-
-      if (copyAfter && data.onboardingLink) {
-        await copyText(data.onboardingLink);
-        setCopiedVendorId(data.vendor?._id || payload.vendorId || null);
-        setTimeout(() => setCopiedVendorId(null), 2000);
-      }
-
-      const channelErrors = Object.values(data.delivery || {})
-        .map((entry) => entry?.error)
-        .filter(Boolean);
-
-      if (channelErrors.length > 0) {
-        alert(channelErrors.join("\n"));
-      }
-    } catch (error) {
-      console.error("Petty cash invite request failed:", error);
-      alert(error.message || "Unable to send onboarding link.");
-    } finally {
-      setSendingInviteKey("");
-    }
-  };
-
-  const handleCopyLink = async (vendor) => {
-    if (vendor.onboardingToken) {
-      const onboardingLink = `${window.location.origin}/petty-cash-onboarding/${vendor.onboardingToken}`;
-      await copyText(onboardingLink);
-      setInviteResult({
-        vendorId: vendor._id,
-        companyName: vendor.companyName,
-        onboardingLink,
-        linkType: "vendor-invite",
-        delivery: null,
-        emailSent: false,
-        emailError: "",
-      });
-      setCopiedVendorId(vendor._id);
-      setTimeout(() => setCopiedVendorId(null), 2000);
-      return;
-    }
-
-    await requestInvite({
-      payload: buildInvitePayload(vendor),
-      channels: [],
-      copyAfter: true,
-    });
-  };
-
-  const handleSendInvite = async (vendor, channel) => {
-    await requestInvite({
-      payload: buildInvitePayload(vendor),
-      channels: [channel],
-    });
   };
 
   const handleCopyPublicFormLink = async () => {
@@ -208,6 +105,53 @@ export default function PettyCashVendorsPage() {
       emailSent: false,
       emailError: "",
     });
+  };
+
+  const handlePlaceOrder = (vendor) => {
+    setOrderPrefill({ vendorId: vendor._id, requestedAt: Date.now() });
+
+    if (typeof document !== "undefined") {
+      document
+        .getElementById("petty-cash-order-form")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  const handleDeleteVendor = async (vendor) => {
+    const confirmed = window.confirm(
+      `Delete ${vendor.companyName}? This cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    setDeletingVendorId(vendor._id);
+
+    try {
+      const response = await fetch(`/api/vendors/${vendor._id}`, {
+        method: "DELETE",
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Unable to delete vendor.");
+      }
+
+      if (editingVendor?._id === vendor._id) {
+        setShowVendorForm(false);
+        setEditingVendor(null);
+      }
+
+      if (inviteResult?.vendorId === vendor._id) {
+        setInviteResult(null);
+      }
+
+      await loadVendors({ ignoreCache: true });
+    } catch (error) {
+      console.error("Delete petty cash vendor failed:", error);
+      alert(error.message || "Unable to delete vendor.");
+    } finally {
+      setDeletingVendorId("");
+    }
   };
 
   const renderDeliveryMessage = () => {
@@ -246,8 +190,8 @@ export default function PettyCashVendorsPage() {
             </h1>
             <p className="text-sm text-gray-600 max-w-3xl">
               Manage petty cash vendors separately from stock-order vendors while
-              keeping them in the same database. Invite vendors with a secure link,
-              track onboarding status, and update their profile when they submit.
+              keeping them in the same database. Keep their product lists current,
+              place vendor orders, and track payments in one place.
             </p>
           </div>
 
@@ -264,7 +208,7 @@ export default function PettyCashVendorsPage() {
             {[
               ["Total Vendors", vendors.length, "bg-white border-gray-200"],
               ["Onboarded", onboardedCount, "bg-green-50 border-green-200"],
-              ["Pending", pendingCount, "bg-amber-50 border-amber-200"],
+              ["Pending Onboarding", pendingCount, "bg-amber-50 border-amber-200"],
             ].map(([label, value, className]) => (
               <div key={label} className={`rounded-xl border p-4 shadow-sm ${className}`}>
                 <p className="text-xs uppercase tracking-wide text-gray-500">{label}</p>
@@ -358,19 +302,22 @@ export default function PettyCashVendorsPage() {
 
               <PettyCashVendorList
                 vendors={filteredVendors}
-                onCopyLink={handleCopyLink}
                 onEdit={(vendor) => {
                   setEditingVendor(vendor);
                   setShowVendorForm(true);
                 }}
-                onSendInvite={handleSendInvite}
-                copiedVendorId={copiedVendorId}
-                sendingInviteKey={sendingInviteKey}
+                onDelete={handleDeleteVendor}
+                onPlaceOrder={handlePlaceOrder}
+                deletingVendorId={deletingVendorId}
               />
             </div>
           </section>
 
-          <PettyCashTransactionPanel vendors={vendors} staff={staff} />
+          <PettyCashTransactionPanel
+            vendors={vendors}
+            staff={staff}
+            orderPrefill={orderPrefill}
+          />
 
           {showVendorForm && (
             <div className="fixed inset-0 backdrop-blur-md bg-white/30 flex items-end sm:items-center justify-center z-50 overflow-y-auto px-0 sm:px-4">

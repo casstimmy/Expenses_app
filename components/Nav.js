@@ -50,6 +50,12 @@ export default function Nav() {
     setIsMobileMenuOpen(false);
   }, [pathname]);
 
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.body.classList.toggle("mobile-menu-open", isMobileMenuOpen);
+    return () => document.body.classList.remove("mobile-menu-open");
+  }, [isMobileMenuOpen]);
+
   const handleLogout = useCallback(async () => {
     try {
       await fetch("/api/staff/logout", { method: "POST" });
@@ -99,7 +105,7 @@ export default function Nav() {
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-gradient-to-r from-white/90 to-blue-50/90 shadow-md border-b border-gray-200/80 transition-all">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <Link
@@ -113,11 +119,11 @@ export default function Nav() {
                 height={40}
                 className="h-8 w-8 sm:h-10 sm:w-10 object-contain"
               />
-              <span className="select-none truncate">BizSuits™</span>
+              <span className="select-none truncate max-[380px]:hidden">BizSuits™</span>
             </Link>
 
             {/* Desktop Nav */}
-            <nav className="hidden md:flex items-center space-x-1">
+            <nav className="hidden xl:flex items-center space-x-1">
               {isLoggedIn &&
                 navLinks.map((link) => (
                   <Link
@@ -154,7 +160,7 @@ export default function Nav() {
             </nav>
 
             {/* Mobile Button */}
-            <div className="md:hidden flex min-w-0 items-center gap-2">
+            <div className="xl:hidden flex min-w-0 items-center gap-2">
               {isLoggedIn && staffName && (
                 <span className="text-xs text-gray-500 font-medium max-w-[96px] truncate">
                   {staffName}
@@ -162,7 +168,9 @@ export default function Nav() {
               )}
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="text-gray-700 hover:text-blue-700 transition p-1 rounded-lg hover:bg-gray-100"
+                aria-label={isMobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+                aria-expanded={isMobileMenuOpen}
+                className="text-gray-700 hover:text-blue-700 transition p-2 rounded-lg hover:bg-gray-100"
               >
                 {isMobileMenuOpen ? <X size={26} /> : <Menu size={26} />}
               </button>
@@ -171,12 +179,20 @@ export default function Nav() {
         </div>
 
         {/* Mobile Menu */}
+        <button
+          type="button"
+          aria-label="Close navigation menu overlay"
+          onClick={() => setIsMobileMenuOpen(false)}
+          className={`xl:hidden fixed inset-0 top-16 bg-black/30 transition-opacity duration-300 ${
+            isMobileMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+          }`}
+        />
         <div
-          className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${
-            isMobileMenuOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+          className={`xl:hidden fixed top-16 inset-x-0 z-[55] overflow-hidden transition-all duration-300 ease-in-out ${
+            isMobileMenuOpen ? "max-h-[calc(100dvh-4rem)] opacity-100" : "max-h-0 opacity-0"
           }`}
         >
-          <div className="max-h-[calc(100vh-4rem)] overflow-y-auto bg-white/95 shadow-inner border-t border-gray-200 px-4 py-3 space-y-1">
+          <div className="max-h-[calc(100dvh-4rem)] overflow-y-auto bg-white shadow-inner border-t border-gray-200 px-4 py-3 space-y-1 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             {isLoggedIn &&
               navLinks.map((link) => (
                 <Link

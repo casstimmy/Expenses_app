@@ -83,7 +83,7 @@ function BoardView({ project, canEdit, onUpdateTask, onRemoveTask }) {
 
   if (!mounted) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 p-4">
         {BOARD_COLUMNS.map((col) => (
           <div key={col.key} className={`rounded-xl border border-gray-200 border-t-4 ${col.accent} ${col.bg} p-3 min-h-[250px]`}>
             <div className="flex items-center justify-between mb-3">
@@ -98,7 +98,7 @@ function BoardView({ project, canEdit, onUpdateTask, onRemoveTask }) {
 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 p-4">
         {BOARD_COLUMNS.map((col) => {
           const tasks = tasksByColumn[col.key] || [];
           return (
@@ -212,22 +212,23 @@ function ListView({ project, canEdit, onUpdateTask, onRemoveTask }) {
 
   return (
     <div className="p-4">
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6">
         {/* Task List (3 cols) */}
         <div className="lg:col-span-3">
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
             <h4 className="text-sm font-semibold text-gray-700 flex-1">All Tasks ({sorted.length})</h4>
-            <div className="relative">
+            <div className="relative w-full sm:w-auto">
               <Search size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input type="text" placeholder="Search..." value={searchFilter} onChange={(e) => setSearchFilter(e.target.value)} className="border rounded-lg pl-7 pr-2 py-1.5 text-xs w-32 sm:w-44" />
+              <input type="text" placeholder="Search..." value={searchFilter} onChange={(e) => setSearchFilter(e.target.value)} className="border rounded-lg pl-7 pr-2 py-1.5 text-xs w-full sm:w-44" />
             </div>
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="border rounded-lg px-2 py-1.5 text-xs">
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="border rounded-lg px-2 py-1.5 text-xs w-full sm:w-auto">
               <option value="">All</option>
               {TASK_STATUSES.map(s => <option key={s} value={s}>{STATUS_CFG[s].label}</option>)}
             </select>
           </div>
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <table className="w-full">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[620px]">
               <thead>
                 <tr className="bg-gray-50/80 border-b border-gray-100">
                   <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-gray-500 uppercase">Task</th>
@@ -282,6 +283,7 @@ function ListView({ project, canEdit, onUpdateTask, onRemoveTask }) {
                 })}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
 
@@ -519,17 +521,17 @@ function GanttView({ project, canEdit, onUpdateTask, onRemoveTask, onRemoveCateg
   return (
     <div className="p-4">
       {/* Controls */}
-      <div className="flex flex-wrap items-center gap-2 mb-4">
-        <div className="flex bg-gray-100 rounded-lg p-0.5">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 mb-4">
+        <div className="flex bg-gray-100 rounded-lg p-0.5 w-full sm:w-auto justify-center sm:justify-start">
           {[{ k: "day", l: "Day" }, { k: "week", l: "Week" }, { k: "month", l: "Month" }].map(({ k, l }) => (
             <button key={k} onClick={() => setViewMode(k)} className={`px-3 py-1 rounded-md text-xs font-medium transition ${viewMode === k ? "bg-white text-blue-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>{l}</button>
           ))}
         </div>
-        <div className="relative">
+        <div className="relative w-full sm:w-auto">
           <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input type="text" placeholder="Search tasks..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="border rounded-lg text-xs pl-6 pr-2 py-1.5 w-36" />
+          <input type="text" placeholder="Search tasks..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="border rounded-lg text-xs pl-6 pr-2 py-1.5 w-full sm:w-36" />
         </div>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="border rounded-lg text-xs px-2 py-1.5">
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="border rounded-lg text-xs px-2 py-1.5 w-full sm:w-auto">
           <option value="">All Status</option>
           {TASK_STATUSES.map(s => <option key={s} value={s}>{STATUS_CFG[s].label}</option>)}
         </select>
@@ -537,7 +539,8 @@ function GanttView({ project, canEdit, onUpdateTask, onRemoveTask, onRemoveCateg
 
       {/* Gantt Chart */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="flex">
+        <div className="overflow-x-auto">
+        <div className="flex min-w-[780px]">
           {/* Left panel: task info */}
           <div className="flex-shrink-0 w-64 border-r border-gray-200">
             <div className="h-10 bg-gray-50 border-b border-gray-200 px-3 flex items-center">
@@ -611,6 +614,7 @@ function GanttView({ project, canEdit, onUpdateTask, onRemoveTask, onRemoveCateg
               );
             })}
           </div>
+        </div>
         </div>
       </div>
 
@@ -748,18 +752,20 @@ export default function ProjectTracker() {
         <title>Project Tracker — BizSuits</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
-      <div className="min-h-screen bg-gray-50 pt-20">
+      <div className="min-h-screen bg-gray-50 pt-4 sm:pt-6">
         <div className="max-w-7xl mx-auto py-4 sm:py-8 px-2 sm:px-4">
           {!isLoggedIn && (
-            <div className="flex items-center gap-2 mb-4 bg-white rounded-lg border border-gray-200 px-4 py-3 w-fit">
+            <div className="flex items-center gap-2 mb-4 bg-white rounded-lg border border-gray-200 px-4 py-3 w-full sm:w-fit">
               <User size={14} className="text-gray-400" />
-              <input type="text" placeholder="Enter your name to contribute..." value={guestName} onChange={(e) => setGuestName(e.target.value)} className="border rounded-lg px-3 py-1.5 text-sm w-52 sm:w-64" />
+              <input type="text" placeholder="Enter your name to contribute..." value={guestName} onChange={(e) => setGuestName(e.target.value)} className="border rounded-lg px-3 py-1.5 text-sm w-full sm:w-64" />
             </div>
           )}
           {/* Page Tabs */}
-          <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-lg w-fit">
+          <div className="mb-6 overflow-x-auto scrollbar-hide">
+            <div className="inline-flex min-w-max gap-1 bg-gray-100 p-1 rounded-lg">
             <button onClick={() => setPageTab("projects")} className={`px-4 py-2 rounded-md text-sm font-medium transition ${pageTab === "projects" ? "bg-white text-blue-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>📊 Projects</button>
             <button onClick={() => setPageTab("assets")} className={`px-4 py-2 rounded-md text-sm font-medium transition ${pageTab === "assets" ? "bg-white text-blue-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>📋 Assets</button>
+            </div>
           </div>
 
           {pageTab === "assets" ? (
@@ -773,7 +779,7 @@ export default function ProjectTracker() {
                   <p className="text-sm text-gray-500 mt-1">Manage projects with Board, List, Checklist & Gantt views</p>
                 </div>
                 {canEdit && (
-                  <button onClick={() => setShowCreateForm(!showCreateForm)} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm">
+                  <button onClick={() => setShowCreateForm(!showCreateForm)} className="flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm w-full sm:w-auto">
                     {showCreateForm ? <X size={18} /> : <Plus size={18} />}
                     {showCreateForm ? "Close" : "New Project"}
                   </button>
@@ -810,12 +816,14 @@ export default function ProjectTracker() {
               )}
 
               {/* View Tabs */}
-              <div className="flex gap-1 mb-4 bg-gray-100 p-1 rounded-lg w-fit">
-                {VIEW_TABS.map(({ key, label, icon: Icon }) => (
-                  <button key={key} type="button" onClick={() => { setProjectView(key); if (!expandedProject && projects.length > 0) setExpandedProject(projects[0]._id); }} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition ${projectView === key ? "bg-white text-blue-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
-                    <Icon size={14} /> {label}
-                  </button>
-                ))}
+              <div className="mb-4 overflow-x-auto scrollbar-hide">
+                <div className="inline-flex min-w-max gap-1 bg-gray-100 p-1 rounded-lg">
+                  {VIEW_TABS.map(({ key, label, icon: Icon }) => (
+                    <button key={key} type="button" onClick={() => { setProjectView(key); if (!expandedProject && projects.length > 0) setExpandedProject(projects[0]._id); }} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition ${projectView === key ? "bg-white text-blue-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
+                      <Icon size={14} /> {label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Projects list */}

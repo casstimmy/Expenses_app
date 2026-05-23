@@ -13,6 +13,30 @@ function parseDate(value, fallback = null) {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
+function normalizeOrderValues({ quantity, unitPrice, amount }) {
+  const parsedQuantity = Number(quantity);
+  const parsedUnitPrice = Number(unitPrice);
+  const parsedAmount = Number(amount);
+
+  const normalizedQuantity = Number.isFinite(parsedQuantity) && parsedQuantity > 0 ? parsedQuantity : 1;
+  const normalizedUnitPrice =
+    Number.isFinite(parsedUnitPrice) && parsedUnitPrice >= 0
+      ? parsedUnitPrice
+      : Number.isFinite(parsedAmount) && parsedAmount > 0
+        ? parsedAmount / normalizedQuantity
+        : 0;
+  const normalizedAmount =
+    Number.isFinite(parsedAmount) && parsedAmount > 0
+      ? parsedAmount
+      : normalizedQuantity * normalizedUnitPrice;
+
+  return {
+    quantity: normalizedQuantity,
+    unitPrice: normalizedUnitPrice,
+    amount: normalizedAmount,
+  };
+}
+
 export default async function handler(req, res) {
   const authStaff = await requireAuth(req, res);
   if (!authStaff) return;
@@ -33,7 +57,7 @@ export default async function handler(req, res) {
         .populate("expense")
         .sort({ createdAt: -1 });
 
-      return res.status(200).json(transactions);
+      return res.status(200).json({ success: true, transactions });
     } catch (error) {
       console.error("Petty cash transaction fetch error:", error);
       return res.status(500).json({ error: "Failed to fetch petty cash transactions" });
@@ -42,12 +66,29 @@ export default async function handler(req, res) {
 
   if (req.method === "POST") {
     try {
-      const { vendor: vendorId, purpose, description, amount, location, requestDate, neededBy } =
-        req.body || {};
+      const {
+        vendor: vendorId,
+        purpose,
+        description,
+        amount,
+        quantity,
+        unitPrice,
+        location,
+        requestDate,
+        neededBy,
+      } = req.body || {};
+      const normalizedOrder = normalizeOrderValues({ quantity, unitPrice, amount });
 
-      if (!vendorId || !purpose || amount === undefined || !location || !requestDate) {
+      if (
+        !vendorId ||
+        !purpose ||
+        !location ||
+        !requestDate ||
+        normalizedOrder.quantity <= 0 ||
+        normalizedOrder.amount <= 0
+      ) {
         return res.status(400).json({
-          error: "Vendor, purpose, amount, location, and request date are required.",
+          error: "Vendor, order purpose, quantity, unit price, location, and order date are required.",
         });
       }
 
@@ -61,19 +102,21 @@ export default async function handler(req, res) {
         vendorName: vendor.companyName,
         purpose: String(purpose).trim(),
         description: typeof description === "string" ? description.trim() : "",
-        amount: Number(amount),
+        quantity: normalizedOrder.quantity,
+        unitPrice: normalizedOrder.unitPrice,
+        amount: normalizedOrder.amount,
         location: String(location).trim(),
         requestDate: parseDate(requestDate, new Date()),
         neededBy: parseDate(neededBy, null),
-        status: "Pending Approval",
+        status: "Ordered",
         requestedBy: buildStaffSnapshot(authStaff),
         approvalHistory: [
           buildApprovalHistoryEntry({
-            action: "created",
-            toStatus: "Pending Approval",
+            action: "ordered",
+            toStatus: "Ordered",
             note: typeof description === "string" ? description : "",
             staff: authStaff,
-            amount,
+            amount: normalizedOrder.amount,
           }),
         ],
       });
