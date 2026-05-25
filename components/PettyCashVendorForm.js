@@ -132,7 +132,10 @@ export default function PettyCashVendorForm({
 
     const formattedProducts = form.products
       .map((product) => ({
-        product: "custom",
+        product:
+          typeof product.product === "string" && product.product && product.product !== "custom"
+            ? product.product
+            : "custom",
         name: String(product.name || "").trim(),
         category:
           String(product.category || form.businessCategory || "Petty Cash").trim() ||
