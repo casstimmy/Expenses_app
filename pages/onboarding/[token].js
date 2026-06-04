@@ -284,12 +284,12 @@ export default function StaffOnboarding() {
         title: data.onboardingComplete
           ? wasAlreadySubmitted
             ? "Profile Updated"
-            : "Thank You"
+            : "Completed Form Submitted"
           : "Progress Saved",
         message: data.onboardingComplete
           ? wasAlreadySubmitted
             ? data.message || "Your profile changes have been saved successfully."
-            : data.message || "Your profile has been completed successfully."
+            : data.message || "Your completed form has been submitted successfully."
           : data.message || "Your progress has been saved. The remaining section can be completed later.",
       });
     } catch (err) {
@@ -640,7 +640,7 @@ export default function StaffOnboarding() {
                 : staffInfo?.onboardingComplete
                   ? "Save Profile Changes"
                   : readyToComplete
-                    ? "Complete and Send Profile"
+                    ? "Submit Completed Form"
                     : "Save Progress"}
             </button>
           </form>
