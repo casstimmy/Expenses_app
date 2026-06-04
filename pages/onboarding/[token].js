@@ -307,15 +307,11 @@ export default function StaffOnboarding() {
 
       setConfirmationModal({
         open: true,
-        title: wantsFinalSubmission
-          ? wasAlreadySubmitted
-            ? "Profile Updated"
-            : "Thank You"
-          : "Progress Saved",
+        title: wantsFinalSubmission ? "Thank You" : "Progress Saved",
         message: wantsFinalSubmission
           ? wasAlreadySubmitted
-            ? data.message || "Your profile changes have been submitted successfully."
-            : data.message || "Your completed form has been submitted successfully."
+            ? "Thank you. Your profile changes have been saved successfully."
+            : "Thank you for completing your onboarding form. Your details have been submitted successfully."
           : data.message || "Your progress has been saved. The remaining section can be completed later.",
         actionLabel: wantsFinalSubmission ? "Done" : "Okay",
         closeWindow: wantsFinalSubmission,
@@ -359,6 +355,7 @@ export default function StaffOnboarding() {
   const personalSectionMeta = getSectionMeta(personalSectionComplete, hasPersonalProgress);
   const guarantorSectionMeta = getSectionMeta(guarantorSectionComplete, hasGuarantorProgress);
   const readyToComplete = personalSectionComplete && guarantorSectionComplete;
+  const showCompletionModal = confirmationModal.open && confirmationModal.closeWindow;
 
   return (
     <>
@@ -368,7 +365,30 @@ export default function StaffOnboarding() {
       </Head>
 
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
-        <div className="max-w-2xl mx-auto">
+        {showCompletionModal ? (
+          <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-md items-center justify-center">
+            <div className="w-full rounded-3xl bg-white p-6 shadow-2xl">
+              <CheckCircle size={56} className="mx-auto mb-4 text-green-500" />
+              <h2 className="text-center text-2xl font-bold text-slate-900">
+                {confirmationModal.title}
+              </h2>
+              <p className="mt-3 text-center text-sm leading-6 text-slate-600">
+                {confirmationModal.message}
+              </p>
+              <p className="mt-2 text-center text-xs text-slate-500">
+                You can close this window after reviewing this message.
+              </p>
+              <button
+                type="button"
+                onClick={handleConfirmationAction}
+                className="mt-6 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+              >
+                {confirmationModal.actionLabel}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="max-w-2xl mx-auto">
           <div className="text-center mb-6">
             <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
               BizSuits Staff Onboarding
@@ -701,9 +721,10 @@ export default function StaffOnboarding() {
           <p className="text-xs text-gray-400 text-center mt-6">
             BizSuits Expense Management System
           </p>
-        </div>
+          </div>
+        )}
 
-        {confirmationModal.open && (
+        {confirmationModal.open && !confirmationModal.closeWindow && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/55 px-4 py-6">
             <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
               <CheckCircle size={56} className="mx-auto mb-4 text-green-500" />
