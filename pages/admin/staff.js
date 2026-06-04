@@ -38,6 +38,19 @@ function toCamelCase(str) {
     .join(" ");
 }
 
+function hasFilledProfileData(data = {}) {
+  return Object.values(data || {}).some((value) =>
+    typeof value === "string" ? value.trim() !== "" : Boolean(value)
+  );
+}
+
+function hasSavedOnboardingProgress(staff = {}) {
+  return (
+    hasFilledProfileData(staff.onboardingData || {}) ||
+    hasFilledProfileData(staff.guarantor || {})
+  );
+}
+
 export default function ManageStaff() {
   const [staffList, setStaffList] = useState([]);
   const [loadingStaffList, setLoadingStaffList] = useState(true);
@@ -781,7 +794,11 @@ export default function ManageStaff() {
               <p className="text-gray-500">No staff created yet.</p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {staffList.map((staff) => (
+                {staffList.map((staff) => {
+                  const hasPartialOnboarding = hasSavedOnboardingProgress(staff);
+                  const canReviewOnboarding = staff.onboardingComplete || hasPartialOnboarding;
+
+                  return (
                   <div
                     key={staff._id}
                     className="p-4 rounded-lg shadow-sm hover:shadow-md transition duration-300 border border-gray-200 bg-white"
@@ -933,6 +950,10 @@ export default function ManageStaff() {
                                 <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 flex items-center gap-1">
                                   <CheckCircle size={10} /> Onboarded
                                 </span>
+                              ) : canReviewOnboarding ? (
+                                <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700">
+                                  In Progress
+                                </span>
                               ) : (
                                 <span className="text-xs px-2 py-1 rounded-full bg-yellow-100 text-yellow-700">
                                   Pending Form
@@ -966,15 +987,15 @@ export default function ManageStaff() {
                               {copiedLink === staff._id ? <><CheckCircle size={12} /> Copied!</> : <><Copy size={12} /> Copy Onboarding Link</>}
                             </button>
                           )}
-                          {staff.onboardingComplete && (
+                          {canReviewOnboarding && (
                             <button
                               onClick={() => setExpandedProfile(expandedProfile === staff._id ? null : staff._id)}
                               className="flex items-center gap-1 text-xs bg-gray-50 text-gray-600 px-2 py-1 rounded hover:bg-gray-100 transition"
                             >
-                              {expandedProfile === staff._id ? <><ChevronUp size={12} /> Hide Profile</> : <><ChevronDown size={12} /> View Profile</>}
+                              {expandedProfile === staff._id ? <><ChevronUp size={12} /> Hide Profile</> : <><ChevronDown size={12} /> {staff.onboardingComplete ? "View Profile" : "View Progress"}</>}
                             </button>
                           )}
-                          {staff.onboardingComplete && (
+                          {canReviewOnboarding && (
                             <button
                               onClick={() =>
                                 editingProfileId === staff._id
@@ -983,13 +1004,17 @@ export default function ManageStaff() {
                               }
                               className="flex items-center gap-1 text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded hover:bg-blue-100 transition"
                             >
-                              {editingProfileId === staff._id ? "Cancel Profile Edit" : "Edit Submitted Profile"}
+                              {editingProfileId === staff._id
+                                ? "Cancel Profile Edit"
+                                : staff.onboardingComplete
+                                  ? "Edit Submitted Profile"
+                                  : "Edit Saved Progress"}
                             </button>
                           )}
                         </div>
 
                         {/* Expanded Profile Details */}
-                        {expandedProfile === staff._id && staff.onboardingComplete && (
+                        {expandedProfile === staff._id && canReviewOnboarding && (
                           <div className="mt-3 bg-gray-50 rounded-lg p-3 text-xs space-y-3">
                             {editingProfileId === staff._id ? (
                               <div className="space-y-4">
@@ -1204,7 +1229,8 @@ export default function ManageStaff() {
                       </div>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
             <p className="text-sm text-gray-500 mt-6">

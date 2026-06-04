@@ -43,6 +43,33 @@ function isGuarantorSectionComplete(values = {}) {
   return Boolean(values.name?.trim() && values.phone?.trim());
 }
 
+function getSectionMeta(isComplete, hasProgress) {
+  if (isComplete) {
+    return {
+      label: "Completed",
+      badgeClass: "bg-green-100 text-green-700",
+      cardClass: "border-green-200 bg-green-50/60",
+      summaryText: "Required details are complete.",
+    };
+  }
+
+  if (hasProgress) {
+    return {
+      label: "In Progress",
+      badgeClass: "bg-blue-100 text-blue-700",
+      cardClass: "border-blue-200 bg-blue-50/60",
+      summaryText: "Some details are saved. You can return later.",
+    };
+  }
+
+  return {
+    label: "Not Started",
+    badgeClass: "bg-slate-100 text-slate-600",
+    cardClass: "border-gray-100 bg-white",
+    summaryText: "This section has not been filled yet.",
+  };
+}
+
 export default function StaffOnboarding() {
   const router = useRouter();
   const { token } = router.query;
@@ -295,8 +322,15 @@ export default function StaffOnboarding() {
 
   const personalSectionComplete = isPersonalSectionComplete(personalForm);
   const guarantorSectionComplete = isGuarantorSectionComplete(guarantorForm);
+  const hasPersonalProgress = hasAnyData(personalForm, staffPhotoUrl);
+  const hasGuarantorProgress = hasAnyData(guarantorForm, guarantorPhotoUrl);
   const hasSavedProgress =
-    hasAnyData(personalForm, staffPhotoUrl) || hasAnyData(guarantorForm, guarantorPhotoUrl);
+    hasPersonalProgress || hasGuarantorProgress;
+  const completedSections = Number(personalSectionComplete) + Number(guarantorSectionComplete);
+  const overallProgress = Math.round((completedSections / 2) * 100);
+  const personalSectionMeta = getSectionMeta(personalSectionComplete, hasPersonalProgress);
+  const guarantorSectionMeta = getSectionMeta(guarantorSectionComplete, hasGuarantorProgress);
+  const readyToComplete = personalSectionComplete && guarantorSectionComplete;
 
   return (
     <>
@@ -319,6 +353,57 @@ export default function StaffOnboarding() {
             </p>
           </div>
 
+          <div className="mb-6 rounded-3xl border border-white/70 bg-white/85 p-5 shadow-sm backdrop-blur">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-500">
+                  Progress Tracker
+                </p>
+                <h2 className="mt-2 text-lg font-semibold text-slate-900">
+                  {completedSections} of 2 sections completed
+                </h2>
+                <p className="mt-1 text-sm text-slate-600">
+                  Staff details and guarantor details can be saved independently with this same link.
+                </p>
+              </div>
+              <div className="rounded-2xl bg-indigo-50 px-4 py-3 text-center text-indigo-700">
+                <div className="text-2xl font-bold">{overallProgress}%</div>
+                <div className="text-xs font-medium uppercase tracking-wide">Complete</div>
+              </div>
+            </div>
+
+            <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-300"
+                style={{ width: `${overallProgress}%` }}
+              />
+            </div>
+
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className={`rounded-2xl border p-4 ${personalSectionMeta.cardClass}`}>
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-sm font-semibold text-slate-900">Staff Section</h3>
+                  <span className={`rounded-full px-3 py-1 text-xs font-medium ${personalSectionMeta.badgeClass}`}>
+                    {personalSectionMeta.label}
+                  </span>
+                </div>
+                <p className="mt-2 text-xs text-slate-600">Full name and phone complete this section.</p>
+                <p className="mt-1 text-xs text-slate-500">{personalSectionMeta.summaryText}</p>
+              </div>
+
+              <div className={`rounded-2xl border p-4 ${guarantorSectionMeta.cardClass}`}>
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-sm font-semibold text-slate-900">Guarantor Section</h3>
+                  <span className={`rounded-full px-3 py-1 text-xs font-medium ${guarantorSectionMeta.badgeClass}`}>
+                    {guarantorSectionMeta.label}
+                  </span>
+                </div>
+                <p className="mt-2 text-xs text-slate-600">Guarantor name and phone complete this section.</p>
+                <p className="mt-1 text-xs text-slate-500">{guarantorSectionMeta.summaryText}</p>
+              </div>
+            </div>
+          </div>
+
           {staffInfo?.onboardingComplete && (
             <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-xl p-3 mb-4 text-sm text-center">
               You have already submitted this form. You can update your details below.
@@ -332,19 +417,16 @@ export default function StaffOnboarding() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-6 border border-gray-100">
+            <div className={`rounded-2xl shadow-sm p-5 sm:p-6 border ${personalSectionMeta.cardClass}`}>
               <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-lg font-semibold text-blue-700">Personal Details</h2>
-                <span
-                  className={`rounded-full px-3 py-1 text-xs font-medium ${
-                    personalSectionComplete
-                      ? "bg-green-100 text-green-700"
-                      : "bg-slate-100 text-slate-600"
-                  }`}
-                >
-                  {personalSectionComplete ? "Completed" : "Can be saved later"}
+                <span className={`rounded-full px-3 py-1 text-xs font-medium ${personalSectionMeta.badgeClass}`}>
+                  {personalSectionMeta.label}
                 </span>
               </div>
+              <p className="mb-4 text-xs text-slate-500">
+                Fill the staff section first or save it halfway and let the guarantor finish later.
+              </p>
 
               <div className="flex flex-col items-center mb-5">
                 <div
@@ -445,19 +527,16 @@ export default function StaffOnboarding() {
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-6 border border-gray-100">
+            <div className={`rounded-2xl shadow-sm p-5 sm:p-6 border ${guarantorSectionMeta.cardClass}`}>
               <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-lg font-semibold text-blue-700">Guarantor Details</h2>
-                <span
-                  className={`rounded-full px-3 py-1 text-xs font-medium ${
-                    guarantorSectionComplete
-                      ? "bg-green-100 text-green-700"
-                      : "bg-slate-100 text-slate-600"
-                  }`}
-                >
-                  {guarantorSectionComplete ? "Completed" : "Can be saved later"}
+                <span className={`rounded-full px-3 py-1 text-xs font-medium ${guarantorSectionMeta.badgeClass}`}>
+                  {guarantorSectionMeta.label}
                 </span>
               </div>
+              <p className="mb-4 text-xs text-slate-500">
+                The guarantor section can be saved separately once their details are available.
+              </p>
 
               <div className="flex flex-col items-center mb-5">
                 <div
@@ -560,7 +639,9 @@ export default function StaffOnboarding() {
                 ? "Saving..."
                 : staffInfo?.onboardingComplete
                   ? "Save Profile Changes"
-                  : "Save Progress"}
+                  : readyToComplete
+                    ? "Complete and Send Profile"
+                    : "Save Progress"}
             </button>
           </form>
 
