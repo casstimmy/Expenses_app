@@ -7,6 +7,8 @@ const EMPTY_MODAL = {
   open: false,
   title: "",
   message: "",
+  actionLabel: "Okay",
+  closeWindow: false,
 };
 
 const EMPTY_PERSONAL_FORM = {
@@ -172,6 +174,19 @@ export default function StaffOnboarding() {
     };
   }, [token]);
 
+  const handleConfirmationAction = () => {
+    const shouldCloseWindow = confirmationModal.closeWindow;
+    setConfirmationModal(EMPTY_MODAL);
+
+    if (shouldCloseWindow && typeof window !== "undefined") {
+      window.close();
+      if (!window.closed) {
+        window.open("", "_self");
+        window.close();
+      }
+    }
+  };
+
   const closeConfirmationModal = () => {
     setConfirmationModal(EMPTY_MODAL);
   };
@@ -239,14 +254,24 @@ export default function StaffOnboarding() {
     setError("");
     setSubmitting(true);
 
+    const submitMode = event.nativeEvent.submitter?.value === "final" ? "final" : "save";
+    const wantsFinalSubmission = submitMode === "final";
     const wasAlreadySubmitted = Boolean(staffInfo?.onboardingComplete);
     const onboardingPayload = { ...personalForm, photo: staffPhotoUrl };
     const guarantorPayload = { ...guarantorForm, photo: guarantorPhotoUrl };
     const hasPersonalData = hasAnyData(personalForm, staffPhotoUrl);
     const hasGuarantorData = hasAnyData(guarantorForm, guarantorPhotoUrl);
+    const formIsComplete =
+      isPersonalSectionComplete(onboardingPayload) && isGuarantorSectionComplete(guarantorPayload);
 
     if (!hasPersonalData && !hasGuarantorData) {
       setError("Add at least one staff or guarantor detail before saving.");
+      setSubmitting(false);
+      return;
+    }
+
+    if (wantsFinalSubmission && !formIsComplete) {
+      setError("Complete the staff and guarantor required details before final submission.");
       setSubmitting(false);
       return;
     }
@@ -258,6 +283,7 @@ export default function StaffOnboarding() {
         body: JSON.stringify({
           onboardingData: onboardingPayload,
           guarantor: guarantorPayload,
+          finalizeSubmission: wantsFinalSubmission,
         }),
       });
 
@@ -281,16 +307,18 @@ export default function StaffOnboarding() {
 
       setConfirmationModal({
         open: true,
-        title: data.onboardingComplete
+        title: wantsFinalSubmission
           ? wasAlreadySubmitted
             ? "Profile Updated"
-            : "Completed Form Submitted"
+            : "Thank You"
           : "Progress Saved",
-        message: data.onboardingComplete
+        message: wantsFinalSubmission
           ? wasAlreadySubmitted
-            ? data.message || "Your profile changes have been saved successfully."
+            ? data.message || "Your profile changes have been submitted successfully."
             : data.message || "Your completed form has been submitted successfully."
           : data.message || "Your progress has been saved. The remaining section can be completed later.",
+        actionLabel: wantsFinalSubmission ? "Done" : "Okay",
+        closeWindow: wantsFinalSubmission,
       });
     } catch (err) {
       console.error(err);
@@ -630,19 +658,44 @@ export default function StaffOnboarding() {
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={submitting || uploadingStaffPhoto || uploadingGuarantorPhoto}
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 transition shadow-lg"
-            >
-              {submitting
-                ? "Saving..."
-                : staffInfo?.onboardingComplete
-                  ? "Save Profile Changes"
-                  : readyToComplete
-                    ? "Submit Completed Form"
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <button
+                type="submit"
+                value="save"
+                disabled={submitting || uploadingStaffPhoto || uploadingGuarantorPhoto}
+                className="w-full rounded-xl border border-blue-200 bg-white py-3 font-semibold text-blue-700 transition hover:bg-blue-50 disabled:opacity-50"
+              >
+                {submitting
+                  ? "Saving..."
+                  : staffInfo?.onboardingComplete
+                    ? "Save Profile Changes"
                     : "Save Progress"}
-            </button>
+              </button>
+
+              <button
+                type="submit"
+                value="final"
+                disabled={
+                  submitting ||
+                  uploadingStaffPhoto ||
+                  uploadingGuarantorPhoto ||
+                  !readyToComplete
+                }
+                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 transition shadow-lg"
+              >
+                {submitting
+                  ? "Submitting..."
+                  : staffInfo?.onboardingComplete
+                    ? "Save and Done"
+                    : "Submit Form"}
+              </button>
+            </div>
+
+            {!readyToComplete && (
+              <p className="text-center text-xs text-slate-500">
+                Complete the required staff and guarantor name and phone details to enable final submission.
+              </p>
+            )}
           </form>
 
           <p className="text-xs text-gray-400 text-center mt-6">
@@ -662,10 +715,10 @@ export default function StaffOnboarding() {
               </p>
               <button
                 type="button"
-                onClick={closeConfirmationModal}
+                onClick={handleConfirmationAction}
                 className="mt-6 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
               >
-                Okay
+                {confirmationModal.actionLabel}
               </button>
             </div>
           </div>

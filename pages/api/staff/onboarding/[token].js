@@ -112,7 +112,7 @@ export default async function handler(req, res) {
         return res.status(404).json({ message: "Invalid or expired link" });
       }
 
-      const { onboardingData, guarantor } = req.body;
+      const { onboardingData, guarantor, finalizeSubmission } = req.body;
 
       const nextOnboardingData = onboardingData
         ? normalizeOnboardingData(onboardingData)
@@ -138,14 +138,23 @@ export default async function handler(req, res) {
       const personalSectionComplete = isPersonalSectionComplete(nextOnboardingData);
       const guarantorSectionComplete = isGuarantorSectionComplete(nextGuarantor);
 
-      staff.onboardingComplete = personalSectionComplete && guarantorSectionComplete;
+      if (finalizeSubmission && !(personalSectionComplete && guarantorSectionComplete)) {
+        return res.status(400).json({
+          message: "Complete the staff and guarantor required details before final submission.",
+        });
+      }
+
+      if (finalizeSubmission) {
+        staff.onboardingComplete = true;
+      }
       await staff.save();
 
       return res.status(200).json({
-        message: staff.onboardingComplete
-          ? "Onboarding form completed successfully!"
+        message: finalizeSubmission
+          ? "Your completed form has been submitted successfully."
           : "Progress saved. Staff and guarantor details can be completed later.",
         onboardingComplete: staff.onboardingComplete,
+        finalized: Boolean(finalizeSubmission),
         onboardingData: nextOnboardingData,
         guarantor: nextGuarantor,
         personalSectionComplete,
