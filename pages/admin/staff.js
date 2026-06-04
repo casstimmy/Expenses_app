@@ -7,6 +7,28 @@ import { Camera, Copy, CheckCircle, ChevronDown, ChevronUp, Loader2 } from "luci
 
 const LOCATIONS = ["Ibile 1", "Ibile 2"];
 
+const EMPTY_ONBOARDING_DATA = {
+  fullName: "",
+  email: "",
+  phone: "",
+  address: "",
+  dateOfBirth: "",
+  stateOfOrigin: "",
+  nextOfKin: "",
+  nextOfKinPhone: "",
+  photo: "",
+};
+
+const EMPTY_GUARANTOR = {
+  name: "",
+  phone: "",
+  email: "",
+  address: "",
+  relationship: "",
+  occupation: "",
+  photo: "",
+};
+
 function toCamelCase(str) {
   return str
     .toLowerCase()
@@ -40,7 +62,18 @@ export default function ManageStaff() {
 
   // Onboarding / profile viewer
   const [expandedProfile, setExpandedProfile] = useState(null);
+  const [editingProfileId, setEditingProfileId] = useState(null);
   const [copiedLink, setCopiedLink] = useState(null);
+  const [profileEditForm, setProfileEditForm] = useState({
+    onboardingData: { ...EMPTY_ONBOARDING_DATA },
+    guarantor: { ...EMPTY_GUARANTOR },
+  });
+  const [profilePhotoPreview, setProfilePhotoPreview] = useState(null);
+  const [guarantorPhotoPreview, setGuarantorPhotoPreview] = useState(null);
+  const [uploadingProfilePhoto, setUploadingProfilePhoto] = useState(false);
+  const [uploadingGuarantorPhoto, setUploadingGuarantorPhoto] = useState(false);
+  const profilePhotoRef = useRef(null);
+  const guarantorPhotoRef = useRef(null);
 
   // Penalty edit state
   const [editingPenalty, setEditingPenalty] = useState(null); // { staffId, index }
@@ -127,6 +160,27 @@ export default function ManageStaff() {
     }
 
     setLoadingStaffList(false);
+  };
+
+  const resetProfileEdit = () => {
+    setEditingProfileId(null);
+    setProfileEditForm({
+      onboardingData: { ...EMPTY_ONBOARDING_DATA },
+      guarantor: { ...EMPTY_GUARANTOR },
+    });
+    setProfilePhotoPreview(null);
+    setGuarantorPhotoPreview(null);
+  };
+
+  const uploadImage = async (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch("/api/upload-image", { method: "POST", body: formData });
+    if (!res.ok) {
+      throw new Error("Upload failed");
+    }
+    const data = await res.json();
+    return data.links?.[0] || "";
   };
 
   const handleSendingMail = async () => {
@@ -305,6 +359,7 @@ export default function ManageStaff() {
   };
 
   const startEdit = (staff) => {
+    resetProfileEdit();
     setEditingId(staff._id);
     setEditForm({
       name: staff.name || "",
@@ -336,6 +391,69 @@ export default function ManageStaff() {
       },
       photo: "",
     });
+  };
+
+  const startProfileEdit = (staff) => {
+    cancelEdit();
+    setExpandedProfile(staff._id);
+    setEditingProfileId(staff._id);
+    setProfileEditForm({
+      onboardingData: {
+        ...EMPTY_ONBOARDING_DATA,
+        ...(staff.onboardingData || {}),
+      },
+      guarantor: {
+        ...EMPTY_GUARANTOR,
+        ...(staff.guarantor || {}),
+      },
+    });
+    setProfilePhotoPreview(staff.onboardingData?.photo || null);
+    setGuarantorPhotoPreview(staff.guarantor?.photo || null);
+  };
+
+  const handleProfileFieldChange = (section, field, value) => {
+    setProfileEditForm((prev) => ({
+      ...prev,
+      [section]: {
+        ...prev[section],
+        [field]: value,
+      },
+    }));
+  };
+
+  const handleProfilePhotoUpload = async (section, event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (loadEvent) => {
+      if (section === "onboardingData") {
+        setProfilePhotoPreview(loadEvent.target.result);
+      } else {
+        setGuarantorPhotoPreview(loadEvent.target.result);
+      }
+    };
+    reader.readAsDataURL(file);
+
+    if (section === "onboardingData") {
+      setUploadingProfilePhoto(true);
+    } else {
+      setUploadingGuarantorPhoto(true);
+    }
+
+    try {
+      const url = await uploadImage(file);
+      handleProfileFieldChange(section, "photo", url);
+    } catch (err) {
+      console.error("Profile photo upload failed:", err);
+      setMessage("Failed to upload image.");
+    } finally {
+      if (section === "onboardingData") {
+        setUploadingProfilePhoto(false);
+      } else {
+        setUploadingGuarantorPhoto(false);
+      }
+    }
   };
 
   const handleEditPhotoUpload = async (e) => {
@@ -376,6 +494,41 @@ export default function ManageStaff() {
       fetchStaff();
     } else {
       setMessage(data.message || "Error updating staff.");
+    }
+  };
+
+  const saveProfileEdit = async (staff) => {
+    setMessage("");
+
+    const res = await fetch(`/api/staff/${staff._id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: staff.name,
+        location: staff.location,
+        role: staff.role,
+        bank: staff.bank || {
+          accountName: "",
+          accountNumber: "",
+          bankName: "",
+        },
+        salary: staff.salary,
+        photo: staff.photo || "",
+        onboardingComplete: true,
+        onboardingData: profileEditForm.onboardingData,
+        guarantor: profileEditForm.guarantor,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      setMessage("Submitted staff profile updated.");
+      resetProfileEdit();
+      setExpandedProfile(staff._id);
+      fetchStaff();
+    } else {
+      setMessage(data.message || "Error updating submitted staff profile.");
     }
   };
 
@@ -822,44 +975,230 @@ export default function ManageStaff() {
                               {expandedProfile === staff._id ? <><ChevronUp size={12} /> Hide Profile</> : <><ChevronDown size={12} /> View Profile</>}
                             </button>
                           )}
+                          {staff.onboardingComplete && (
+                            <button
+                              onClick={() =>
+                                editingProfileId === staff._id
+                                  ? resetProfileEdit()
+                                  : startProfileEdit(staff)
+                              }
+                              className="flex items-center gap-1 text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded hover:bg-blue-100 transition"
+                            >
+                              {editingProfileId === staff._id ? "Cancel Profile Edit" : "Edit Submitted Profile"}
+                            </button>
+                          )}
                         </div>
 
                         {/* Expanded Profile Details */}
                         {expandedProfile === staff._id && staff.onboardingComplete && (
                           <div className="mt-3 bg-gray-50 rounded-lg p-3 text-xs space-y-3">
-                            {staff.onboardingData && (
-                              <div>
-                                <h4 className="font-semibold text-blue-700 mb-1">📋 Personal Details</h4>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
-                                  {staff.onboardingData.fullName && <p><span className="text-gray-500">Name:</span> {staff.onboardingData.fullName}</p>}
-                                  {staff.onboardingData.phone && <p><span className="text-gray-500">Phone:</span> {staff.onboardingData.phone}</p>}
-                                  {staff.onboardingData.email && <p><span className="text-gray-500">Email:</span> {staff.onboardingData.email}</p>}
-                                  {staff.onboardingData.dateOfBirth && <p><span className="text-gray-500">DOB:</span> {staff.onboardingData.dateOfBirth}</p>}
-                                  {staff.onboardingData.stateOfOrigin && <p><span className="text-gray-500">State:</span> {staff.onboardingData.stateOfOrigin}</p>}
-                                  {staff.onboardingData.address && <p className="col-span-2"><span className="text-gray-500">Address:</span> {staff.onboardingData.address}</p>}
-                                  {staff.onboardingData.nextOfKin && <p><span className="text-gray-500">Next of Kin:</span> {staff.onboardingData.nextOfKin}</p>}
-                                  {staff.onboardingData.nextOfKinPhone && <p><span className="text-gray-500">NoK Phone:</span> {staff.onboardingData.nextOfKinPhone}</p>}
+                            {editingProfileId === staff._id ? (
+                              <div className="space-y-4">
+                                <div>
+                                  <h4 className="font-semibold text-blue-700 mb-2">📋 Edit Personal Details</h4>
+                                  <div className="flex items-center gap-3 mb-3">
+                                    <div
+                                      onClick={() => profilePhotoRef.current?.click()}
+                                      className="w-16 h-16 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-blue-400 transition overflow-hidden shrink-0"
+                                    >
+                                      {uploadingProfilePhoto ? (
+                                        <Loader2 size={18} className="text-blue-400 animate-spin" />
+                                      ) : profilePhotoPreview ? (
+                                        <img src={profilePhotoPreview} alt="Staff passport" className="w-full h-full object-cover" />
+                                      ) : (
+                                        <Camera size={18} className="text-gray-400" />
+                                      )}
+                                    </div>
+                                    <input
+                                      ref={profilePhotoRef}
+                                      type="file"
+                                      accept="image/*"
+                                      onChange={(event) => handleProfilePhotoUpload("onboardingData", event)}
+                                      className="hidden"
+                                    />
+                                    <span className="text-xs text-gray-500">Update staff passport</span>
+                                  </div>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <input
+                                      type="text"
+                                      placeholder="Full Name"
+                                      value={profileEditForm.onboardingData.fullName}
+                                      onChange={(event) => handleProfileFieldChange("onboardingData", "fullName", event.target.value)}
+                                      className="border p-2 rounded w-full"
+                                    />
+                                    <input
+                                      type="tel"
+                                      placeholder="Phone Number"
+                                      value={profileEditForm.onboardingData.phone}
+                                      onChange={(event) => handleProfileFieldChange("onboardingData", "phone", event.target.value)}
+                                      className="border p-2 rounded w-full"
+                                    />
+                                    <input
+                                      type="email"
+                                      placeholder="Email Address"
+                                      value={profileEditForm.onboardingData.email}
+                                      onChange={(event) => handleProfileFieldChange("onboardingData", "email", event.target.value)}
+                                      className="border p-2 rounded w-full"
+                                    />
+                                    <input
+                                      type="date"
+                                      value={profileEditForm.onboardingData.dateOfBirth}
+                                      onChange={(event) => handleProfileFieldChange("onboardingData", "dateOfBirth", event.target.value)}
+                                      className="border p-2 rounded w-full"
+                                    />
+                                    <input
+                                      type="text"
+                                      placeholder="State of Origin"
+                                      value={profileEditForm.onboardingData.stateOfOrigin}
+                                      onChange={(event) => handleProfileFieldChange("onboardingData", "stateOfOrigin", event.target.value)}
+                                      className="border p-2 rounded w-full"
+                                    />
+                                    <input
+                                      type="text"
+                                      placeholder="Next of Kin"
+                                      value={profileEditForm.onboardingData.nextOfKin}
+                                      onChange={(event) => handleProfileFieldChange("onboardingData", "nextOfKin", event.target.value)}
+                                      className="border p-2 rounded w-full"
+                                    />
+                                    <input
+                                      type="tel"
+                                      placeholder="Next of Kin Phone"
+                                      value={profileEditForm.onboardingData.nextOfKinPhone}
+                                      onChange={(event) => handleProfileFieldChange("onboardingData", "nextOfKinPhone", event.target.value)}
+                                      className="border p-2 rounded w-full sm:col-span-2"
+                                    />
+                                    <input
+                                      type="text"
+                                      placeholder="Address"
+                                      value={profileEditForm.onboardingData.address}
+                                      onChange={(event) => handleProfileFieldChange("onboardingData", "address", event.target.value)}
+                                      className="border p-2 rounded w-full sm:col-span-2"
+                                    />
+                                  </div>
                                 </div>
-                                {staff.onboardingData.photo && (
-                                  <img src={staff.onboardingData.photo} alt="Staff passport" className="w-16 h-16 rounded-lg object-cover mt-2 border" />
-                                )}
-                              </div>
-                            )}
-                            {staff.guarantor && staff.guarantor.name && (
-                              <div>
-                                <h4 className="font-semibold text-blue-700 mb-1">🤝 Guarantor</h4>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
-                                  <p><span className="text-gray-500">Name:</span> {staff.guarantor.name}</p>
-                                  {staff.guarantor.phone && <p><span className="text-gray-500">Phone:</span> {staff.guarantor.phone}</p>}
-                                  {staff.guarantor.email && <p><span className="text-gray-500">Email:</span> {staff.guarantor.email}</p>}
-                                  {staff.guarantor.relationship && <p><span className="text-gray-500">Relationship:</span> {staff.guarantor.relationship}</p>}
-                                  {staff.guarantor.occupation && <p><span className="text-gray-500">Occupation:</span> {staff.guarantor.occupation}</p>}
-                                  {staff.guarantor.address && <p className="col-span-2"><span className="text-gray-500">Address:</span> {staff.guarantor.address}</p>}
+
+                                <div>
+                                  <h4 className="font-semibold text-blue-700 mb-2">🤝 Edit Guarantor Details</h4>
+                                  <div className="flex items-center gap-3 mb-3">
+                                    <div
+                                      onClick={() => guarantorPhotoRef.current?.click()}
+                                      className="w-16 h-16 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-blue-400 transition overflow-hidden shrink-0"
+                                    >
+                                      {uploadingGuarantorPhoto ? (
+                                        <Loader2 size={18} className="text-blue-400 animate-spin" />
+                                      ) : guarantorPhotoPreview ? (
+                                        <img src={guarantorPhotoPreview} alt="Guarantor passport" className="w-full h-full object-cover" />
+                                      ) : (
+                                        <Camera size={18} className="text-gray-400" />
+                                      )}
+                                    </div>
+                                    <input
+                                      ref={guarantorPhotoRef}
+                                      type="file"
+                                      accept="image/*"
+                                      onChange={(event) => handleProfilePhotoUpload("guarantor", event)}
+                                      className="hidden"
+                                    />
+                                    <span className="text-xs text-gray-500">Update guarantor passport</span>
+                                  </div>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <input
+                                      type="text"
+                                      placeholder="Guarantor Name"
+                                      value={profileEditForm.guarantor.name}
+                                      onChange={(event) => handleProfileFieldChange("guarantor", "name", event.target.value)}
+                                      className="border p-2 rounded w-full"
+                                    />
+                                    <input
+                                      type="tel"
+                                      placeholder="Guarantor Phone"
+                                      value={profileEditForm.guarantor.phone}
+                                      onChange={(event) => handleProfileFieldChange("guarantor", "phone", event.target.value)}
+                                      className="border p-2 rounded w-full"
+                                    />
+                                    <input
+                                      type="email"
+                                      placeholder="Guarantor Email"
+                                      value={profileEditForm.guarantor.email}
+                                      onChange={(event) => handleProfileFieldChange("guarantor", "email", event.target.value)}
+                                      className="border p-2 rounded w-full"
+                                    />
+                                    <input
+                                      type="text"
+                                      placeholder="Relationship"
+                                      value={profileEditForm.guarantor.relationship}
+                                      onChange={(event) => handleProfileFieldChange("guarantor", "relationship", event.target.value)}
+                                      className="border p-2 rounded w-full"
+                                    />
+                                    <input
+                                      type="text"
+                                      placeholder="Occupation"
+                                      value={profileEditForm.guarantor.occupation}
+                                      onChange={(event) => handleProfileFieldChange("guarantor", "occupation", event.target.value)}
+                                      className="border p-2 rounded w-full"
+                                    />
+                                    <input
+                                      type="text"
+                                      placeholder="Address"
+                                      value={profileEditForm.guarantor.address}
+                                      onChange={(event) => handleProfileFieldChange("guarantor", "address", event.target.value)}
+                                      className="border p-2 rounded w-full sm:col-span-2"
+                                    />
+                                  </div>
                                 </div>
-                                {staff.guarantor.photo && (
-                                  <img src={staff.guarantor.photo} alt="Guarantor passport" className="w-16 h-16 rounded-lg object-cover mt-2 border" />
-                                )}
+
+                                <div className="flex justify-end gap-2 pt-1">
+                                  <button
+                                    onClick={resetProfileEdit}
+                                    className="bg-gray-400 text-white px-4 py-1 rounded hover:bg-gray-500 text-sm"
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    onClick={() => saveProfileEdit(staff)}
+                                    className="bg-green-600 text-white px-4 py-1 rounded hover:bg-green-700 text-sm"
+                                  >
+                                    Save Submitted Profile
+                                  </button>
+                                </div>
                               </div>
+                            ) : (
+                              <>
+                                {staff.onboardingData && (
+                                  <div>
+                                    <h4 className="font-semibold text-blue-700 mb-1">📋 Personal Details</h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                                      {staff.onboardingData.fullName && <p><span className="text-gray-500">Name:</span> {staff.onboardingData.fullName}</p>}
+                                      {staff.onboardingData.phone && <p><span className="text-gray-500">Phone:</span> {staff.onboardingData.phone}</p>}
+                                      {staff.onboardingData.email && <p><span className="text-gray-500">Email:</span> {staff.onboardingData.email}</p>}
+                                      {staff.onboardingData.dateOfBirth && <p><span className="text-gray-500">DOB:</span> {staff.onboardingData.dateOfBirth}</p>}
+                                      {staff.onboardingData.stateOfOrigin && <p><span className="text-gray-500">State:</span> {staff.onboardingData.stateOfOrigin}</p>}
+                                      {staff.onboardingData.address && <p className="col-span-2"><span className="text-gray-500">Address:</span> {staff.onboardingData.address}</p>}
+                                      {staff.onboardingData.nextOfKin && <p><span className="text-gray-500">Next of Kin:</span> {staff.onboardingData.nextOfKin}</p>}
+                                      {staff.onboardingData.nextOfKinPhone && <p><span className="text-gray-500">NoK Phone:</span> {staff.onboardingData.nextOfKinPhone}</p>}
+                                    </div>
+                                    {staff.onboardingData.photo && (
+                                      <img src={staff.onboardingData.photo} alt="Staff passport" className="w-16 h-16 rounded-lg object-cover mt-2 border" />
+                                    )}
+                                  </div>
+                                )}
+                                {staff.guarantor && staff.guarantor.name && (
+                                  <div>
+                                    <h4 className="font-semibold text-blue-700 mb-1">🤝 Guarantor</h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                                      <p><span className="text-gray-500">Name:</span> {staff.guarantor.name}</p>
+                                      {staff.guarantor.phone && <p><span className="text-gray-500">Phone:</span> {staff.guarantor.phone}</p>}
+                                      {staff.guarantor.email && <p><span className="text-gray-500">Email:</span> {staff.guarantor.email}</p>}
+                                      {staff.guarantor.relationship && <p><span className="text-gray-500">Relationship:</span> {staff.guarantor.relationship}</p>}
+                                      {staff.guarantor.occupation && <p><span className="text-gray-500">Occupation:</span> {staff.guarantor.occupation}</p>}
+                                      {staff.guarantor.address && <p className="col-span-2"><span className="text-gray-500">Address:</span> {staff.guarantor.address}</p>}
+                                    </div>
+                                    {staff.guarantor.photo && (
+                                      <img src={staff.guarantor.photo} alt="Guarantor passport" className="w-16 h-16 rounded-lg object-cover mt-2 border" />
+                                    )}
+                                  </div>
+                                )}
+                              </>
                             )}
                           </div>
                         )}

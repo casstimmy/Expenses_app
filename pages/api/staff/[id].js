@@ -3,6 +3,32 @@ import { Staff } from "@/models/Staff";
 import { getAuthStaff, requireAuth } from "@/lib/auth";
 import bcrypt from "bcrypt";
 
+function normalizeOnboardingData(data = {}) {
+  return {
+    fullName: data.fullName ?? "",
+    email: data.email ?? "",
+    phone: data.phone ?? "",
+    address: data.address ?? "",
+    dateOfBirth: data.dateOfBirth ?? "",
+    stateOfOrigin: data.stateOfOrigin ?? "",
+    nextOfKin: data.nextOfKin ?? "",
+    nextOfKinPhone: data.nextOfKinPhone ?? "",
+    photo: data.photo ?? "",
+  };
+}
+
+function normalizeGuarantor(data = {}) {
+  return {
+    name: data.name ?? "",
+    phone: data.phone ?? "",
+    email: data.email ?? "",
+    address: data.address ?? "",
+    relationship: data.relationship ?? "",
+    occupation: data.occupation ?? "",
+    photo: data.photo ?? "",
+  };
+}
+
 export default async function handler(req, res) {
   const { id } = req.query;
 
@@ -29,7 +55,18 @@ export default async function handler(req, res) {
     if (authStaff.role !== "admin") {
       return res.status(403).json({ message: "You dont have the permission to edit." });
     }
-	const { name, password, location, role, bank, salary, photo } = req.body;
+	const {
+      name,
+      password,
+      location,
+      role,
+      bank,
+      salary,
+      photo,
+      onboardingData,
+      guarantor,
+      onboardingComplete,
+    } = req.body;
 
 
    const missingFields = [];
@@ -54,7 +91,16 @@ if (missingFields.length > 0) {
     accountNumber: bank?.accountNumber ?? "",
     bankName: bank?.bankName ?? "",
   }
-} : {})
+} : {}),
+      ...(onboardingData ? { onboardingData: normalizeOnboardingData(onboardingData) } : {}),
+      ...(guarantor ? { guarantor: normalizeGuarantor(guarantor) } : {}),
+      ...(
+        typeof onboardingComplete === "boolean"
+          ? { onboardingComplete }
+          : onboardingData || guarantor
+            ? { onboardingComplete: true }
+            : {}
+      ),
 
     };
 
