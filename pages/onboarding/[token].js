@@ -1,7 +1,33 @@
-import React, { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/router";
+import React, { useEffect, useRef, useState } from "react";
 import Head from "next/head";
+import { useRouter } from "next/router";
 import { Camera, CheckCircle, Loader2 } from "lucide-react";
+
+const EMPTY_MODAL = {
+  open: false,
+  title: "",
+  message: "",
+};
+
+const EMPTY_PERSONAL_FORM = {
+  fullName: "",
+  email: "",
+  phone: "",
+  address: "",
+  dateOfBirth: "",
+  stateOfOrigin: "",
+  nextOfKin: "",
+  nextOfKinPhone: "",
+};
+
+const EMPTY_GUARANTOR_FORM = {
+  name: "",
+  phone: "",
+  email: "",
+  address: "",
+  relationship: "",
+  occupation: "",
+};
 
 export default function StaffOnboarding() {
   const router = useRouter();
@@ -11,7 +37,7 @@ export default function StaffOnboarding() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
+  const [confirmationModal, setConfirmationModal] = useState(EMPTY_MODAL);
 
   const [staffPhotoPreview, setStaffPhotoPreview] = useState(null);
   const [staffPhotoUrl, setStaffPhotoUrl] = useState("");
@@ -21,42 +47,36 @@ export default function StaffOnboarding() {
   const [guarantorPhotoUrl, setGuarantorPhotoUrl] = useState("");
   const [uploadingGuarantorPhoto, setUploadingGuarantorPhoto] = useState(false);
 
+  const [personalForm, setPersonalForm] = useState(EMPTY_PERSONAL_FORM);
+  const [guarantorForm, setGuarantorForm] = useState(EMPTY_GUARANTOR_FORM);
+
   const staffPhotoRef = useRef(null);
   const guarantorPhotoRef = useRef(null);
 
-  const [personalForm, setPersonalForm] = useState({
-    fullName: "",
-    email: "",
-    phone: "",
-    address: "",
-    dateOfBirth: "",
-    stateOfOrigin: "",
-    nextOfKin: "",
-    nextOfKinPhone: "",
-  });
-
-  const [guarantorForm, setGuarantorForm] = useState({
-    name: "",
-    phone: "",
-    email: "",
-    address: "",
-    relationship: "",
-    occupation: "",
-  });
-
   useEffect(() => {
     if (!token) return;
-    fetchStaffInfo();
-  }, [token]);
 
-  const fetchStaffInfo = async () => {
-    try {
-      const res = await fetch(`/api/staff/onboarding/${token}`);
-      if (res.ok) {
+    let cancelled = false;
+
+    const loadStaffInfo = async () => {
+      setLoading(true);
+      setError("");
+
+      try {
+        const res = await fetch(`/api/staff/onboarding/${token}`);
         const data = await res.json();
+
+        if (!res.ok) {
+          if (!cancelled) {
+            setError(data.message || "This onboarding link is invalid or has expired.");
+          }
+          return;
+        }
+
+        if (cancelled) return;
+
         setStaffInfo(data);
 
-        // Pre-fill if already submitted
         if (data.onboardingComplete && data.onboardingData) {
           setPersonalForm({
             fullName: data.onboardingData.fullName || "",
@@ -68,11 +88,14 @@ export default function StaffOnboarding() {
             nextOfKin: data.onboardingData.nextOfKin || "",
             nextOfKinPhone: data.onboardingData.nextOfKinPhone || "",
           });
-          if (data.onboardingData.photo) {
-            setStaffPhotoPreview(data.onboardingData.photo);
-            setStaffPhotoUrl(data.onboardingData.photo);
-          }
+          setStaffPhotoPreview(data.onboardingData.photo || null);
+          setStaffPhotoUrl(data.onboardingData.photo || "");
+        } else {
+          setPersonalForm({ ...EMPTY_PERSONAL_FORM });
+          setStaffPhotoPreview(null);
+          setStaffPhotoUrl("");
         }
+
         if (data.onboardingComplete && data.guarantor) {
           setGuarantorForm({
             name: data.guarantor.name || "",
@@ -82,20 +105,34 @@ export default function StaffOnboarding() {
             relationship: data.guarantor.relationship || "",
             occupation: data.guarantor.occupation || "",
           });
-          if (data.guarantor.photo) {
-            setGuarantorPhotoPreview(data.guarantor.photo);
-            setGuarantorPhotoUrl(data.guarantor.photo);
-          }
+          setGuarantorPhotoPreview(data.guarantor.photo || null);
+          setGuarantorPhotoUrl(data.guarantor.photo || "");
+        } else {
+          setGuarantorForm({ ...EMPTY_GUARANTOR_FORM });
+          setGuarantorPhotoPreview(null);
+          setGuarantorPhotoUrl("");
         }
-      } else {
-        setError("This onboarding link is invalid or has expired.");
+      } catch (err) {
+        console.error(err);
+        if (!cancelled) {
+          setError("Failed to load onboarding form.");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
-    } catch (err) {
-      console.error(err);
-      setError("Failed to load onboarding form.");
-    } finally {
-      setLoading(false);
-    }
+    };
+
+    loadStaffInfo();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+
+  const closeConfirmationModal = () => {
+    setConfirmationModal(EMPTY_MODAL);
   };
 
   const uploadPhoto = async (file) => {
@@ -108,17 +145,20 @@ export default function StaffOnboarding() {
       body: formData,
     });
 
-    if (!res.ok) throw new Error("Upload failed");
+    if (!res.ok) {
+      throw new Error("Upload failed");
+    }
+
     const data = await res.json();
     return data.links?.[0] || "";
   };
 
-  const handleStaffPhoto = async (e) => {
-    const file = e.target.files?.[0];
+  const handleStaffPhoto = async (event) => {
+    const file = event.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (ev) => setStaffPhotoPreview(ev.target.result);
+    reader.onload = (loadEvent) => setStaffPhotoPreview(loadEvent.target.result);
     reader.readAsDataURL(file);
 
     setUploadingStaffPhoto(true);
@@ -126,18 +166,19 @@ export default function StaffOnboarding() {
       const url = await uploadPhoto(file);
       setStaffPhotoUrl(url);
     } catch (err) {
+      console.error(err);
       setError("Failed to upload photo. Please try again.");
     } finally {
       setUploadingStaffPhoto(false);
     }
   };
 
-  const handleGuarantorPhoto = async (e) => {
-    const file = e.target.files?.[0];
+  const handleGuarantorPhoto = async (event) => {
+    const file = event.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (ev) => setGuarantorPhotoPreview(ev.target.result);
+    reader.onload = (loadEvent) => setGuarantorPhotoPreview(loadEvent.target.result);
     reader.readAsDataURL(file);
 
     setUploadingGuarantorPhoto(true);
@@ -145,16 +186,19 @@ export default function StaffOnboarding() {
       const url = await uploadPhoto(file);
       setGuarantorPhotoUrl(url);
     } catch (err) {
+      console.error(err);
       setError("Failed to upload photo. Please try again.");
     } finally {
       setUploadingGuarantorPhoto(false);
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     setError("");
     setSubmitting(true);
+
+    const wasAlreadySubmitted = Boolean(staffInfo?.onboardingComplete);
 
     if (!personalForm.fullName || !personalForm.phone) {
       setError("Full name and phone number are required.");
@@ -178,12 +222,31 @@ export default function StaffOnboarding() {
         }),
       });
 
-      if (res.ok) {
-        setSuccess(true);
-      } else {
-        const data = await res.json();
+      const data = await res.json();
+
+      if (!res.ok) {
         setError(data.message || "Submission failed.");
+        return;
       }
+
+      setStaffInfo((prev) =>
+        prev
+          ? {
+              ...prev,
+              onboardingComplete: true,
+              onboardingData: { ...personalForm, photo: staffPhotoUrl },
+              guarantor: { ...guarantorForm, photo: guarantorPhotoUrl },
+            }
+          : prev
+      );
+
+      setConfirmationModal({
+        open: true,
+        title: wasAlreadySubmitted ? "Profile Updated" : "Thank You",
+        message: wasAlreadySubmitted
+          ? data.message || "Your profile changes have been saved successfully."
+          : data.message || "Your profile has been created successfully.",
+      });
     } catch (err) {
       console.error(err);
       setError("An error occurred. Please try again.");
@@ -204,24 +267,9 @@ export default function StaffOnboarding() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4">
         <div className="bg-white p-8 rounded-2xl shadow-lg text-center max-w-md">
-          <div className="text-5xl mb-4">🔗</div>
+          <div className="text-5xl mb-4">Link</div>
           <h1 className="text-xl font-bold text-gray-800 mb-2">Link Invalid</h1>
           <p className="text-gray-500">{error}</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (success) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center px-4">
-        <div className="bg-white p-8 rounded-2xl shadow-lg text-center max-w-md">
-          <CheckCircle size={60} className="text-green-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">Form Submitted!</h1>
-          <p className="text-gray-500">
-            Thank you, your details and guarantor information have been submitted successfully.
-            Your profile has been updated.
-          </p>
         </div>
       </div>
     );
@@ -230,19 +278,22 @@ export default function StaffOnboarding() {
   return (
     <>
       <Head>
-        <title>Staff Onboarding — BizSuits</title>
+        <title>Staff Onboarding - BizSuits</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
         <div className="max-w-2xl mx-auto">
-          {/* Header */}
           <div className="text-center mb-6">
             <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-              BizSuits™ Staff Onboarding
+              BizSuits Staff Onboarding
             </h1>
-            <p className="text-gray-500 mt-1">Welcome, {staffInfo?.name}! Please complete your profile.</p>
-            <p className="text-xs text-gray-400 mt-1">📍 {staffInfo?.location} · {staffInfo?.role}</p>
+            <p className="text-gray-500 mt-1">
+              Welcome, {staffInfo?.name}! Please complete your profile.
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              {staffInfo?.location} - {staffInfo?.role}
+            </p>
           </div>
 
           {staffInfo?.onboardingComplete && (
@@ -252,11 +303,9 @@ export default function StaffOnboarding() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Section 1: Personal Details */}
             <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-6 border border-gray-100">
-              <h2 className="text-lg font-semibold text-blue-700 mb-4">📋 Personal Details</h2>
+              <h2 className="text-lg font-semibold text-blue-700 mb-4">Personal Details</h2>
 
-              {/* Passport Photo */}
               <div className="flex flex-col items-center mb-5">
                 <div
                   onClick={() => staffPhotoRef.current?.click()}
@@ -270,7 +319,14 @@ export default function StaffOnboarding() {
                     <Camera size={30} className="text-gray-400" />
                   )}
                 </div>
-                <input ref={staffPhotoRef} type="file" accept="image/*" capture="user" onChange={handleStaffPhoto} className="hidden" />
+                <input
+                  ref={staffPhotoRef}
+                  type="file"
+                  accept="image/*"
+                  capture="user"
+                  onChange={handleStaffPhoto}
+                  className="hidden"
+                />
                 <p className="text-xs text-gray-400 mt-2">Tap to upload passport photo</p>
               </div>
 
@@ -279,7 +335,9 @@ export default function StaffOnboarding() {
                   type="text"
                   placeholder="Full Name *"
                   value={personalForm.fullName}
-                  onChange={(e) => setPersonalForm((p) => ({ ...p, fullName: e.target.value }))}
+                  onChange={(event) =>
+                    setPersonalForm((prev) => ({ ...prev, fullName: event.target.value }))
+                  }
                   className="border p-2.5 rounded-lg w-full"
                   required
                 />
@@ -287,60 +345,71 @@ export default function StaffOnboarding() {
                   type="email"
                   placeholder="Email Address"
                   value={personalForm.email}
-                  onChange={(e) => setPersonalForm((p) => ({ ...p, email: e.target.value }))}
+                  onChange={(event) =>
+                    setPersonalForm((prev) => ({ ...prev, email: event.target.value }))
+                  }
                   className="border p-2.5 rounded-lg w-full"
                 />
                 <input
                   type="tel"
                   placeholder="Phone Number *"
                   value={personalForm.phone}
-                  onChange={(e) => setPersonalForm((p) => ({ ...p, phone: e.target.value }))}
+                  onChange={(event) =>
+                    setPersonalForm((prev) => ({ ...prev, phone: event.target.value }))
+                  }
                   className="border p-2.5 rounded-lg w-full"
                   required
                 />
                 <input
                   type="date"
-                  placeholder="Date of Birth"
                   value={personalForm.dateOfBirth}
-                  onChange={(e) => setPersonalForm((p) => ({ ...p, dateOfBirth: e.target.value }))}
+                  onChange={(event) =>
+                    setPersonalForm((prev) => ({ ...prev, dateOfBirth: event.target.value }))
+                  }
                   className="border p-2.5 rounded-lg w-full"
                 />
                 <input
                   type="text"
                   placeholder="State of Origin"
                   value={personalForm.stateOfOrigin}
-                  onChange={(e) => setPersonalForm((p) => ({ ...p, stateOfOrigin: e.target.value }))}
+                  onChange={(event) =>
+                    setPersonalForm((prev) => ({ ...prev, stateOfOrigin: event.target.value }))
+                  }
                   className="border p-2.5 rounded-lg w-full"
                 />
                 <input
                   type="text"
                   placeholder="Home Address"
                   value={personalForm.address}
-                  onChange={(e) => setPersonalForm((p) => ({ ...p, address: e.target.value }))}
+                  onChange={(event) =>
+                    setPersonalForm((prev) => ({ ...prev, address: event.target.value }))
+                  }
                   className="border p-2.5 rounded-lg w-full sm:col-span-2"
                 />
                 <input
                   type="text"
                   placeholder="Next of Kin Name"
                   value={personalForm.nextOfKin}
-                  onChange={(e) => setPersonalForm((p) => ({ ...p, nextOfKin: e.target.value }))}
+                  onChange={(event) =>
+                    setPersonalForm((prev) => ({ ...prev, nextOfKin: event.target.value }))
+                  }
                   className="border p-2.5 rounded-lg w-full"
                 />
                 <input
                   type="tel"
                   placeholder="Next of Kin Phone"
                   value={personalForm.nextOfKinPhone}
-                  onChange={(e) => setPersonalForm((p) => ({ ...p, nextOfKinPhone: e.target.value }))}
+                  onChange={(event) =>
+                    setPersonalForm((prev) => ({ ...prev, nextOfKinPhone: event.target.value }))
+                  }
                   className="border p-2.5 rounded-lg w-full"
                 />
               </div>
             </div>
 
-            {/* Section 2: Guarantor Details */}
             <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-6 border border-gray-100">
-              <h2 className="text-lg font-semibold text-blue-700 mb-4">🤝 Guarantor Details</h2>
+              <h2 className="text-lg font-semibold text-blue-700 mb-4">Guarantor Details</h2>
 
-              {/* Guarantor Photo */}
               <div className="flex flex-col items-center mb-5">
                 <div
                   onClick={() => guarantorPhotoRef.current?.click()}
@@ -349,12 +418,23 @@ export default function StaffOnboarding() {
                   {uploadingGuarantorPhoto ? (
                     <Loader2 size={30} className="text-blue-400 animate-spin" />
                   ) : guarantorPhotoPreview ? (
-                    <img src={guarantorPhotoPreview} alt="Guarantor" className="w-full h-full object-cover" />
+                    <img
+                      src={guarantorPhotoPreview}
+                      alt="Guarantor"
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
                     <Camera size={30} className="text-gray-400" />
                   )}
                 </div>
-                <input ref={guarantorPhotoRef} type="file" accept="image/*" capture="user" onChange={handleGuarantorPhoto} className="hidden" />
+                <input
+                  ref={guarantorPhotoRef}
+                  type="file"
+                  accept="image/*"
+                  capture="user"
+                  onChange={handleGuarantorPhoto}
+                  className="hidden"
+                />
                 <p className="text-xs text-gray-400 mt-2">Tap to upload guarantor passport photo</p>
               </div>
 
@@ -363,7 +443,9 @@ export default function StaffOnboarding() {
                   type="text"
                   placeholder="Guarantor Full Name *"
                   value={guarantorForm.name}
-                  onChange={(e) => setGuarantorForm((p) => ({ ...p, name: e.target.value }))}
+                  onChange={(event) =>
+                    setGuarantorForm((prev) => ({ ...prev, name: event.target.value }))
+                  }
                   className="border p-2.5 rounded-lg w-full"
                   required
                 />
@@ -371,7 +453,9 @@ export default function StaffOnboarding() {
                   type="tel"
                   placeholder="Guarantor Phone *"
                   value={guarantorForm.phone}
-                  onChange={(e) => setGuarantorForm((p) => ({ ...p, phone: e.target.value }))}
+                  onChange={(event) =>
+                    setGuarantorForm((prev) => ({ ...prev, phone: event.target.value }))
+                  }
                   className="border p-2.5 rounded-lg w-full"
                   required
                 />
@@ -379,35 +463,45 @@ export default function StaffOnboarding() {
                   type="email"
                   placeholder="Guarantor Email"
                   value={guarantorForm.email}
-                  onChange={(e) => setGuarantorForm((p) => ({ ...p, email: e.target.value }))}
+                  onChange={(event) =>
+                    setGuarantorForm((prev) => ({ ...prev, email: event.target.value }))
+                  }
                   className="border p-2.5 rounded-lg w-full"
                 />
                 <input
                   type="text"
-                  placeholder="Relationship (e.g. Parent, Sibling)"
+                  placeholder="Relationship"
                   value={guarantorForm.relationship}
-                  onChange={(e) => setGuarantorForm((p) => ({ ...p, relationship: e.target.value }))}
+                  onChange={(event) =>
+                    setGuarantorForm((prev) => ({ ...prev, relationship: event.target.value }))
+                  }
                   className="border p-2.5 rounded-lg w-full"
                 />
                 <input
                   type="text"
                   placeholder="Guarantor Occupation"
                   value={guarantorForm.occupation}
-                  onChange={(e) => setGuarantorForm((p) => ({ ...p, occupation: e.target.value }))}
+                  onChange={(event) =>
+                    setGuarantorForm((prev) => ({ ...prev, occupation: event.target.value }))
+                  }
                   className="border p-2.5 rounded-lg w-full"
                 />
                 <input
                   type="text"
                   placeholder="Guarantor Address"
                   value={guarantorForm.address}
-                  onChange={(e) => setGuarantorForm((p) => ({ ...p, address: e.target.value }))}
+                  onChange={(event) =>
+                    setGuarantorForm((prev) => ({ ...prev, address: event.target.value }))
+                  }
                   className="border p-2.5 rounded-lg w-full sm:col-span-2"
                 />
               </div>
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 rounded-xl p-3 text-sm">{error}</div>
+              <div className="bg-red-50 border border-red-200 text-red-600 rounded-xl p-3 text-sm">
+                {error}
+              </div>
             )}
 
             <button
@@ -415,14 +509,39 @@ export default function StaffOnboarding() {
               disabled={submitting || uploadingStaffPhoto || uploadingGuarantorPhoto}
               className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 transition shadow-lg"
             >
-              {submitting ? "Submitting..." : "Submit Onboarding Form"}
+              {submitting
+                ? "Saving..."
+                : staffInfo?.onboardingComplete
+                  ? "Save Profile Changes"
+                  : "Save and Send Profile"}
             </button>
           </form>
 
           <p className="text-xs text-gray-400 text-center mt-6">
-            BizSuits™ Expense Management System
+            BizSuits Expense Management System
           </p>
         </div>
+
+        {confirmationModal.open && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/55 px-4 py-6">
+            <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+              <CheckCircle size={56} className="mx-auto mb-4 text-green-500" />
+              <h2 className="text-center text-2xl font-bold text-slate-900">
+                {confirmationModal.title}
+              </h2>
+              <p className="mt-3 text-center text-sm leading-6 text-slate-600">
+                {confirmationModal.message}
+              </p>
+              <button
+                type="button"
+                onClick={closeConfirmationModal}
+                className="mt-6 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+              >
+                Okay
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
