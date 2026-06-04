@@ -29,6 +29,20 @@ const EMPTY_GUARANTOR_FORM = {
   occupation: "",
 };
 
+function hasAnyData(values = {}, photo = "") {
+  return [...Object.values(values), photo].some((value) =>
+    typeof value === "string" ? value.trim() !== "" : Boolean(value)
+  );
+}
+
+function isPersonalSectionComplete(values = {}) {
+  return Boolean(values.fullName?.trim() && values.phone?.trim());
+}
+
+function isGuarantorSectionComplete(values = {}) {
+  return Boolean(values.name?.trim() && values.phone?.trim());
+}
+
 export default function StaffOnboarding() {
   const router = useRouter();
   const { token } = router.query;
@@ -77,7 +91,7 @@ export default function StaffOnboarding() {
 
         setStaffInfo(data);
 
-        if (data.onboardingComplete && data.onboardingData) {
+        if (data.onboardingData) {
           setPersonalForm({
             fullName: data.onboardingData.fullName || "",
             email: data.onboardingData.email || "",
@@ -96,7 +110,7 @@ export default function StaffOnboarding() {
           setStaffPhotoUrl("");
         }
 
-        if (data.onboardingComplete && data.guarantor) {
+        if (data.guarantor) {
           setGuarantorForm({
             name: data.guarantor.name || "",
             phone: data.guarantor.phone || "",
@@ -199,15 +213,13 @@ export default function StaffOnboarding() {
     setSubmitting(true);
 
     const wasAlreadySubmitted = Boolean(staffInfo?.onboardingComplete);
+    const onboardingPayload = { ...personalForm, photo: staffPhotoUrl };
+    const guarantorPayload = { ...guarantorForm, photo: guarantorPhotoUrl };
+    const hasPersonalData = hasAnyData(personalForm, staffPhotoUrl);
+    const hasGuarantorData = hasAnyData(guarantorForm, guarantorPhotoUrl);
 
-    if (!personalForm.fullName || !personalForm.phone) {
-      setError("Full name and phone number are required.");
-      setSubmitting(false);
-      return;
-    }
-
-    if (!guarantorForm.name || !guarantorForm.phone) {
-      setError("Guarantor name and phone number are required.");
+    if (!hasPersonalData && !hasGuarantorData) {
+      setError("Add at least one staff or guarantor detail before saving.");
       setSubmitting(false);
       return;
     }
@@ -217,8 +229,8 @@ export default function StaffOnboarding() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          onboardingData: { ...personalForm, photo: staffPhotoUrl },
-          guarantor: { ...guarantorForm, photo: guarantorPhotoUrl },
+          onboardingData: onboardingPayload,
+          guarantor: guarantorPayload,
         }),
       });
 
@@ -233,19 +245,25 @@ export default function StaffOnboarding() {
         prev
           ? {
               ...prev,
-              onboardingComplete: true,
-              onboardingData: { ...personalForm, photo: staffPhotoUrl },
-              guarantor: { ...guarantorForm, photo: guarantorPhotoUrl },
+              onboardingComplete: Boolean(data.onboardingComplete),
+              onboardingData: data.onboardingData || onboardingPayload,
+              guarantor: data.guarantor || guarantorPayload,
             }
           : prev
       );
 
       setConfirmationModal({
         open: true,
-        title: wasAlreadySubmitted ? "Profile Updated" : "Thank You",
-        message: wasAlreadySubmitted
-          ? data.message || "Your profile changes have been saved successfully."
-          : data.message || "Your profile has been created successfully.",
+        title: data.onboardingComplete
+          ? wasAlreadySubmitted
+            ? "Profile Updated"
+            : "Thank You"
+          : "Progress Saved",
+        message: data.onboardingComplete
+          ? wasAlreadySubmitted
+            ? data.message || "Your profile changes have been saved successfully."
+            : data.message || "Your profile has been completed successfully."
+          : data.message || "Your progress has been saved. The remaining section can be completed later.",
       });
     } catch (err) {
       console.error(err);
@@ -275,6 +293,11 @@ export default function StaffOnboarding() {
     );
   }
 
+  const personalSectionComplete = isPersonalSectionComplete(personalForm);
+  const guarantorSectionComplete = isGuarantorSectionComplete(guarantorForm);
+  const hasSavedProgress =
+    hasAnyData(personalForm, staffPhotoUrl) || hasAnyData(guarantorForm, guarantorPhotoUrl);
+
   return (
     <>
       <Head>
@@ -289,7 +312,7 @@ export default function StaffOnboarding() {
               BizSuits Staff Onboarding
             </h1>
             <p className="text-gray-500 mt-1">
-              Welcome, {staffInfo?.name}! Please complete your profile.
+              Welcome, {staffInfo?.name}! Staff and guarantor details can be saved separately and completed later.
             </p>
             <p className="text-xs text-gray-400 mt-1">
               {staffInfo?.location} - {staffInfo?.role}
@@ -302,9 +325,26 @@ export default function StaffOnboarding() {
             </div>
           )}
 
+          {!staffInfo?.onboardingComplete && hasSavedProgress && (
+            <div className="bg-blue-50 border border-blue-200 text-blue-700 rounded-xl p-3 mb-4 text-sm text-center">
+              Progress has been saved. The remaining section can be completed later using this same link.
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-6 border border-gray-100">
-              <h2 className="text-lg font-semibold text-blue-700 mb-4">Personal Details</h2>
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-lg font-semibold text-blue-700">Personal Details</h2>
+                <span
+                  className={`rounded-full px-3 py-1 text-xs font-medium ${
+                    personalSectionComplete
+                      ? "bg-green-100 text-green-700"
+                      : "bg-slate-100 text-slate-600"
+                  }`}
+                >
+                  {personalSectionComplete ? "Completed" : "Can be saved later"}
+                </span>
+              </div>
 
               <div className="flex flex-col items-center mb-5">
                 <div
@@ -333,13 +373,12 @@ export default function StaffOnboarding() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <input
                   type="text"
-                  placeholder="Full Name *"
+                  placeholder="Full Name"
                   value={personalForm.fullName}
                   onChange={(event) =>
                     setPersonalForm((prev) => ({ ...prev, fullName: event.target.value }))
                   }
                   className="border p-2.5 rounded-lg w-full"
-                  required
                 />
                 <input
                   type="email"
@@ -352,13 +391,12 @@ export default function StaffOnboarding() {
                 />
                 <input
                   type="tel"
-                  placeholder="Phone Number *"
+                  placeholder="Phone Number"
                   value={personalForm.phone}
                   onChange={(event) =>
                     setPersonalForm((prev) => ({ ...prev, phone: event.target.value }))
                   }
                   className="border p-2.5 rounded-lg w-full"
-                  required
                 />
                 <input
                   type="date"
@@ -408,7 +446,18 @@ export default function StaffOnboarding() {
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-6 border border-gray-100">
-              <h2 className="text-lg font-semibold text-blue-700 mb-4">Guarantor Details</h2>
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-lg font-semibold text-blue-700">Guarantor Details</h2>
+                <span
+                  className={`rounded-full px-3 py-1 text-xs font-medium ${
+                    guarantorSectionComplete
+                      ? "bg-green-100 text-green-700"
+                      : "bg-slate-100 text-slate-600"
+                  }`}
+                >
+                  {guarantorSectionComplete ? "Completed" : "Can be saved later"}
+                </span>
+              </div>
 
               <div className="flex flex-col items-center mb-5">
                 <div
@@ -441,23 +490,21 @@ export default function StaffOnboarding() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <input
                   type="text"
-                  placeholder="Guarantor Full Name *"
+                  placeholder="Guarantor Full Name"
                   value={guarantorForm.name}
                   onChange={(event) =>
                     setGuarantorForm((prev) => ({ ...prev, name: event.target.value }))
                   }
                   className="border p-2.5 rounded-lg w-full"
-                  required
                 />
                 <input
                   type="tel"
-                  placeholder="Guarantor Phone *"
+                  placeholder="Guarantor Phone"
                   value={guarantorForm.phone}
                   onChange={(event) =>
                     setGuarantorForm((prev) => ({ ...prev, phone: event.target.value }))
                   }
                   className="border p-2.5 rounded-lg w-full"
-                  required
                 />
                 <input
                   type="email"
@@ -513,7 +560,7 @@ export default function StaffOnboarding() {
                 ? "Saving..."
                 : staffInfo?.onboardingComplete
                   ? "Save Profile Changes"
-                  : "Save and Send Profile"}
+                  : "Save Progress"}
             </button>
           </form>
 

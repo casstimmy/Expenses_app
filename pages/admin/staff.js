@@ -514,7 +514,6 @@ export default function ManageStaff() {
         },
         salary: staff.salary,
         photo: staff.photo || "",
-        onboardingComplete: true,
         onboardingData: profileEditForm.onboardingData,
         guarantor: profileEditForm.guarantor,
       }),

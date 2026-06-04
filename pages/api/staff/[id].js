@@ -29,6 +29,14 @@ function normalizeGuarantor(data = {}) {
   };
 }
 
+function isOnboardingDataComplete(data = {}) {
+  return Boolean(data.fullName?.trim() && data.phone?.trim());
+}
+
+function isGuarantorComplete(data = {}) {
+  return Boolean(data.name?.trim() && data.phone?.trim());
+}
+
 export default async function handler(req, res) {
   const { id } = req.query;
 
@@ -68,6 +76,12 @@ export default async function handler(req, res) {
       onboardingComplete,
     } = req.body;
 
+    const existingStaff = await Staff.findById(id);
+
+    if (!existingStaff) {
+      return res.status(404).json({ message: "Staff not found" });
+    }
+
 
    const missingFields = [];
 if (!name) missingFields.push("name");
@@ -78,6 +92,12 @@ if (missingFields.length > 0) {
   return res.status(400).json({ message: `Missing fields: ${missingFields.join(", ")}` });
 }
 
+    const nextOnboardingData = onboardingData
+      ? normalizeOnboardingData(onboardingData)
+      : normalizeOnboardingData(existingStaff.onboardingData || {});
+    const nextGuarantor = guarantor
+      ? normalizeGuarantor(guarantor)
+      : normalizeGuarantor(existingStaff.guarantor || {});
 
     const updateData = {
       name,
@@ -92,13 +112,17 @@ if (missingFields.length > 0) {
     bankName: bank?.bankName ?? "",
   }
 } : {}),
-      ...(onboardingData ? { onboardingData: normalizeOnboardingData(onboardingData) } : {}),
-      ...(guarantor ? { guarantor: normalizeGuarantor(guarantor) } : {}),
+      ...(onboardingData ? { onboardingData: nextOnboardingData } : {}),
+      ...(guarantor ? { guarantor: nextGuarantor } : {}),
       ...(
-        typeof onboardingComplete === "boolean"
-          ? { onboardingComplete }
-          : onboardingData || guarantor
-            ? { onboardingComplete: true }
+        onboardingData || guarantor
+          ? {
+              onboardingComplete:
+                isOnboardingDataComplete(nextOnboardingData) &&
+                isGuarantorComplete(nextGuarantor),
+            }
+          : typeof onboardingComplete === "boolean"
+            ? { onboardingComplete }
             : {}
       ),
 
