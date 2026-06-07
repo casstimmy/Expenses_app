@@ -238,7 +238,7 @@ const SalaryMemo = forwardRef(
                         fontSize: "14px",
                       }}
                     >
-                      Paul Farrer
+                      Catherine Ashenuga Farrer
                     </p>
                     <p style={{ fontWeight: "bold", fontSize: "14px" }}>
                       Director
