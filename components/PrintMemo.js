@@ -5,12 +5,13 @@ import { toWords } from "number-to-words";
 
 const PrintMemo = forwardRef(
   (
-    { order, form, editing, handleChange, onDownloading, selectedAccount },
+    { order, form, editing, handleChange, onDownloading, selectedAccount, selectedDirector },
     ref
   ) => {
     const memoRef = useRef();
     const companyName = order?.supplier || "Unknown";
     const today = new Date().toISOString().split("T")[0];
+    const activeDirector = selectedDirector || "Catherine Ashenuga Farrer";
 
     useImperativeHandle(ref, () => ({
       generatePDF: async () => {
@@ -218,7 +219,7 @@ const PrintMemo = forwardRef(
                 </span>
               </p>
               <p style={{ fontWeight: "bold", paddingTop: "3.5em" }}>
-                Catherine Ashenuga Farrer
+                {activeDirector}
               </p>
               <p style={{ fontWeight: "bold" }}>Director</p>
             </div>

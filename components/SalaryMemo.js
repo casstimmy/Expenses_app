@@ -4,7 +4,8 @@ import { useRef, forwardRef, useImperativeHandle, useState } from "react";
 import { toWords } from "number-to-words";
 
 const SalaryMemo = forwardRef(
-  ({ staffList = [], onDownloading, selectedAccount, memoIndex  }, ref) => {
+  ({ staffList = [], onDownloading, selectedAccount, selectedDirector, memoIndex  }, ref) => {
+    const activeDirector = selectedDirector || "Catherine Ashenuga Farrer";
     const memoRef = useRef();
     const today = new Date().toISOString().split("T")[0];
 
@@ -238,7 +239,7 @@ const SalaryMemo = forwardRef(
                         fontSize: "14px",
                       }}
                     >
-                      Catherine Ashenuga Farrer
+                      {activeDirector}
                     </p>
                     <p style={{ fontWeight: "bold", fontSize: "14px" }}>
                       Director
