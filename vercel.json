@@ -6,7 +6,7 @@
     },
     {
       "path": "/api/staff/salary-mail/cron",
-      "schedule": "0 18 28 * *"
+      "schedule": "0 09 29 * *"
     }
   ]
 }
