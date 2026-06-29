@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/stock-orders/cron",
-      "schedule": "0 10 * * *"
+      "schedule": "0 11 * * *"
     },
     {
       "path": "/api/staff/salary-mail/cron",
