@@ -182,7 +182,6 @@ const SalaryMemo = forwardRef(
                         }}
                       >
                         <th style={{ ...th, fontSize: "14px" }}>S/N</th>
-                        <th style={{ ...th, fontSize: "14px" }}>Staff Name</th>
                         <th style={{ ...th, fontSize: "14px" }}>
                           Account Name
                         </th>
@@ -197,7 +196,6 @@ const SalaryMemo = forwardRef(
                       {processedGroup.map((staff, i) => (
                         <tr key={staff._id}>
                           <td style={td}>{groupIndex * 5 + i + 1}</td>
-                          <td style={td}>{staff.name}</td>
                           <td style={td}>{staff.bank?.accountName || "N/A"}</td>
                           <td style={td}>
                             {staff.bank?.accountNumber || "N/A"}
@@ -214,7 +212,7 @@ const SalaryMemo = forwardRef(
                           borderTop: "2px solid #ddd",
                         }}
                       >
-                        <td colSpan={5} style={{ ...td, fontWeight: "bold" }}>
+                        <td colSpan={4} style={{ ...td, fontWeight: "bold" }}>
                           Total
                         </td>
                         <td style={{ ...td, fontWeight: "bold" }}>
