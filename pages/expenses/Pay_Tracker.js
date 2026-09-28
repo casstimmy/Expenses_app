@@ -63,6 +63,10 @@ export default function PayTracker() {
     return o?.date || o?.createdAt || o?.paymentDate || null;
   };
 
+  // Stable identity for an order; legacy rows without _id fall back to supplier + date
+  const getOrderKey = (o) =>
+    o?._id ?? `${o?.supplier ?? "unk"}-${getOrderDate(o) ?? ""}`;
+
   // Helper: return a Date truncated to local midnight
   const startOfDay = (d) => {
     const dt = new Date(d);
@@ -180,64 +184,6 @@ export default function PayTracker() {
     setCountdown(0);
     setReminderSent(false);
   }, [dueOrders]);
-
-  // ---------- Export ----------
-  const escapeCsvValue = (value) => {
-    const normalized = value === null || value === undefined ? "" : String(value);
-    return /[",\n]/.test(normalized) ? `"${normalized.replace(/"/g, '""')}"` : normalized;
-  };
-
-  const formatProductsForExport = (mainProduct) => {
-    if (Array.isArray(mainProduct)) {
-      return mainProduct.map((item) => `${item?.product ?? ""} x${item?.quantity ?? ""}`).join("; ");
-    }
-    return mainProduct || "";
-  };
-
-  const handleExportCSV = useCallback(() => {
-    if (typeof window === "undefined" || filteredOrdersForTable.length === 0) return;
-
-    const headers = [
-      "Date",
-      "Vendor",
-      "Contact",
-      "Products",
-      "Total",
-      "Paid",
-      "Balance",
-      "Status",
-      "Payment Date",
-      "Type",
-    ];
-
-    const rows = filteredOrdersForTable.map((order) => [
-      getOrderDate(order) ? new Date(getOrderDate(order)).toLocaleDateString() : "",
-      order.supplier || "",
-      order.contact || "",
-      formatProductsForExport(order.mainProduct),
-      toNumber(order.grandTotal),
-      toNumber(order.paymentMade),
-      toNumber(order.balance),
-      order.status || "",
-      order.paymentDate ? new Date(order.paymentDate).toLocaleDateString() : "",
-      order.payBeforeSupply ? "Pay Before Supply" : "Outstanding",
-    ]);
-
-    const csv = [headers, ...rows]
-      .map((row) => row.map(escapeCsvValue).join(","))
-      .join("\n");
-
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = window.URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `pay-tracker-${tableFilter}-${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    window.URL.revokeObjectURL(url);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredOrdersForTable, tableFilter]);
 
   // ---------- Actions ----------
   const clearCountdown = () => {
@@ -448,6 +394,89 @@ export default function PayTracker() {
     paidFilter,
     customRange,
   ]);
+
+  // ---------- Export ----------
+  // Stock orders carry no stored reference number, so derive one from the full
+  // order list (oldest = ORD-001). Keying off every order instead of the filtered
+  // rows keeps a given order's ref identical across filters and exports.
+  const orderRefMap = useMemo(() => {
+    const map = new Map();
+    [...orders]
+      .sort((a, b) => {
+        const da = new Date(getOrderDate(a)).getTime() || 0;
+        const db = new Date(getOrderDate(b)).getTime() || 0;
+        if (da !== db) return da - db;
+        return String(a._id ?? "").localeCompare(String(b._id ?? ""));
+      })
+      .forEach((order, index) => {
+        map.set(getOrderKey(order), `ORD-${String(index + 1).padStart(3, "0")}`);
+      });
+    return map;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orders]);
+
+  const escapeCsvValue = (value) => {
+    const normalized = value === null || value === undefined ? "" : String(value);
+    return /[",\n]/.test(normalized) ? `"${normalized.replace(/"/g, '""')}"` : normalized;
+  };
+
+  // dd/mm/yyyy, to match the sheet this tracker is reconciled against
+  const formatDateForExport = (value) => {
+    if (!value) return "";
+    const date = new Date(value);
+    return isNaN(date) ? "" : date.toLocaleDateString("en-GB");
+  };
+
+  // /api/stock-orders populates vendor, so the rep's phone rides along with the order
+  const getSupplierPhone = (order) =>
+    order?.supplierPhone || order?.vendor?.repPhone || order?.vendor?.phone || "";
+
+  const handleExportCSV = useCallback(() => {
+    if (typeof window === "undefined" || filteredOrdersForTable.length === 0) return;
+
+    const headers = [
+      "Order Ref",
+      "Date",
+      "Supplier",
+      "Supplier Phone",
+      "Contact",
+      "Location",
+      "Received",
+      "Pay Before Supply",
+      "Payment Made",
+      "Payment Date",
+    ];
+
+    const rows = filteredOrdersForTable.map((order) => [
+      orderRefMap.get(getOrderKey(order)) ?? "",
+      formatDateForExport(getOrderDate(order)),
+      order.supplier || "",
+      getSupplierPhone(order),
+      order.contact || "",
+      order.location || "",
+      // Pay-before-supply orders are settled ahead of delivery, so stock isn't in yet
+      order.payBeforeSupply ? "No" : "Yes",
+      order.payBeforeSupply ? "Yes" : "No",
+      toNumber(order.paymentMade),
+      formatDateForExport(order.paymentDate),
+    ]);
+
+    const csv = [headers, ...rows]
+      .map((row) => row.map(escapeCsvValue).join(","))
+      .join("\r\n");
+
+    // BOM so Excel opens the file as UTF-8 instead of the local codepage
+    const blob = new Blob([`\ufeff${csv}`], { type: "text/csv;charset=utf-8;" });
+    const url = window.URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `pay-tracker-${tableFilter}-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.URL.revokeObjectURL(url);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredOrdersForTable, orderRefMap, tableFilter]);
 
   // ---------- Render ----------
   return (
