@@ -181,6 +181,64 @@ export default function PayTracker() {
     setReminderSent(false);
   }, [dueOrders]);
 
+  // ---------- Export ----------
+  const escapeCsvValue = (value) => {
+    const normalized = value === null || value === undefined ? "" : String(value);
+    return /[",\n]/.test(normalized) ? `"${normalized.replace(/"/g, '""')}"` : normalized;
+  };
+
+  const formatProductsForExport = (mainProduct) => {
+    if (Array.isArray(mainProduct)) {
+      return mainProduct.map((item) => `${item?.product ?? ""} x${item?.quantity ?? ""}`).join("; ");
+    }
+    return mainProduct || "";
+  };
+
+  const handleExportCSV = useCallback(() => {
+    if (typeof window === "undefined" || filteredOrdersForTable.length === 0) return;
+
+    const headers = [
+      "Date",
+      "Vendor",
+      "Contact",
+      "Products",
+      "Total",
+      "Paid",
+      "Balance",
+      "Status",
+      "Payment Date",
+      "Type",
+    ];
+
+    const rows = filteredOrdersForTable.map((order) => [
+      getOrderDate(order) ? new Date(getOrderDate(order)).toLocaleDateString() : "",
+      order.supplier || "",
+      order.contact || "",
+      formatProductsForExport(order.mainProduct),
+      toNumber(order.grandTotal),
+      toNumber(order.paymentMade),
+      toNumber(order.balance),
+      order.status || "",
+      order.paymentDate ? new Date(order.paymentDate).toLocaleDateString() : "",
+      order.payBeforeSupply ? "Pay Before Supply" : "Outstanding",
+    ]);
+
+    const csv = [headers, ...rows]
+      .map((row) => row.map(escapeCsvValue).join(","))
+      .join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = window.URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `pay-tracker-${tableFilter}-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.URL.revokeObjectURL(url);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredOrdersForTable, tableFilter]);
+
   // ---------- Actions ----------
   const clearCountdown = () => {
     if (reminderIntervalRef.current) {
@@ -558,14 +616,24 @@ export default function PayTracker() {
                 )}
               </div>
 
-              {/* Full Table Button */}
-              <button
-                onClick={() => setTableFilter("all")}
-                aria-label="Show full table"
-                className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium px-5 py-2 rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 w-full"
-              >
-                Full Table
-              </button>
+              {/* Full Table + Download Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() => setTableFilter("all")}
+                  aria-label="Show full table"
+                  className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium px-5 py-2 rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 w-full"
+                >
+                  Full Table
+                </button>
+                <button
+                  onClick={handleExportCSV}
+                  disabled={filteredOrdersForTable.length === 0}
+                  aria-label="Download pay tracker data as CSV"
+                  className="bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium px-5 py-2 rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2 w-full"
+                >
+                  ⬇ Download CSV
+                </button>
+              </div>
 
               {/* Stats Cards Grid - 2 column on all screens */}
               <div className="grid grid-cols-2 gap-3 sm:gap-4">
