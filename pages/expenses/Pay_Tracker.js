@@ -431,6 +431,11 @@ export default function PayTracker() {
   const getSupplierPhone = (order) =>
     order?.supplierPhone || order?.vendor?.repPhone || order?.vendor?.phone || "";
 
+  // Location is copied off the staff record when the order is raised; fall back to
+  // the populated staff for older orders saved before that was captured.
+  const getOrderLocation = (order) =>
+    order?.location || order?.staff?.location || "";
+
   const handleExportCSV = useCallback(() => {
     if (typeof window === "undefined" || filteredOrdersForTable.length === 0) return;
 
@@ -443,6 +448,7 @@ export default function PayTracker() {
       "Location",
       "Received",
       "Pay Before Supply",
+      "Order Total",
       "Payment Made",
       "Payment Date",
     ];
@@ -453,10 +459,11 @@ export default function PayTracker() {
       order.supplier || "",
       getSupplierPhone(order),
       order.contact || "",
-      order.location || "",
+      getOrderLocation(order),
       // Pay-before-supply orders are settled ahead of delivery, so stock isn't in yet
       order.payBeforeSupply ? "No" : "Yes",
       order.payBeforeSupply ? "Yes" : "No",
+      toNumber(order.grandTotal),
       toNumber(order.paymentMade),
       formatDateForExport(order.paymentDate),
     ]);
